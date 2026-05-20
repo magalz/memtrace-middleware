@@ -1,0 +1,79 @@
+# generated: 2026-05-19
+# last_updated: 2026-05-20T15:00:00Z
+# project: bmad-memtrace
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: d:\Repos\bmad-memtrace\_bmad-output\implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-05-19
+last_updated: 2026-05-20T15:00:00Z
+project: bmad-memtrace
+project_key: NOKEY
+tracking_system: file-system
+story_location: d:\Repos\bmad-memtrace\_bmad-output\implementation-artifacts
+
+development_status:
+  epic-1: done
+  1-1-legacy-clone-cleanup-script: done
+  1-2-environment-anchor-and-mcp-configuration: done
+  1-3-interactive-mode-selection-redirect-phase-2: done
+  epic-1-retrospective: done
+  epic-2: done
+  2-1-blast-radius-verification-and-halting: done
+  2-2-textual-justification-quality-gate-phase-1: done
+  2-3-mathematical-blocking-quality-gate-phase-2: done
+  2-4-pitfall-catalog-validation-for-dead-code: done
+  epic-2-retrospective: done
+  epic-3: in-progress
+  3-1-structural-blast-radius-query-adapter: done
+  3-2-dead-code-detection-adapter: done
+  3-3-token-optimization-via-summarization: done
+  3-4-server-concurrency-throttling-freshness-check: done
+  epic-3-retrospective: optional
+  epic-4: done
+  4-1-mcp-timeout-detection: done
+  4-2-autonomous-server-recovery-workflow-phase-2: done
+  4-3-manual-intervention-and-fallback-override: done
+  epic-4-retrospective: optional
+  epic-5: in-progress
+  5-1-markdown-telemetry-report-generation: done
+  5-2-friction-severity-scoring: backlog
+  5-3-autonomous-telemetry-deduplication: backlog
+  epic-5-retrospective: optional
+  epic-6: backlog
+  6-1-architect-readiness-validator-structural-context: backlog
+  6-2-code-reviewer-deep-audit: backlog
+  6-3-test-architect-coverage-gap-analysis: backlog
+  6-4-hallucination-free-documentation: backlog
+  6-5-pm-technical-debt-analysis: backlog
+  6-6-orchestrator-party-mode-context-injection: backlog
+  epic-6-retrospective: optional
