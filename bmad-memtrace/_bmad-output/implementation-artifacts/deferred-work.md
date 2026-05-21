@@ -1,5 +1,12 @@
 # Deferred Work Log
 
+## Deferred from: code review of story 6-1-architect-readiness-validator-structural-context (2026-05-21)
+
+- No timeout/retry specification in step instructions — Pre-existing pattern. The adapter handles timeouts internally. Step instructions delegate to the adapter which already has this covered.
+- Contradictory guidance on graph data trustworthiness — By design: the feature is advisory. Mitigated by freshness check patch.
+- Persistent fact conflates adapter subprocess with MCP tool execution — Pre-existing architectural decision. Both usage modes are valid for different query types.
+- `find_api_endpoints` filter unspecified — Pre-existing: the executing agent will determine appropriate filters based on context.
+
 ## Deferred from: code review of story 4-2 (2026-05-20)
 
 - W1: No concurrency guard for simultaneous `npm run memtrace:restart` invocations from multiple agents. If two agents trigger recovery concurrently, the second agent's `taskkill /im memtrace.exe /t` can kill the first agent's verification spawn. Worth adding a PID-file lock or mutex in a future hardening story. [memtrace-restart.mjs]
