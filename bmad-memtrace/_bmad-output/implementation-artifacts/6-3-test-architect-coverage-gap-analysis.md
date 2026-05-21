@@ -1,6 +1,6 @@
 # Story 6.3: Test Architect Coverage Gap Analysis
 
-Status: review
+Status: done
 
 ## Story
 
