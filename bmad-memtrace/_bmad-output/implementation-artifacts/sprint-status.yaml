@@ -1,5 +1,5 @@
 # generated: 2026-05-19
-# last_updated: 2026-05-21T23:30:00Z
+# last_updated: 2026-05-21T18:00:00Z
 # project: bmad-memtrace
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-05-21T23:30:00Z
+last_updated: 2026-05-21T18:00:00Z
 project: bmad-memtrace
 project_key: NOKEY
 tracking_system: file-system
@@ -74,6 +74,6 @@ development_status:
   6-2-code-reviewer-deep-audit: done
   6-3-test-architect-coverage-gap-analysis: done
   6-4-hallucination-free-documentation: done
-  6-5-pm-technical-debt-analysis: backlog
-  6-6-orchestrator-party-mode-context-injection: backlog
+  6-5-pm-technical-debt-analysis: done
+  6-6-orchestrator-party-mode-context-injection: done
   epic-6-retrospective: optional
