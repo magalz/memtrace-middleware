@@ -1,5 +1,5 @@
 # generated: 2026-05-19
-# last_updated: 2026-05-21T18:00:00Z
+# last_updated: 2026-05-22T12:00:00Z
 # project: bmad-memtrace
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-05-21T18:00:00Z
+last_updated: 2026-05-22T15:05:00Z
 project: bmad-memtrace
 project_key: NOKEY
 tracking_system: file-system
@@ -58,22 +58,30 @@ development_status:
   3-2-dead-code-detection-adapter: done
   3-3-token-optimization-via-summarization: done
   3-4-server-concurrency-throttling-freshness-check: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
   epic-4: done
   4-1-mcp-timeout-detection: done
   4-2-autonomous-server-recovery-workflow-phase-2: done
   4-3-manual-intervention-and-fallback-override: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
   epic-5: done
   5-1-markdown-telemetry-report-generation: done
   5-2-friction-severity-scoring: done
   5-3-autonomous-telemetry-deduplication: done
-  epic-5-retrospective: optional
-  epic-6: in-progress
+  epic-5-retrospective: done
+  epic-6: done
   6-1-architect-readiness-validator-structural-context: done
   6-2-code-reviewer-deep-audit: done
   6-3-test-architect-coverage-gap-analysis: done
   6-4-hallucination-free-documentation: done
   6-5-pm-technical-debt-analysis: done
   6-6-orchestrator-party-mode-context-injection: done
-  epic-6-retrospective: optional
+   epic-6-retrospective: done
+   epic-7: in-progress
+  7-1-file-boundary-audit: done
+  7-2-tool-reference-integrity-check: done
+  7-3-skill-structural-validation: done
+  7-4-adapter-scripts-smoke-test: done
+   7-5-installer-end-to-end: ready-for-dev
+    7-6-cross-cutting-consistency-audit: done
+   epic-7-retrospective: optional
