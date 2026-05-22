@@ -1,5 +1,5 @@
 # generated: 2026-05-19
-# last_updated: 2026-05-22T12:00:00Z
+# last_updated: 2026-05-22
 # project: bmad-memtrace
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-05-22T15:05:00Z
+last_updated: 2026-05-22
 project: bmad-memtrace
 project_key: NOKEY
 tracking_system: file-system
@@ -77,11 +77,15 @@ development_status:
   6-5-pm-technical-debt-analysis: done
   6-6-orchestrator-party-mode-context-injection: done
    epic-6-retrospective: done
-   epic-7: in-progress
-  7-1-file-boundary-audit: done
-  7-2-tool-reference-integrity-check: done
-  7-3-skill-structural-validation: done
-  7-4-adapter-scripts-smoke-test: done
-   7-5-installer-end-to-end: ready-for-dev
-    7-6-cross-cutting-consistency-audit: done
-   epic-7-retrospective: optional
+   epic-7: done
+   7-1-file-boundary-audit: done
+   7-2-tool-reference-integrity-check: done
+   7-3-skill-structural-validation: done
+   7-4-adapter-scripts-smoke-test: done
+   7-5-installer-end-to-end: done
+   7-6-cross-cutting-consistency-audit: done
+   epic-7-retrospective: done
+   epic-8: done
+    8-1-telemetry-hardening: done
+    8-2-validator-polish: done
+   8-3-code-review-and-pipeline-hardening: done
