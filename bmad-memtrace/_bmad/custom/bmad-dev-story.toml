@@ -1,0 +1,28 @@
+# Team override — dual-entry Murat QA workflow for dev-story
+# See docs/qa-workflow.md for the designed flow
+
+[workflow]
+
+# Murat QA-Design runs BEFORE implementation (red phase: ATDD + Test Design)
+# These steps run right after activation but before the dev story workflow begins.
+# The first Murat call is a subagent call to save context tokens.
+activation_steps_append = [
+  "QA-DESIGN GATE (before implementation). Call Murat (bmad-tea) as subagent with task: 'Load the story file at {{story_file_path}}. Follow the QA-Design phase from docs/qa-workflow.md: (1) run bmad-testarch-atdd to generate red-phase acceptance test scaffolds, (2) run bmad-testarch-test-design to create a test strategy with risk and coverage. Write outputs to _bmad-output/test-artifacts/. Return a summary of tests created and coverage plan.' After Murat returns, read the generated test files and add them to your context before starting implementation.",
+]
+
+# Persistent context for the workflow
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/qa-workflow.md",
+  "Memtrace structural deep audit is available for context gathering. During Step 1 (Gather Context), you MUST use the adapter at _bmad/scripts/memtrace/memtrace-adapter.mjs or MCP tool get_codebase_briefing to map the current architecture skeleton. This prevents duplicating components or modules that were built in previous stories. All queries MUST use sequential for...of with await — NEVER Promise.all. Timeout or stale index means skip and continue.",
+  "QA workflow: After implementation is complete, before marking the story as done, you MUST call Murat (bmad-tea) as subagent for QA-Verify phase: (1) bmad-testarch-test-review to score test quality, (2) bmad-testarch-trace to verify all ACs are covered by tests, (3) bmad-testarch-automate to fill coverage gaps. QA Gate must PASS (score >= 70, 100% ACs covered) before proceeding to code review.",
+]
+
+# After dev completes: Murat QA-Verify → Code Review → sprint update
+on_complete = "After story implementation is complete and all fixes are applied, invoke Murat (bmad-tea) as subagent for QA-Verify: test review + traceability + automate. Then invoke bmad-code-review with fresh context (3-subagent review). Apply any review fixes. Finally update sprint-status.yaml."
+
+# ⚠️ Epic 1 stories lack QA-Verify (dual-entry Murat wasn't active).
+# Before starting Epic 2, run a retroactive QA-Verify pass on all 6 Epic 1 stories
+# to catch coverage/contract gaps and generate QA gate reports.
+# Command: Load bmad-tea, run QA-Verify (test-review + trace + automate) on each story.
+epic1_retroactive_qa_verify = true
