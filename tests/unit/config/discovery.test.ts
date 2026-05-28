@@ -10,7 +10,10 @@ function normalizePath(p: string): string {
 }
 
 function createTempDir(): string {
-  const dir = join(tmpdir(), `discovery-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const dir = join(
+    tmpdir(),
+    `discovery-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  );
   mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -38,18 +41,16 @@ describe('discoverEnvironment', () => {
   });
 
   it('[P0] should provide a probe function that resolves to boolean', async () => {
-    const { probe } = discoverEnvironment(
-      async () => true
-    );
+    const { probe } = discoverEnvironment(async () => true);
 
     const result = await probe();
     expect(typeof result).toBe('boolean');
   });
 
   it('[P0] should return false from probe when host is unreachable', async () => {
-    const { probe } = discoverEnvironment(
-      async () => { throw new Error('ECONNREFUSED'); }
-    );
+    const { probe } = discoverEnvironment(async () => {
+      throw new Error('ECONNREFUSED');
+    });
 
     const result = await probe();
     expect(result).toBe(false);
@@ -147,7 +148,10 @@ describe('readWorkspaceConfig', () => {
     const tempDir = createTempDir();
 
     try {
-      writeFileSync(join(tempDir, 'config.json'), JSON.stringify({ repo_id: 'test-repo', host: 'http://localhost:9090' }));
+      writeFileSync(
+        join(tempDir, 'config.json'),
+        JSON.stringify({ repo_id: 'test-repo', host: 'http://localhost:9090' })
+      );
 
       const config = readWorkspaceConfig(tempDir);
       expect(config).not.toBeNull();

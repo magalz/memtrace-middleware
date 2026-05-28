@@ -1,6 +1,13 @@
+// AC 1.4-1: Agent Interface contract — ToolProvider, ContextBuilder, Session (FR23)
+// AC 1.4-8: traits test — all three traits compile with correct TypeScript signatures
 import { describe, it, expect } from 'vitest';
 
-import type { ToolProvider, ContextBuilder, Session, AgentResponse } from '../../../src/interface/traits.js';
+import type {
+  ToolProvider,
+  ContextBuilder,
+  Session,
+  AgentResponse,
+} from '../../../src/interface/traits.js';
 import type { FusedContext, DegradationTier } from '../../../src/types.js';
 
 describe('Agent Interface contracts', () => {
@@ -34,14 +41,25 @@ describe('Agent Interface contracts', () => {
         buildContext(_context: FusedContext): AgentResponse {
           return {
             content: [{ type: 'text', text: JSON.stringify(_context.blocks) }],
-            metadata: { tier: _context.partial ? 'intent_reduced' : 'full', trace_id: _context.trace_id, elapsed_ms: 0 },
+            metadata: {
+              tier: _context.partial ? 'intent_reduced' : 'full',
+              trace_id: _context.trace_id,
+              elapsed_ms: 0,
+            },
           };
         },
       };
 
       const fc: FusedContext = {
         blocks: [
-          { symbol: 'auth', file_path: 'src/auth.ts', start_line: 1, end_line: 10, centrality: 0.9, query_type: 'find_code' },
+          {
+            symbol: 'auth',
+            file_path: 'src/auth.ts',
+            start_line: 1,
+            end_line: 10,
+            centrality: 0.9,
+            query_type: 'find_code',
+          },
         ],
         partial: false,
         trace_id: 'fc-12345678',

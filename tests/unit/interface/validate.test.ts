@@ -1,3 +1,5 @@
+// AC 1.4-5: Zod validation at adapter boundary rejects malformed payloads with MiddlewareError (FR23)
+// AC 1.4-9: 12 validation tests covering all malformed message edge cases
 import { describe, it, expect } from 'vitest';
 
 import { validateToolCall } from '../../../src/interface/validate.js';
