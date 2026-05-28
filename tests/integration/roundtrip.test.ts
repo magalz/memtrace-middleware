@@ -3,6 +3,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MemtraceTransport } from '../../src/backend/transport.js';
 import { createMockMemtrace } from '../fixtures/memtrace-mock.js';
 import { MiddlewareError } from '../../src/errors.js';
+import { classify, plan } from '../../src/router/index.js';
+import type { MemtraceCapabilities, GraphQuery } from '../../src/types.js';
+
+const mockCapabilities: MemtraceCapabilities = {
+  tools: [
+    { name: 'memtrace_find_code', description: 'Find code', inputSchema: {} },
+    { name: 'memtrace_get_symbol_context', description: 'Get symbol context', inputSchema: {} },
+    { name: 'memtrace_get_impact', description: 'Get impact', inputSchema: {} },
+  ],
+};
 
 describe('Memtrace passthrough roundtrip', () => {
   let mock: { url: string; close: () => Promise<void> } | null = null;
@@ -157,5 +167,53 @@ describe('Memtrace passthrough roundtrip', () => {
 
     // verify transport is no longer usable
     await expect(transport.listTools()).rejects.toThrow(MiddlewareError);
+  });
+
+  it('should not block sibling queries when one query exceeds timeout', async () => {
+    const msg: Record<string, unknown> = {
+      method: 'tools/call',
+      params: {
+        name: 'memtrace_get_symbol_context',
+        arguments: { symbol: 'authenticateUser', query: 'authenticateUser' },
+      },
+    };
+
+    const classified = classify(msg, mockCapabilities);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+
+    const planned = plan(classified.value, mockCapabilities);
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) return;
+
+    expect(planned.value.length).toBeGreaterThanOrEqual(2);
+
+    mock = createMockMemtrace({ slowTools: ['memtrace_get_symbol_context'], delayMs: 210 });
+    transport = new MemtraceTransport(mock.url);
+    await transport.connect();
+
+    const results = await Promise.allSettled(
+      planned.value.map((q: GraphQuery) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 200);
+        return transport!.execute(q, controller.signal).finally(() => clearTimeout(timer));
+      })
+    );
+
+    expect(results).toHaveLength(planned.value.length);
+
+    const degradedCount = results.filter(
+      (r) => r.status === 'fulfilled' && r.value.degraded
+    ).length;
+    const successCount = results.filter(
+      (r) => r.status === 'fulfilled' && !r.value.degraded
+    ).length;
+
+    expect(degradedCount).toBeGreaterThanOrEqual(1);
+    expect(successCount).toBeGreaterThanOrEqual(1);
+
+    for (const r of results) {
+      expect(r.status).toBe('fulfilled');
+    }
   });
 });

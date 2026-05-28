@@ -15,12 +15,26 @@ const DEFAULT_INTENTS: IntentDefinition[] = [
   },
   {
     type: 'get_symbol_context',
-    patterns: ['context of', 'what calls', 'callers of', 'callees of', 'symbol context', 'dependencies of'],
-    tools: ['memtrace_find_code', 'memtrace_get_symbol_context'],
+    patterns: [
+      'context of',
+      'what calls',
+      'callers of',
+      'callees of',
+      'symbol context',
+      'dependencies of',
+    ],
+    tools: ['memtrace_find_code', 'memtrace_get_symbol_context', 'memtrace_get_impact'],
   },
   {
     type: 'get_impact',
-    patterns: ['impact of', 'blast radius', 'what breaks', 'what depends on', 'upstream', 'downstream'],
+    patterns: [
+      'impact of',
+      'blast radius',
+      'what breaks',
+      'what depends on',
+      'upstream',
+      'downstream',
+    ],
     tools: ['memtrace_get_impact', 'memtrace_find_code'],
   },
 ];

@@ -9,6 +9,7 @@ export interface MockTool {
 export interface MockOptions {
   failureMode?: 'none' | 'reject' | 'slow';
   delayMs?: number;
+  slowTools?: string[];
 }
 
 const DEFAULT_TOOLS: MockTool[] = [
@@ -109,10 +110,6 @@ export function createMockMemtrace(opts: MockOptions = {}): {
   }
 
   const server = http.createServer(async (req, res) => {
-    if (opts.failureMode === 'slow' && opts.delayMs) {
-      await new Promise((r) => setTimeout(r, opts.delayMs));
-    }
-
     if (req.method !== 'POST') {
       res.writeHead(405);
       res.end();
@@ -166,6 +163,13 @@ export function createMockMemtrace(opts: MockOptions = {}): {
       );
     } else if (message.method === 'tools/call') {
       const toolName = message.params?.name;
+
+      if (opts.failureMode === 'slow' && opts.delayMs) {
+        await new Promise((r) => setTimeout(r, opts.delayMs));
+      }
+      if (opts.slowTools?.includes(toolName as string) && opts.delayMs) {
+        await new Promise((r) => setTimeout(r, opts.delayMs));
+      }
 
       if (toolName && TOOL_RESPONSES[toolName]) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
