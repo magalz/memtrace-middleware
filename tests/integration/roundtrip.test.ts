@@ -217,3 +217,181 @@ describe('Memtrace passthrough roundtrip', () => {
     }
   });
 });
+
+describe('BaseAdapter orchestration (Story 1.4)', () => {
+  const mockCaps: MemtraceCapabilities = {
+    tools: [
+      { name: 'memtrace_find_code', description: 'Find code', inputSchema: {} },
+      { name: 'memtrace_get_symbol_context', description: 'Get symbol context', inputSchema: {} },
+      { name: 'memtrace_get_impact', description: 'Get impact', inputSchema: {} },
+    ],
+  };
+
+  function createMockBackend(
+    overrides?: Partial<import('../../src/backend/trait.js').MemtraceBackend>
+  ): import('../../src/backend/trait.js').MemtraceBackend {
+    return {
+      execute: async () => ({
+        tool: 'memtrace_find_code',
+        data: [{ name: 'authenticateUser', file_path: 'src/auth.ts', start_line: 42, end_line: 67 }],
+        trace_id: 'fc-12345678',
+        elapsed_ms: 42,
+        degraded: false,
+      }),
+      probe: async () => true,
+      listTools: async () => mockCaps.tools,
+      ...overrides,
+    };
+  }
+
+  it('[P0] BaseAdapter should orchestrate classify→plan→execute end-to-end', async () => {
+    const mockBackend = createMockBackend();
+
+    const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+    const adapter = new BaseAdapter(mockBackend);
+
+    const msg = {
+      method: 'tools/call',
+      params: {
+        name: 'memtrace_find_code',
+        arguments: { query: 'authenticateUser' },
+      },
+    };
+
+    const response = await adapter.dispatch(msg);
+
+    expect(response).toHaveProperty('content');
+    expect(response.content.length).toBeGreaterThan(0);
+    expect(response.content[0].type).toBe('text');
+    expect(response.metadata).toBeDefined();
+    expect(response.metadata?.trace_id).toBeTruthy();
+  });
+
+  it('[P0] BaseAdapter should return error context for malformed messages', async () => {
+    const mockBackend = createMockBackend();
+
+    const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+    const adapter = new BaseAdapter(mockBackend);
+
+    const msg = { method: 'tools/call' };
+
+    const response = await adapter.dispatch(msg);
+
+    expect(response).toHaveProperty('content');
+    expect(response.content[0].type).toBe('text');
+    expect(response.metadata).toBeDefined();
+  });
+
+  it('[P0] BaseAdapter should handle passthrough intent from classification', async () => {
+    const mockBackend = createMockBackend({
+      execute: async (query) => ({
+        tool: query.tool,
+        data: { raw: 'passthrough result' },
+        trace_id: 'pt-12345678',
+        elapsed_ms: 15,
+        degraded: false,
+      }),
+    });
+
+    const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+    const adapter = new BaseAdapter(mockBackend);
+
+    const msg = {
+      method: 'tools/call',
+      params: {
+        name: 'some_unknown_tool',
+        arguments: { query: 'unrecognized intent' },
+      },
+    };
+
+    const response = await adapter.dispatch(msg);
+
+    expect(response).toHaveProperty('content');
+    expect(response.metadata).toBeDefined();
+    expect(response.metadata?.trace_id).toBeTruthy();
+  });
+
+  it('[P1] BaseAdapter should use Promise.allSettled for parallel execution', async () => {
+    const executionOrder: string[] = [];
+    const mockBackend = createMockBackend({
+      execute: async (query) => {
+        executionOrder.push(query.tool);
+        if (query.tool === 'memtrace_get_symbol_context') {
+          await new Promise((r) => setTimeout(r, 150));
+        }
+        return {
+          tool: query.tool,
+          data: {},
+          trace_id: 'pl-12345678',
+          elapsed_ms: query.tool === 'memtrace_get_symbol_context' ? 150 : 10,
+          degraded: query.tool === 'memtrace_get_symbol_context',
+        };
+      },
+    });
+
+    const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+    const adapter = new BaseAdapter(mockBackend);
+
+    const msg = {
+      method: 'tools/call',
+      params: {
+        name: 'memtrace_get_symbol_context',
+        arguments: { symbol: 'authenticateUser' },
+      },
+    };
+
+    const response = await adapter.dispatch(msg);
+
+    expect(response).toHaveProperty('content');
+    expect(executionOrder.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('[P1] CLI adapter factory should return a ToolProvider', async () => {
+    const mockBackend = createMockBackend({ listTools: async () => [] });
+
+    const { createCliAdapter } = await import('../../src/adapters/cli/index.js');
+    const provider = createCliAdapter(mockBackend);
+
+    expect(typeof provider.dispatch).toBe('function');
+
+    const response = await provider.dispatch({
+      method: 'tools/call',
+      params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
+    });
+
+    expect(response).toHaveProperty('content');
+  });
+
+  it('[P1] BaseAdapter should enforce dispatch timeout and return intent_timeout error', async () => {
+    const mockBackend = createMockBackend({
+      listTools: async () => {
+        await new Promise((r) => setTimeout(r, 500));
+        return [];
+      },
+    });
+
+    const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+    const adapter = new BaseAdapter(mockBackend, {
+      memtrace_host: '',
+      memtrace_token: '',
+      timeout_budgets: { sub_query_ms: 200, dispatch_ms: 100, probe_interval_ms: 15000 },
+      hysteresis_probe_count: 3,
+      degradation_floor: 'Passthrough',
+      enabled_intents: ['find_code', 'get_symbol_context', 'get_impact'],
+      classification_threshold: 0.95,
+    });
+
+    const msg = {
+      method: 'tools/call',
+      params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
+    };
+
+    const response = await adapter.dispatch(msg);
+
+    expect(response).toHaveProperty('content');
+    expect(response.metadata).toBeDefined();
+    const content = JSON.parse(response.content[0].text);
+    expect(content.cause).toBe('intent_timeout');
+    expect(content.recoverable).toBe(true);
+  });
+});

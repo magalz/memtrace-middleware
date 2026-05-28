@@ -31,7 +31,19 @@ export {
 export { createLogger } from './logger.js';
 export type { Logger } from './logger.js';
 
-export type { MemtraceBackend } from './backend/index.js';
+export type { MemtraceBackend, DegradationProbeHooks } from './backend/index.js';
+
+export { BaseAdapter, validateToolCall } from './interface/index.js';
+export type {
+  ToolProvider,
+  ContextBuilder,
+  Session,
+  SessionState,
+  AgentResponse,
+  ToolCallMessage,
+} from './interface/index.js';
+
+export { createCliAdapter } from './adapters/index.js';
 
 export {
   loadConfig,
@@ -40,10 +52,13 @@ export {
   getCurrentConfig,
   DEFAULT_CONFIG,
   normalizeFloor,
+  discoverEnvironment,
+  readWorkspaceConfig,
 } from './config/index.js';
 export type {
   MiddlewareConfig,
   ConfigDelta,
   DegradationFloor,
   IntentType,
+  EnvironmentInfo,
 } from './config/index.js';
