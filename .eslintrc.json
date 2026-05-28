@@ -62,5 +62,15 @@
     "import/no-named-as-default": "off",
     "import/newline-after-import": "error"
   },
-  "ignorePatterns": ["dist", "node_modules", "*.js", "*.cjs"]
+  "ignorePatterns": ["dist", "node_modules", "*.js", "*.cjs"],
+  "overrides": [
+    {
+      "files": ["tests/**/*.test.ts"],
+      "rules": {
+        "import/first": "off",
+        "import/order": "off",
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ]
 }

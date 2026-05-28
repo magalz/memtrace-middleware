@@ -30,3 +30,18 @@ export {
 
 export { createLogger } from './logger.js';
 export type { Logger } from './logger.js';
+
+export {
+  loadConfig,
+  getConfigPath,
+  watchConfig,
+  getCurrentConfig,
+  DEFAULT_CONFIG,
+  normalizeFloor,
+} from './config/index.js';
+export type {
+  MiddlewareConfig,
+  ConfigDelta,
+  DegradationFloor,
+  IntentType,
+} from './config/index.js';
