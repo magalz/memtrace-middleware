@@ -1,1 +1,2 @@
-// Context fusion engine — story 2.1
+export { fuse } from './engine.js';
+export { validateContext } from './validate.js';

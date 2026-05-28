@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`engine.pact — fusion contract > [P1] snapshot guards FusedContext contract shape > fusion_contract 1`] = `
+{
+  "blocks": [
+    {
+      "centrality": 5,
+      "end_line": 20,
+      "file_path": "src/contract.ts",
+      "query_type": "memtrace_find_code",
+      "start_line": 10,
+      "symbol": "contractFn",
+    },
+  ],
+  "partial": false,
+  "provenance": [
+    "[memtrace: grounded via memtrace_find_code → contractFn at src/contract.ts:10]",
+  ],
+  "trace_id": "ctr-001",
+}
+`;

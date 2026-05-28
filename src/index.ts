@@ -31,6 +31,8 @@ export {
 export { createLogger } from './logger.js';
 export type { Logger } from './logger.js';
 
+export { fuse, validateContext } from './fusion/index.js';
+
 export type { MemtraceBackend, DegradationProbeHooks } from './backend/index.js';
 
 export { BaseAdapter, validateToolCall } from './interface/index.js';

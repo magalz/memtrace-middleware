@@ -4,17 +4,25 @@ import type { MemtraceBackend } from '../backend/trait.js';
 import type { MiddlewareConfig } from '../config/index.js';
 import { MAX_DISPATCH_TIMEOUT_MS, MAX_SUB_QUERY_TIMEOUT_MS } from '../constants.js';
 import { MiddlewareError } from '../errors.js';
+import { fuse, validateContext } from '../fusion/index.js';
 import { createLogger } from '../logger.js';
 import { classify, plan } from '../router/index.js';
-import { DegradationTier, type FusedContext, type GraphQuery, type MemtraceCapabilities, type QueryResult } from '../types.js';
+import {
+  DegradationTier,
+  type FusedContext,
+  type GraphQuery,
+  type MemtraceCapabilities,
+  type QueryResult,
+} from '../types.js';
 import type { AgentResponse, ContextBuilder, ToolProvider } from './traits.js';
 import { validateToolCall } from './validate.js';
 
 const log = createLogger('interface');
 
 function buildDefaultContext(context: FusedContext): AgentResponse {
-  const textBlocks = context.blocks.map((b) =>
-    `[memtrace: grounded via ${b.query_type} → ${b.symbol} at ${b.file_path}:${b.start_line}]`
+  const textBlocks = context.blocks.map(
+    (b) =>
+      `[memtrace: grounded via ${b.query_type} → ${b.symbol} at ${b.file_path}:${b.start_line}]`
   );
   return {
     content: [{ type: 'text', text: textBlocks.join('\n') || 'no results' }],
@@ -34,7 +42,8 @@ export class BaseAdapter implements ToolProvider {
   private readonly backend: MemtraceBackend;
   private readonly config: MiddlewareConfig;
   private readonly contextBuilder: ContextBuilder;
-  private readonly sessions: Map<string, { id: string; created_at: string; intent_count: number }> = new Map();
+  private readonly sessions: Map<string, { id: string; created_at: string; intent_count: number }> =
+    new Map();
 
   constructor(backend: MemtraceBackend, config?: MiddlewareConfig) {
     this.backend = backend;
@@ -64,7 +73,14 @@ export class BaseAdapter implements ToolProvider {
         this.runDispatch(message, traceId, dispatchStart),
         new Promise<AgentResponse>((_, reject) =>
           setTimeout(
-            () => reject(new MiddlewareError({ cause: 'intent_timeout', recoverable: true, suggested_action: 'retry_with_smaller_scope' })),
+            () =>
+              reject(
+                new MiddlewareError({
+                  cause: 'intent_timeout',
+                  recoverable: true,
+                  suggested_action: 'retry_with_smaller_scope',
+                })
+              ),
             dispatchTimeout
           )
         ),
@@ -75,15 +91,28 @@ export class BaseAdapter implements ToolProvider {
         log.warn('dispatch_timeout', { trace_id: traceId, timeout_ms: dispatchTimeout });
         return {
           content: [{ type: 'text', text: JSON.stringify(err.toShape()) }],
-          metadata: { tier: err.tier, trace_id: err.trace_id, elapsed_ms: Date.now() - dispatchStart },
+          metadata: {
+            tier: err.tier,
+            trace_id: err.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
         };
       }
-      const mwErr = err instanceof MiddlewareError
-        ? err
-        : new MiddlewareError({ cause: 'query_execution_failed', recoverable: true, suggested_action: 'retry_dispatch' });
+      const mwErr =
+        err instanceof MiddlewareError
+          ? err
+          : new MiddlewareError({
+              cause: 'query_execution_failed',
+              recoverable: true,
+              suggested_action: 'retry_dispatch',
+            });
       return {
         content: [{ type: 'text', text: JSON.stringify(mwErr.toShape()) }],
-        metadata: { tier: mwErr.tier, trace_id: mwErr.trace_id, elapsed_ms: Date.now() - dispatchStart },
+        metadata: {
+          tier: mwErr.tier,
+          trace_id: mwErr.trace_id,
+          elapsed_ms: Date.now() - dispatchStart,
+        },
       };
     }
   }
@@ -111,9 +140,14 @@ export class BaseAdapter implements ToolProvider {
       capabilities = { tools };
     } catch (err: unknown) {
       const originalMessage = err instanceof Error ? err.message : String(err);
-      const mwErr = err instanceof MiddlewareError
-        ? err
-        : new MiddlewareError({ cause: 'memtrace_unavailable', recoverable: true, suggested_action: 'retry_connection' });
+      const mwErr =
+        err instanceof MiddlewareError
+          ? err
+          : new MiddlewareError({
+              cause: 'memtrace_unavailable',
+              recoverable: true,
+              suggested_action: 'retry_connection',
+            });
       log.error('capabilities_fetch_failed', {
         trace_id: traceId,
         error: mwErr.message,
@@ -121,11 +155,18 @@ export class BaseAdapter implements ToolProvider {
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(mwErr.toShape()) }],
-        metadata: { tier: mwErr.tier, trace_id: mwErr.trace_id, elapsed_ms: Date.now() - dispatchStart },
+        metadata: {
+          tier: mwErr.tier,
+          trace_id: mwErr.trace_id,
+          elapsed_ms: Date.now() - dispatchStart,
+        },
       };
     }
 
-    const classified = classify(validated.value as unknown as Record<string, unknown>, capabilities);
+    const classified = classify(
+      validated.value as unknown as Record<string, unknown>,
+      capabilities
+    );
     if (!classified.ok) {
       log.warn('classification_failed', { trace_id: traceId, error: classified.error });
       return {
@@ -177,9 +218,7 @@ export class BaseAdapter implements ToolProvider {
       queries.map((q: GraphQuery) => {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), subQueryTimeout);
-        return this.backend
-          .execute(q, controller.signal)
-          .finally(() => clearTimeout(timer));
+        return this.backend.execute(q, controller.signal).finally(() => clearTimeout(timer));
       })
     );
 
@@ -204,32 +243,52 @@ export class BaseAdapter implements ToolProvider {
       }
     }
 
-    const contextBlocks = queryResults
-      .filter((r) => !r.degraded && r.data != null && (Array.isArray(r.data) || typeof r.data === 'object'))
-      .map((r) => {
-        const data = Array.isArray(r.data) ? r.data : [r.data as Record<string, unknown>];
-        return data.map((item) => ({
-          symbol: typeof item.name === 'string' ? item.name : typeof item.symbol === 'string' ? item.symbol : 'unknown',
-          file_path: typeof item.file_path === 'string' ? item.file_path : '',
-          start_line: typeof item.start_line === 'number' ? item.start_line : 0,
-          end_line: typeof item.end_line === 'number' ? item.end_line : 0,
-          centrality: 0,
-          query_type: r.tool,
-        }));
-      })
-      .flat();
+    const fusedResult = fuse({
+      results: queryResults,
+      intent_type: intent.intent_type,
+    });
 
-    const fusedContext: FusedContext = {
-      blocks: contextBlocks,
-      partial: hasDegraded || intent.passthrough,
-      trace_id: traceId,
-      provenance: errors.length > 0 ? errors : [],
-    };
+    if (!fusedResult.ok) {
+      log.warn('fusion_failed', {
+        trace_id: traceId,
+        error: fusedResult.error,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(fusedResult.error) }],
+        metadata: {
+          tier: fusedResult.error.tier,
+          trace_id: fusedResult.error.trace_id,
+          elapsed_ms: Date.now() - dispatchStart,
+        },
+      };
+    }
+
+    const fusedContext = fusedResult.value;
+    fusedContext.trace_id = traceId;
+    if (hasDegraded || intent.passthrough) {
+      fusedContext.partial = true;
+    }
+
+    const fusionValidated = validateContext(fusedContext);
+    if (!fusionValidated.ok) {
+      log.warn('fusion_validation_failed', {
+        trace_id: traceId,
+        error: fusionValidated.error,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(fusionValidated.error) }],
+        metadata: {
+          tier: fusionValidated.error.tier,
+          trace_id: fusionValidated.error.trace_id,
+          elapsed_ms: Date.now() - dispatchStart,
+        },
+      };
+    }
 
     const elapsed = Date.now() - dispatchStart;
     const response = this.contextBuilder.buildContext(fusedContext);
     response.metadata = {
-      ...(response.metadata ?? {} as NonNullable<AgentResponse['metadata']>),
+      ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
       elapsed_ms: elapsed,
     };
 
@@ -237,7 +296,7 @@ export class BaseAdapter implements ToolProvider {
       trace_id: traceId,
       intent_type: intent.intent_type,
       query_count: queries.length,
-      block_count: contextBlocks.length,
+      block_count: fusedContext.blocks.length,
       partial: fusedContext.partial,
       rejected_count: errors.length,
       elapsed_ms: elapsed,

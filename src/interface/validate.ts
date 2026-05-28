@@ -23,7 +23,9 @@ export interface ToolCallMessage {
 
 export function validateToolCall(
   message: unknown
-): { ok: true; value: ToolCallMessage } | { ok: false; error: ReturnType<MiddlewareError['toShape']> } {
+):
+  | { ok: true; value: ToolCallMessage }
+  | { ok: false; error: ReturnType<MiddlewareError['toShape']> } {
   if (message === null || message === undefined || typeof message !== 'object') {
     const err = new MiddlewareError({
       cause: 'classification_failed',
