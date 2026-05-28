@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { writeFileSync, unlinkSync, mkdirSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const TMP_DIR = join(process.cwd(), '.test-tmp-config');
@@ -14,8 +14,9 @@ vi.mock('node:os', async (importOriginal) => {
   };
 });
 
-import { loadConfig } from '../../../src/config/loader.js';
-import { DEFAULT_CONFIG } from '../../../src/config/types.js';
+import { loadConfig, ensureConfigDir } from '../../../src/config/loader.js';
+import { DEFAULT_CONFIG, normalizeFloor } from '../../../src/config/types.js';
+import { DegradationTier } from '../../../src/types.js';
 import { MiddlewareError } from '../../../src/errors.js';
 
 beforeEach(() => {
@@ -130,5 +131,38 @@ describe('config loader', () => {
   it('throws for bad JSON in config file', () => {
     writeFileSync(CONFIG_PATH, '{ bad json }', 'utf-8');
     expect(() => loadConfig()).toThrow();
+  });
+
+  it('redacts memtrace_token from log output', () => {
+    writeFileSync(CONFIG_PATH, JSON.stringify({ memtrace_token: 'secret-token-abc123' }), 'utf-8');
+
+    const writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    const config = loadConfig();
+
+    const logLines = writeSpy.mock.calls.map((c) => String(c[0]));
+    const leaked = logLines.some((line) => line.includes('secret-token-abc123'));
+    const redacted = logLines.some((line) => line.includes('<REDACTED>'));
+
+    expect(config.memtrace_token).toBe('secret-token-abc123');
+    expect(leaked).toBe(false);
+    expect(redacted).toBe(true);
+
+    writeSpy.mockRestore();
+  });
+
+  it('normalizeFloor maps to correct DegradationTier', () => {
+    expect(normalizeFloor('Full')).toBe(DegradationTier.Full);
+    expect(normalizeFloor('Intent-reduced')).toBe(DegradationTier.IntentReduced);
+    expect(normalizeFloor('Passthrough')).toBe(DegradationTier.Passthrough);
+    expect(normalizeFloor('Fail-closed')).toBe(DegradationTier.FailClosed);
+  });
+
+  it('ensureConfigDir creates the .memtrace directory', () => {
+    if (existsSync(MEMTRACE_DIR)) rmdirSync(MEMTRACE_DIR);
+
+    ensureConfigDir();
+    expect(existsSync(MEMTRACE_DIR)).toBe(true);
+    rmdirSync(MEMTRACE_DIR);
   });
 });
