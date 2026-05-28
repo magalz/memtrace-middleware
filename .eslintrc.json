@@ -60,6 +60,7 @@
     "import/first": "error",
     "import/no-duplicates": "error",
     "import/no-named-as-default": "off",
+    "import/no-unresolved": ["error", { "ignore": ["@modelcontextprotocol/sdk"] }],
     "import/newline-after-import": "error"
   },
   "ignorePatterns": ["dist", "node_modules", "*.js", "*.cjs"],

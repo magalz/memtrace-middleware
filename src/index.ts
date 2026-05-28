@@ -31,6 +31,8 @@ export {
 export { createLogger } from './logger.js';
 export type { Logger } from './logger.js';
 
+export type { MemtraceBackend } from './backend/index.js';
+
 export {
   loadConfig,
   getConfigPath,

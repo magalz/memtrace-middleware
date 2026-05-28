@@ -4,6 +4,10 @@ import {
   PROBE_INTERVAL_MS,
 } from '../constants.js';
 
+export { MemtraceTransport } from './transport.js';
+export { ToolCatalog } from './tool-catalog.js';
+export type { MemtraceBackend } from './trait.js';
+
 let currentSubQueryTimeout = MAX_SUB_QUERY_TIMEOUT_MS;
 let currentDispatchTimeout = MAX_DISPATCH_TIMEOUT_MS;
 let currentProbeInterval = PROBE_INTERVAL_MS;
