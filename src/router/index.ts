@@ -1,1 +1,3 @@
-// Intent Router — stories 1.3a, 1.3b
+export { classify, getRegistry } from './classify.js';
+export { IntentRegistry } from './types.js';
+export type { IntentType, IntentDefinition } from './types.js';

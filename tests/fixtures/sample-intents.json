@@ -1,0 +1,40 @@
+{
+  "find_code": {
+    "method": "tools/call",
+    "params": {
+      "name": "memtrace_find_code",
+      "arguments": {
+        "query": "find the function authenticateUser in the auth module"
+      }
+    }
+  },
+  "get_symbol_context": {
+    "method": "tools/call",
+    "params": {
+      "name": "memtrace_get_symbol_context",
+      "arguments": {
+        "name": "validateToken",
+        "scope": "callers"
+      }
+    }
+  },
+  "get_impact": {
+    "method": "tools/call",
+    "params": {
+      "name": "memtrace_get_impact",
+      "arguments": {
+        "symbol": "processPayment",
+        "direction": "upstream"
+      }
+    }
+  },
+  "ambiguous": {
+    "method": "tools/call",
+    "params": {
+      "name": "memtrace_find_code",
+      "arguments": {
+        "query": "some random text that doesn't match any intent pattern"
+      }
+    }
+  }
+}
