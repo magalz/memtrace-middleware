@@ -6,6 +6,14 @@ export interface AgentResponse {
     tier: DegradationTier;
     trace_id: string;
     elapsed_ms: number;
+    passthrough?: boolean;
+    degradation_tier?: DegradationTier;
+    tier_transition?: {
+      reason: string;
+      from: DegradationTier;
+      to: DegradationTier;
+      timestamp: string;
+    };
   };
 }
 

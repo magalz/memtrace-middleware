@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import type { MemtraceBackend } from '../backend/trait.js';
 import type { MiddlewareConfig } from '../config/index.js';
 import { MAX_DISPATCH_TIMEOUT_MS, MAX_SUB_QUERY_TIMEOUT_MS } from '../constants.js';
+import { degradationMachine } from '../degrade/index.js';
 import { MiddlewareError } from '../errors.js';
 import { fuse, validateContext } from '../fusion/index.js';
 import { createLogger } from '../logger.js';
@@ -129,6 +130,79 @@ export class BaseAdapter implements ToolProvider {
   ): Promise<AgentResponse> {
     const dispatchStart = ctx.dispatchStart;
 
+    const tierAtEntry = degradationMachine.getCurrentTier();
+
+    if (tierAtEntry === DegradationTier.FailClosed) {
+      const error = new MiddlewareError({
+        cause: 'memtrace_unavailable',
+        recoverable: false,
+        suggested_action: 'run_memtrace_start',
+        tier: DegradationTier.FailClosed,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(error.toShape()) }],
+        metadata: {
+          tier: DegradationTier.FailClosed,
+          trace_id: error.trace_id,
+          elapsed_ms: Date.now() - dispatchStart,
+        },
+      };
+    }
+
+    if (tierAtEntry === DegradationTier.Passthrough) {
+      const classified = classify(message as unknown as Record<string, unknown>, { tools: [] });
+      const intentType = classified.ok ? classified.value.intent_type : 'unknown';
+
+      const msg = message as Record<string, unknown>;
+      const params = (msg.params ?? {}) as Record<string, unknown>;
+      const toolName = (params.name as string) ?? 'memtrace_find_code';
+      const toolArgs = (params.arguments as Record<string, unknown>) ?? {};
+      const query: GraphQuery = { tool: toolName, arguments: toolArgs };
+
+      const controller = new AbortController();
+      ctx.activeControllers.add(controller);
+      const timer = setTimeout(
+        () => controller.abort(),
+        this.config.timeout_budgets.dispatch_ms
+      );
+      ctx.activeTimers.add(timer);
+
+      try {
+        const result = await this.backend.execute(query, controller.signal);
+        metrics.recordDispatch(true, intentType, 1.0, Date.now() - dispatchStart);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result.data) }],
+          metadata: {
+            tier: DegradationTier.Passthrough,
+            trace_id: traceId,
+            elapsed_ms: Date.now() - dispatchStart,
+            passthrough: true,
+            degradation_tier: DegradationTier.Passthrough,
+          },
+        };
+      } catch (err: unknown) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(err instanceof Error ? err.message : String(err)),
+            },
+          ],
+          metadata: {
+            tier: DegradationTier.Passthrough,
+            trace_id: traceId,
+            elapsed_ms: Date.now() - dispatchStart,
+            passthrough: true,
+            degradation_tier: DegradationTier.Passthrough,
+          },
+        };
+      } finally {
+        clearTimeout(timer);
+        ctx.activeTimers.delete(timer);
+        ctx.activeControllers.delete(controller);
+      }
+    }
+
     const validated = validateToolCall(message);
     if (!validated.ok) {
       return {
@@ -221,19 +295,43 @@ export class BaseAdapter implements ToolProvider {
       return response;
     }
 
-    const results = await Promise.allSettled(
-      queries.map((q: GraphQuery) => {
+    const isIntentReduced = degradationMachine.getCurrentTier() === DegradationTier.IntentReduced;
+
+    const results: PromiseSettledResult<QueryResult>[] = [];
+
+    if (isIntentReduced) {
+      for (const q of queries) {
         const controller = new AbortController();
         ctx.activeControllers.add(controller);
         const timer = setTimeout(() => controller.abort(), subQueryTimeout);
         ctx.activeTimers.add(timer);
-        return this.backend.execute(q, controller.signal).finally(() => {
+        try {
+          const value = await this.backend.execute(q as GraphQuery, controller.signal);
+          results.push({ status: 'fulfilled', value });
+        } catch (reason: unknown) {
+          results.push({ status: 'rejected', reason });
+        } finally {
           clearTimeout(timer);
           ctx.activeTimers.delete(timer);
           ctx.activeControllers.delete(controller);
-        });
-      })
-    );
+        }
+      }
+    } else {
+      const settled = await Promise.allSettled(
+        queries.map((q: GraphQuery) => {
+          const controller = new AbortController();
+          ctx.activeControllers.add(controller);
+          const timer = setTimeout(() => controller.abort(), subQueryTimeout);
+          ctx.activeTimers.add(timer);
+          return this.backend.execute(q, controller.signal).finally(() => {
+            clearTimeout(timer);
+            ctx.activeTimers.delete(timer);
+            ctx.activeControllers.delete(controller);
+          });
+        })
+      );
+      results.push(...settled);
+    }
 
     const queryResults: QueryResult[] = [];
 
@@ -274,7 +372,16 @@ export class BaseAdapter implements ToolProvider {
       };
     }
 
-    const fusedContext = fusedResult.value;
+    let fusedContext = fusedResult.value;
+
+    if (isIntentReduced) {
+      fusedContext = {
+        blocks: [],
+        partial: true,
+        trace_id: traceId,
+        provenance: [],
+      };
+    }
     fusedContext.trace_id = traceId;
     if (ctx.hasDegraded || intent.passthrough) {
       fusedContext.partial = true;
@@ -297,10 +404,24 @@ export class BaseAdapter implements ToolProvider {
     }
 
     const elapsed = Date.now() - dispatchStart;
+    const currentTier = degradationMachine.getCurrentTier();
+    const transitionReason = degradationMachine.getTransitionReason();
+    let tierTransition:
+      | { reason: string; from: DegradationTier; to: DegradationTier; timestamp: string }
+      | undefined;
+    if (transitionReason) {
+      const transitionAge = Date.now() - new Date(transitionReason.timestamp).getTime();
+      if (transitionAge < 30000) {
+        tierTransition = transitionReason;
+      }
+    }
+
     const response = this.contextBuilder.buildContext(fusedContext);
     response.metadata = {
       ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
       elapsed_ms: elapsed,
+      degradation_tier: currentTier,
+      tier_transition: tierTransition,
     };
 
     log.info('dispatch_complete', {
@@ -311,6 +432,7 @@ export class BaseAdapter implements ToolProvider {
       partial: fusedContext.partial,
       rejected_count: ctx.errors.length,
       elapsed_ms: elapsed,
+      degradation_tier: degradationMachine.getCurrentTier(),
     });
 
     metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed);

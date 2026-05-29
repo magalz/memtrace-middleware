@@ -75,6 +75,16 @@ export type {
   EnvironmentInfo,
 } from './config/index.js';
 
+export {
+  DegradationMachine,
+  degradationMachine,
+  ProbeTimer,
+  initializeDegradation,
+  shutdownDegradation,
+  getFloorOverride,
+  onConfigChanged,
+} from './degrade/index.js';
+
 export { RingBuffer } from './telemetry/index.js';
 export { emit } from './telemetry/index.js';
 export { metrics } from './telemetry/index.js';

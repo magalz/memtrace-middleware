@@ -2,7 +2,9 @@
 
 import { createCliAdapter } from '../adapters/index.js';
 import type { MemtraceBackend } from '../backend/trait.js';
+import { DEFAULT_CONFIG, type MiddlewareConfig } from '../config/types.js';
 import { STATUS_REFRESH_MS } from '../constants.js';
+import { initializeDegradation, shutdownDegradation } from '../degrade/index.js';
 import { createLogger } from '../logger.js';
 import type { QueryResult, ToolSchema, GraphQuery } from '../types.js';
 import { startStatusDisplay } from './status.js';
@@ -38,6 +40,8 @@ async function main(): Promise<void> {
   if (args[0] === '--status') {
     const backend = createNoopBackend();
     const adapter = createCliAdapter(backend);
+    const config: MiddlewareConfig = DEFAULT_CONFIG;
+    initializeDegradation(backend, config);
     startStatusDisplay();
 
     log.info('status_display_started', {
@@ -60,6 +64,14 @@ async function main(): Promise<void> {
 
 (async () => {
   try {
+    process.on('SIGINT', () => {
+      shutdownDegradation();
+      process.exit(0);
+    });
+    process.on('SIGTERM', () => {
+      shutdownDegradation();
+      process.exit(0);
+    });
     await main();
   } catch (err: unknown) {
     log.error('cli_fatal', { error: err instanceof Error ? err.message : String(err) });
