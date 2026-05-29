@@ -1,6 +1,5 @@
-# generated: 2026-05-27
+# generated: 2026-05-29
 # last_updated: 2026-05-29
-# review completed: 2026-05-27
 # project: bmad-memtrace
 # project_key: NOKEY
 # tracking_system: file-system
@@ -36,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - This file covers v2.0 (Memtrace Agent Middleware). v1.0 v1 sprint-status.yaml moved to sprint-status-v1.yaml
 
-generated: 2026-05-27
+generated: 2026-05-29
 last_updated: 2026-05-29
 project: bmad-memtrace
 project_key: NOKEY
@@ -54,19 +53,12 @@ development_status:
   epic-1-retrospective: done
   epic-2: done
   2-1-fusion-engine-and-provenance-injection: done
-  2-1-blast-radius-verification-and-halting: done
   2-2-cross-intent-execution-isolation: done
-  2-2-textual-justification-quality-gate-phase-1: done
   2-3-cli-live-status-display: done
-  2-3-mathematical-blocking-quality-gate-phase-2: done
-  2-4-pitfall-catalog-validation-for-dead-code: done
   epic-2-retrospective: done
   epic-3: done
   3-1-degradation-state-machine: done
-  3-1-structural-blast-radius-query-adapter: done
-  3-2-dead-code-detection-adapter: done
-  3-3-token-optimization-via-summarization: done
-  3-4-server-concurrency-throttling-freshness-check: done
+  3-2-fail-closed-safety-and-error-taxonomy: backlog
   epic-3-retrospective: done
   epic-inter: backlog
   i-1-mcpclient-refactor: backlog
