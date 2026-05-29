@@ -7,6 +7,7 @@ import { MiddlewareError } from '../errors.js';
 import { fuse, validateContext } from '../fusion/index.js';
 import { createLogger } from '../logger.js';
 import { classify, plan } from '../router/index.js';
+import { metrics } from '../telemetry/index.js';
 import {
   DegradationTier,
   type FusedContext,
@@ -311,6 +312,8 @@ export class BaseAdapter implements ToolProvider {
       rejected_count: ctx.errors.length,
       elapsed_ms: elapsed,
     });
+
+    metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed);
 
     return response;
   }

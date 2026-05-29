@@ -11,6 +11,9 @@ export type {
   ClassifiedIntent,
   GraphQuery,
   Result,
+  StatusSnapshot,
+  TelemetryEvent,
+  EventType,
 } from './types.js';
 
 export { MiddlewareError } from './errors.js';
@@ -23,6 +26,7 @@ export {
   CLASSIFICATION_CONFIDENCE_THRESHOLD,
   DEDUP_CACHE_TTL_MS,
   STATUS_REFRESH_MS,
+  MIDDLEWARE_VERSION,
   MCP_TOOL_FIND_CODE,
   MCP_TOOL_GET_SYMBOL_CONTEXT,
   MCP_TOOL_GET_IMPACT,
@@ -70,3 +74,8 @@ export type {
   IntentType,
   EnvironmentInfo,
 } from './config/index.js';
+
+export { RingBuffer } from './telemetry/index.js';
+export { emit } from './telemetry/index.js';
+export { metrics } from './telemetry/index.js';
+export { getUptimeSeconds } from './telemetry/index.js';

@@ -74,3 +74,32 @@ export interface GraphQuery {
 }
 
 export type Result<T, E = MiddlewareErrorShape> = { ok: true; value: T } | { ok: false; error: E };
+
+export type EventType =
+  | 'dispatch_start'
+  | 'dispatch_end'
+  | 'classify'
+  | 'plan'
+  | 'query'
+  | 'fuse'
+  | 'status';
+
+export interface TelemetryEvent {
+  type: EventType;
+  trace_id: string;
+  tier: DegradationTier;
+  phase: string;
+  elapsed_ms: number;
+  timestamp: string;
+}
+
+export interface StatusSnapshot {
+  tier: DegradationTier;
+  uptime_seconds: number;
+  active_intents: string[];
+  query_success: number;
+  query_failure: number;
+  confidence_p50: number;
+  confidence_p95: number;
+  last_dispatch_result: 'success' | 'failure' | null;
+}
