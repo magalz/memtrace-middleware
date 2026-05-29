@@ -60,11 +60,11 @@ development_status:
   3-1-degradation-state-machine: done
   3-2-fail-closed-safety-and-error-taxonomy: backlog
   epic-3-retrospective: done
-  epic-inter: backlog
-  i-1-mcpclient-refactor: backlog
+  epic-inter: in-progress
+  i-1-mcpclient-refactor: review
   i-2-hermetic-mcp-mocking: backlog
   i-3-qa-memtrace-fixes: backlog
   epic-inter-retrospective: optional
-  epic-4: backlog
-  4-1-telemetry-pipeline-ci-gates-and-documentation: backlog
+  epic-4: in-progress
+  4-1-telemetry-pipeline-ci-gates-and-documentation: ready-for-dev
   epic-4-retrospective: optional
