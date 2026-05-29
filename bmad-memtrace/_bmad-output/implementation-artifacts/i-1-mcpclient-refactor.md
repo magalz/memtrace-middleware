@@ -4,7 +4,7 @@ baseline_commit: 84f8e26e0861b97e1b5075a6292f007ad57305ed
 
 # Story I.1: McpClient Refactor — Robustness Hardening
 
-Status: review
+Status: done
 
 ## Story
 
