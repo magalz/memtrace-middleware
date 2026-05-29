@@ -1,5 +1,5 @@
 # generated: 2026-05-27
-# last_updated: 2026-05-28T18:00:00Z
+# last_updated: 2026-05-29
 # review completed: 2026-05-27
 # project: bmad-memtrace
 # project_key: NOKEY
@@ -37,7 +37,7 @@
 # - This file covers v2.0 (Memtrace Agent Middleware). v1.0 v1 sprint-status.yaml moved to sprint-status-v1.yaml
 
 generated: 2026-05-27
-last_updated: 2026-05-28T18:00:00Z
+last_updated: 2026-05-29
 project: bmad-memtrace
 project_key: NOKEY
 tracking_system: file-system
@@ -52,15 +52,27 @@ development_status:
   1-3b-query-decomposition-and-multi-intent-routing: done
   1-4-agent-interface-and-cli-adapter: done
   epic-1-retrospective: done
-  epic-2: backlog
-  2-1-fusion-engine-and-provenance-injection: backlog
-  2-2-cross-intent-execution-isolation: backlog
-  2-3-cli-live-status-display: backlog
-  epic-2-retrospective: optional
-  epic-3: backlog
-  3-1-degradation-state-machine: backlog
-  3-2-fail-closed-safety-and-error-taxonomy: backlog
-  epic-3-retrospective: optional
+  epic-2: done
+  2-1-fusion-engine-and-provenance-injection: done
+  2-1-blast-radius-verification-and-halting: done
+  2-2-cross-intent-execution-isolation: done
+  2-2-textual-justification-quality-gate-phase-1: done
+  2-3-cli-live-status-display: done
+  2-3-mathematical-blocking-quality-gate-phase-2: done
+  2-4-pitfall-catalog-validation-for-dead-code: done
+  epic-2-retrospective: done
+  epic-3: done
+  3-1-degradation-state-machine: done
+  3-1-structural-blast-radius-query-adapter: done
+  3-2-dead-code-detection-adapter: done
+  3-3-token-optimization-via-summarization: done
+  3-4-server-concurrency-throttling-freshness-check: done
+  epic-3-retrospective: done
+  epic-inter: backlog
+  i-1-mcpclient-refactor: backlog
+  i-2-hermetic-mcp-mocking: backlog
+  i-3-qa-memtrace-fixes: backlog
+  epic-inter-retrospective: optional
   epic-4: backlog
   4-1-telemetry-pipeline-ci-gates-and-documentation: backlog
   epic-4-retrospective: optional
