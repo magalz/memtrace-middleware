@@ -4,6 +4,7 @@ import { spawn, execFile, execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+const MEMTRACE_MOCK_PATH = process.env.MEMTRACE_MOCK_PATH || null;
 const TIMEOUT_MS = parseInt(process.env.MEMTRACE_TIMEOUT_MS || '10000', 10);
 const TIMEOUT_TOKEN = 'MEMTRACE_MCP_ERROR_TIMEOUT';
 const SUMMARIZE_TOKEN_LIMIT = 2000;
@@ -164,13 +165,25 @@ class McpClient {
 
   spawn() {
     debugLog('[McpClient] spawn start');
+    const useMock = MEMTRACE_MOCK_PATH !== null;
+    if (useMock) {
+      debugLog('[McpClient] spawn mock', MEMTRACE_MOCK_PATH);
+    }
     const spawnPromise = new Promise((resolvePromise, reject) => {
       try {
-        this.child = spawn('memtrace', ['mcp'], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          shell: process.platform === 'win32',
-          windowsHide: true
-        });
+        if (useMock) {
+          this.child = spawn(process.execPath, [MEMTRACE_MOCK_PATH], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            shell: false,
+            windowsHide: true
+          });
+        } else {
+          this.child = spawn('memtrace', ['mcp'], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            shell: process.platform === 'win32',
+            windowsHide: true
+          });
+        }
       } catch (err) {
         debugLog('[McpClient] spawn error', err.message);
         reject(new Error(`Failed to spawn memtrace: ${err.message}`));
@@ -179,9 +192,16 @@ class McpClient {
 
       const onError = (err) => {
         cleanup();
-        const msg = err.code === 'ENOENT'
-          ? `memtrace binary not found on PATH. Ensure memtrace is installed (npm install -g memtrace) and available.`
-          : `memtrace spawn error: ${err.message}`;
+        let msg;
+        if (err.code === 'ENOENT') {
+          if (useMock) {
+            msg = `Mock MCP server not found: ${MEMTRACE_MOCK_PATH}. Ensure the mock script exists at the specified path.`;
+          } else {
+            msg = 'memtrace binary not found on PATH. Ensure memtrace is installed (npm install -g memtrace) and available.';
+          }
+        } else {
+          msg = `memtrace spawn error: ${err.message}`;
+        }
         debugLog('[McpClient] spawn error', msg);
         reject(new Error(msg));
       };

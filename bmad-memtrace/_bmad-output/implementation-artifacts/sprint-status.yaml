@@ -62,7 +62,7 @@ development_status:
   epic-3-retrospective: done
   epic-inter: in-progress
   i-1-mcpclient-refactor: done
-  i-2-hermetic-mcp-mocking: backlog
+  i-2-hermetic-mcp-mocking: done
   i-3-qa-memtrace-fixes: backlog
   epic-inter-retrospective: optional
   epic-4: in-progress
