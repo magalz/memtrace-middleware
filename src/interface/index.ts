@@ -1,4 +1,6 @@
 export { BaseAdapter } from './base-adapter.js';
+export { createDispatchContext, cleanupContext } from './dispatch-context.js';
+export type { DispatchContext } from './dispatch-context.js';
 export { validateToolCall } from './validate.js';
 export type {
   ToolProvider,

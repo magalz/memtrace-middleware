@@ -35,8 +35,14 @@ export { fuse, validateContext } from './fusion/index.js';
 
 export type { MemtraceBackend, DegradationProbeHooks } from './backend/index.js';
 
-export { BaseAdapter, validateToolCall } from './interface/index.js';
+export {
+  BaseAdapter,
+  createDispatchContext,
+  cleanupContext,
+  validateToolCall,
+} from './interface/index.js';
 export type {
+  DispatchContext,
   ToolProvider,
   ContextBuilder,
   Session,

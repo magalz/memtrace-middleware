@@ -14,6 +14,7 @@ import {
   type MemtraceCapabilities,
   type QueryResult,
 } from '../types.js';
+import { type DispatchContext, cleanupContext, createDispatchContext } from './dispatch-context.js';
 import type { AgentResponse, ContextBuilder, ToolProvider } from './traits.js';
 import { validateToolCall } from './validate.js';
 
@@ -64,15 +65,15 @@ export class BaseAdapter implements ToolProvider {
   }
 
   async dispatch(message: Record<string, unknown>): Promise<AgentResponse> {
-    const dispatchStart = Date.now();
     const traceId = `if-${crypto.randomUUID().slice(0, 8)}`;
+    const ctx = createDispatchContext(traceId);
     const dispatchTimeout = this.config.timeout_budgets.dispatch_ms;
 
     try {
       const result = await Promise.race([
-        this.runDispatch(message, traceId, dispatchStart),
-        new Promise<AgentResponse>((_, reject) =>
-          setTimeout(
+        this.runDispatch(message, traceId, ctx),
+        new Promise<AgentResponse>((_, reject) => {
+          const timer = setTimeout(
             () =>
               reject(
                 new MiddlewareError({
@@ -82,8 +83,9 @@ export class BaseAdapter implements ToolProvider {
                 })
               ),
             dispatchTimeout
-          )
-        ),
+          );
+          ctx.activeTimers.add(timer);
+        }),
       ]);
       return result;
     } catch (err: unknown) {
@@ -94,7 +96,7 @@ export class BaseAdapter implements ToolProvider {
           metadata: {
             tier: err.tier,
             trace_id: err.trace_id,
-            elapsed_ms: Date.now() - dispatchStart,
+            elapsed_ms: Date.now() - ctx.dispatchStart,
           },
         };
       }
@@ -111,17 +113,21 @@ export class BaseAdapter implements ToolProvider {
         metadata: {
           tier: mwErr.tier,
           trace_id: mwErr.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
+          elapsed_ms: Date.now() - ctx.dispatchStart,
         },
       };
+    } finally {
+      cleanupContext(ctx);
     }
   }
 
   private async runDispatch(
     message: Record<string, unknown>,
     traceId: string,
-    dispatchStart: number
+    ctx: DispatchContext
   ): Promise<AgentResponse> {
+    const dispatchStart = ctx.dispatchStart;
+
     const validated = validateToolCall(message);
     if (!validated.ok) {
       return {
@@ -217,24 +223,28 @@ export class BaseAdapter implements ToolProvider {
     const results = await Promise.allSettled(
       queries.map((q: GraphQuery) => {
         const controller = new AbortController();
+        ctx.activeControllers.add(controller);
         const timer = setTimeout(() => controller.abort(), subQueryTimeout);
-        return this.backend.execute(q, controller.signal).finally(() => clearTimeout(timer));
+        ctx.activeTimers.add(timer);
+        return this.backend.execute(q, controller.signal).finally(() => {
+          clearTimeout(timer);
+          ctx.activeTimers.delete(timer);
+          ctx.activeControllers.delete(controller);
+        });
       })
     );
 
     const queryResults: QueryResult[] = [];
-    let hasDegraded = false;
-    const errors: string[] = [];
 
     for (const r of results) {
       if (r.status === 'fulfilled') {
         queryResults.push(r.value);
-        if (r.value.degraded) hasDegraded = true;
+        if (r.value.degraded) ctx.hasDegraded = true;
       } else {
-        hasDegraded = true;
+        ctx.hasDegraded = true;
         const reason = r.reason instanceof Error ? r.reason.message : String(r.reason);
         const reasonTrace = r.reason instanceof MiddlewareError ? r.reason.trace_id : undefined;
-        errors.push(reason);
+        ctx.errors.push(reason);
         log.warn('query_rejected', {
           trace_id: traceId,
           error: reason,
@@ -265,7 +275,7 @@ export class BaseAdapter implements ToolProvider {
 
     const fusedContext = fusedResult.value;
     fusedContext.trace_id = traceId;
-    if (hasDegraded || intent.passthrough) {
+    if (ctx.hasDegraded || intent.passthrough) {
       fusedContext.partial = true;
     }
 
@@ -298,7 +308,7 @@ export class BaseAdapter implements ToolProvider {
       query_count: queries.length,
       block_count: fusedContext.blocks.length,
       partial: fusedContext.partial,
-      rejected_count: errors.length,
+      rejected_count: ctx.errors.length,
       elapsed_ms: elapsed,
     });
 
