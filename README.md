@@ -25,6 +25,11 @@ pnpm link --global
 
 Then `memtrace` is available globally from the local build.
 
+To uninstall:
+```bash
+pnpm unlink --global @memtrace/middleware
+```
+
 ## One-Liner Demo
 
 ```bash
