@@ -44,7 +44,7 @@ describe('CI intent change detection', () => {
   });
 
   it('[P2] script has no dependency on middleware product code', () => {
-    const content = execSync(`type ${SCRIPT_PATH}`, { encoding: 'utf-8', timeout: 5000 });
+    const content = execSync(`cat ${SCRIPT_PATH}`, { encoding: 'utf-8', timeout: 5000 });
     expect(content).not.toContain("from '../../src/");
     expect(content).not.toContain('from "../src/');
     expect(content).toContain('node:child_process');
