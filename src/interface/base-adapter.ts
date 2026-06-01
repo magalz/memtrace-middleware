@@ -1,5 +1,4 @@
-import crypto from 'node:crypto';
-
+import { type DispatchContext, cleanupContext, createDispatchContext } from './dispatch-context.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import type { MiddlewareConfig } from '../config/index.js';
 import { MAX_DISPATCH_TIMEOUT_MS, MAX_SUB_QUERY_TIMEOUT_MS } from '../constants.js';
@@ -7,8 +6,12 @@ import { degradationMachine } from '../degrade/index.js';
 import { MiddlewareError } from '../errors.js';
 import { fuse, validateContext } from '../fusion/index.js';
 import { createLogger } from '../logger.js';
+import type { AgentResponse, ContextBuilder, ToolProvider } from './traits.js';
 import { classify, plan } from '../router/index.js';
+import { coldStartRecordDispatch, isColdStart } from '../telemetry/cold-start.js';
 import { metrics } from '../telemetry/index.js';
+import { createTraceContext } from '../telemetry/tracer.js';
+import type { TraceContext } from '../telemetry/tracer.js';
 import {
   DegradationTier,
   type FusedContext,
@@ -16,8 +19,6 @@ import {
   type MemtraceCapabilities,
   type QueryResult,
 } from '../types.js';
-import { type DispatchContext, cleanupContext, createDispatchContext } from './dispatch-context.js';
-import type { AgentResponse, ContextBuilder, ToolProvider } from './traits.js';
 import { validateToolCall } from './validate.js';
 
 const log = createLogger('interface');
@@ -67,13 +68,14 @@ export class BaseAdapter implements ToolProvider {
   }
 
   async dispatch(message: Record<string, unknown>): Promise<AgentResponse> {
-    const traceId = `if-${crypto.randomUUID().slice(0, 8)}`;
+    const trace = createTraceContext('interface');
+    const traceId = trace.trace_id;
     const ctx = createDispatchContext(traceId);
     const dispatchTimeout = this.config.timeout_budgets.dispatch_ms;
 
     try {
       const result = await Promise.race([
-        this.runDispatch(message, traceId, ctx),
+        this.runDispatch(message, trace, ctx),
         new Promise<AgentResponse>((_, reject) => {
           const timer = setTimeout(
             () =>
@@ -125,9 +127,10 @@ export class BaseAdapter implements ToolProvider {
 
   private async runDispatch(
     message: Record<string, unknown>,
-    traceId: string,
+    trace: TraceContext,
     ctx: DispatchContext
   ): Promise<AgentResponse> {
+    const traceId = trace.trace_id;
     const dispatchStart = ctx.dispatchStart;
 
     const tierAtEntry = degradationMachine.getCurrentTier();
@@ -161,26 +164,28 @@ export class BaseAdapter implements ToolProvider {
 
       const controller = new AbortController();
       ctx.activeControllers.add(controller);
-      const timer = setTimeout(
-        () => controller.abort(),
-        this.config.timeout_budgets.dispatch_ms
-      );
+      const timer = setTimeout(() => controller.abort(), this.config.timeout_budgets.dispatch_ms);
       ctx.activeTimers.add(timer);
 
       try {
         const result = await this.backend.execute(query, controller.signal);
-        metrics.recordDispatch(true, intentType, 1.0, Date.now() - dispatchStart);
+        const ptElapsed = Date.now() - dispatchStart;
+        const startupType = isColdStart() ? 'cold' : 'warm';
+        coldStartRecordDispatch(ptElapsed);
+        metrics.recordDispatch(true, intentType, 1.0, ptElapsed, startupType);
         return {
           content: [{ type: 'text', text: JSON.stringify(result.data) }],
           metadata: {
             tier: DegradationTier.Passthrough,
             trace_id: traceId,
-            elapsed_ms: Date.now() - dispatchStart,
+            elapsed_ms: ptElapsed,
             passthrough: true,
             degradation_tier: DegradationTier.Passthrough,
+            startup_type: startupType,
           },
         };
       } catch (err: unknown) {
+        metrics.recordDispatch(false, intentType, 0, Date.now() - dispatchStart, isColdStart() ? 'cold' : 'warm');
         return {
           content: [
             {
@@ -261,6 +266,11 @@ export class BaseAdapter implements ToolProvider {
     }
 
     const intent = classified.value;
+    log.info('phase_complete', {
+      trace_id: traceId,
+      phase: 'classify',
+      elapsed_ms: Date.now() - dispatchStart,
+    });
 
     const planned = plan(intent, capabilities);
     if (!planned.ok) {
@@ -274,6 +284,11 @@ export class BaseAdapter implements ToolProvider {
         },
       };
     }
+    log.info('phase_complete', {
+      trace_id: traceId,
+      phase: 'plan',
+      elapsed_ms: Date.now() - dispatchStart,
+    });
 
     const queries = planned.value;
     const subQueryTimeout = this.config.timeout_budgets.sub_query_ms;
@@ -333,6 +348,12 @@ export class BaseAdapter implements ToolProvider {
       results.push(...settled);
     }
 
+    log.info('phase_complete', {
+      trace_id: traceId,
+      phase: 'execute',
+      elapsed_ms: Date.now() - dispatchStart,
+    });
+
     const queryResults: QueryResult[] = [];
 
     for (const r of results) {
@@ -371,6 +392,12 @@ export class BaseAdapter implements ToolProvider {
         },
       };
     }
+
+    log.info('phase_complete', {
+      trace_id: traceId,
+      phase: 'fuse',
+      elapsed_ms: Date.now() - dispatchStart,
+    });
 
     let fusedContext = fusedResult.value;
 
@@ -416,12 +443,16 @@ export class BaseAdapter implements ToolProvider {
       }
     }
 
+    const startupType = isColdStart() ? 'cold' : 'warm';
+    coldStartRecordDispatch(elapsed);
+
     const response = this.contextBuilder.buildContext(fusedContext);
     response.metadata = {
       ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
       elapsed_ms: elapsed,
       degradation_tier: currentTier,
       tier_transition: tierTransition,
+      startup_type: startupType,
     };
 
     log.info('dispatch_complete', {
@@ -433,9 +464,10 @@ export class BaseAdapter implements ToolProvider {
       rejected_count: ctx.errors.length,
       elapsed_ms: elapsed,
       degradation_tier: degradationMachine.getCurrentTier(),
+      startup_type: startupType,
     });
 
-    metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed);
+    metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed, startupType);
 
     return response;
   }

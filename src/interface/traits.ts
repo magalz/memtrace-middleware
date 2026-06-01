@@ -14,6 +14,7 @@ export interface AgentResponse {
       to: DegradationTier;
       timestamp: string;
     };
+    startup_type?: 'cold' | 'warm';
   };
 }
 

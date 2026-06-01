@@ -102,4 +102,5 @@ export interface StatusSnapshot {
   confidence_p50: number;
   confidence_p95: number;
   last_dispatch_result: 'success' | 'failure' | null;
+  cold_start?: { count: number; p50_ms: number };
 }

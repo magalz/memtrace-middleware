@@ -89,3 +89,11 @@ export { RingBuffer } from './telemetry/index.js';
 export { emit } from './telemetry/index.js';
 export { metrics } from './telemetry/index.js';
 export { getUptimeSeconds } from './telemetry/index.js';
+export { generateTraceId, createTraceContext } from './telemetry/index.js';
+export type { TraceContext } from './telemetry/index.js';
+export {
+  coldStartRecordDispatch,
+  isColdStart,
+  getColdStartStats,
+  resetColdStartDetector,
+} from './telemetry/index.js';

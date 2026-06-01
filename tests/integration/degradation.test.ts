@@ -168,7 +168,13 @@ describe('Degradation Dispatch Integration', () => {
     const backend: MemtraceBackend = {
       execute: async () => {
         callCount++;
-        return { tool: 'memtrace_find_code', data: [], trace_id: 't1', elapsed_ms: 2, degraded: false };
+        return {
+          tool: 'memtrace_find_code',
+          data: [],
+          trace_id: 't1',
+          elapsed_ms: 2,
+          degraded: false,
+        };
       },
       probe: async () => true,
       listTools: async () => mockCapabilities.tools,

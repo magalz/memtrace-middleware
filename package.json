@@ -28,7 +28,8 @@
     "test:watch": "vitest",
     "lint": "eslint src/ tests/ && prettier --check .",
     "lint:fix": "eslint src/ tests/ --fix && prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:load": "k6 run load/ring-buffer-stress.js"
   },
   "engines": {
     "node": ">=20"

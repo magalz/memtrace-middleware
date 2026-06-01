@@ -50,9 +50,51 @@ jobs:
           name: test-results
           path: test-results.xml
 
-  build:
+  compat-gate:
     runs-on: ubuntu-latest
     needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '>=20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - id: detect
+        run: npx tsx scripts/ci-detect-intent-change.ts --base-ref=origin/main --head-ref=HEAD
+        continue-on-error: true
+      - if: steps.detect.outcome == 'success'
+        run: pnpm test -- --run tests/unit/adapters/bmad.test.ts
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compat-gate-results
+          path: test-results.xml
+
+  contract-canary:
+    runs-on: ubuntu-latest
+    needs: compat-gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '>=20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm test -- --run tests/contract/canary.test.ts
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary-results
+          path: canary-results.json
+
+  build:
+    runs-on: ubuntu-latest
+    needs: contract-canary
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

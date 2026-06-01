@@ -1,5 +1,6 @@
 import { DegradationTier } from '../types.js';
 import type { StatusSnapshot } from '../types.js';
+import { getColdStartStats } from './cold-start.js';
 import { RingBuffer } from './ring-buffer.js';
 
 const CONFIDENCE_CAPACITY = 100;
@@ -37,7 +38,8 @@ export const metrics = {
     success: boolean,
     intentType: string,
     confidence: number,
-    _elapsedMs: number
+    _elapsedMs: number,
+    _startupType?: 'cold' | 'warm'
   ): void {
     if (success) {
       successCount++;
@@ -62,6 +64,7 @@ export const metrics = {
       confidence_p50: percentiles.p50,
       confidence_p95: percentiles.p95,
       last_dispatch_result: lastResult,
+      cold_start: getColdStartStats(),
     };
   },
 
