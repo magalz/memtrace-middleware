@@ -1,5 +1,17 @@
 # Deferred Work Log
 
+## Deferred from: code review of i-3-qa-memtrace-fixes (2026-06-01)
+
+- Negative `Partial:N` value causes incorrect coverage slicing (`qa-memtrace.mjs:108`) — `parseInt` result can be negative, bypassing `|| 0` fallback and causing `slice(0, negative)`.
+- Symbol key collisions when file/name is null/undefined (`qa-memtrace.mjs:87-89`) — Map silently deduplicates identical keys like `"undefined:undefined"`.
+- Floating-point threshold silently truncated by parseInt (`qa-memtrace.mjs:35`) — `65.7` becomes `65` without warning.
+- Error object may lack `.message` in catch-all handler (`qa-memtrace.mjs:178`) — non-Error throws produce `"ERROR: undefined"`.
+- `Partial:` prefix is case/whitespace-sensitive (`qa-memtrace.mjs:107`) — `"partial:1"` or `" Partial:1"` falls through without counting.
+- Temp filenames use Date.now() — collision risk under parallel exec (`qa-memtrace.test.mjs:13-14`).
+- `total_count` mismatch warning is stderr-only, not in JSON output (`qa-memtrace.mjs:93`) — consumers parsing stdout won't see the warning.
+- Empty file/module path treated as valid key (`qa-memtrace.mjs:98`) — creates keys like `":foo"`.
+- Missing-arg test has OR fallback that can mask regressions (`qa-memtrace.test.mjs:141`) — timeout pass-by masks missing-message regression.
+
 ## Deferred from: code review of 1-3b-query-decomposition-and-multi-intent-routing (2026-05-28)
 
 - **Tool not in `ARG_KEY_BY_TOOL` defaults to `'query'`** — All 3 MVP tools are mapped. New tools added in Growth phase will need mapping extension — by design. [src/router/plan.ts:47]
@@ -76,5 +88,5 @@
 
 ## Deferred from: code review of 3-1-degradation-state-machine (2026-05-29)
 
-- [Defer] AC2 partial: transition logs missing "affected intents" field in tier_transition log entries [src/degrade/machine.ts:149] � In MVP all 3 intents are core so this has no practical impact. Deferred to future stories when non-core intents are introduced.
+- [Defer] AC2 partial: transition logs missing "affected intents" field in tier_transition log entries [src/degrade/machine.ts:149] � In MVP all 3 intents are core so this has no practical impact. Deferred to future stories when non-core intents are introduced.
 
