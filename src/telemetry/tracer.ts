@@ -4,6 +4,8 @@ const INTENT_SHORT_CODES: Record<string, string> = {
   find_code: 'fc',
   get_symbol_context: 'gsc',
   get_impact: 'gi',
+  review_code: 'rc',
+  get_style_fingerprint: 'gsf',
 };
 
 export interface TraceContext {

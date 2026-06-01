@@ -59,4 +59,14 @@ describe('tracer', () => {
     const ids = new Set(Array.from({ length: 1000 }, () => generateTraceId('find_code')));
     expect(ids.size).toBe(1000);
   });
+
+  it('[P1] generates rc-{uuid8} format for review_code intent', () => {
+    const id = generateTraceId('review_code');
+    expect(id).toMatch(/^rc-[0-9a-f]{8}$/);
+  });
+
+  it('[P1] generates gsf-{uuid8} format for get_style_fingerprint intent', () => {
+    const id = generateTraceId('get_style_fingerprint');
+    expect(id).toMatch(/^gsf-[0-9a-f]{8}$/);
+  });
 });

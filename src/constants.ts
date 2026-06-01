@@ -13,3 +13,5 @@ export const COLD_START_IDLE_THRESHOLD_MS = 30000;
 export const MCP_TOOL_FIND_CODE = 'memtrace_find_code';
 export const MCP_TOOL_GET_SYMBOL_CONTEXT = 'memtrace_get_symbol_context';
 export const MCP_TOOL_GET_IMPACT = 'memtrace_get_impact';
+export const MCP_TOOL_FIND_AST_REVIEW_ISSUES = 'find_ast_review_issues';
+export const MCP_TOOL_GET_STYLE_FINGERPRINT = 'get_style_fingerprint';

@@ -37,6 +37,30 @@ const DEFAULT_INTENTS: IntentDefinition[] = [
     ],
     tools: ['memtrace_get_impact', 'memtrace_find_code'],
   },
+  {
+    type: 'review_code',
+    patterns: [
+      'review',
+      'pull request',
+      'code review',
+      'AST issues',
+      'reviewer patterns',
+      'lint check',
+      'static analysis',
+    ],
+    tools: ['find_ast_review_issues'],
+  },
+  {
+    type: 'get_style_fingerprint',
+    patterns: [
+      'code style',
+      'project conventions',
+      'naming patterns',
+      'this project uses',
+      'match the style',
+    ],
+    tools: ['get_style_fingerprint'],
+  },
 ];
 
 export class IntentRegistry {
@@ -69,7 +93,7 @@ export class IntentRegistry {
     this.intents.delete(type);
   }
 
-  /** Resets to the 3 MVP defaults, removing any custom registrations */
+  /** Resets to the default intents (currently 5), removing any custom registrations */
   reset(): void {
     this.intents.clear();
     for (const def of DEFAULT_INTENTS) {

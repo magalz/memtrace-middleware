@@ -397,3 +397,213 @@ describe('plan — argument extraction correctness', () => {
     }
   });
 });
+
+// AC post.1-2: review_code plan produces GraphQuery[] targeting find_ast_review_issues
+describe('plan — review_code', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] plans a single find_ast_review_issues query from a classified review_code intent', () => {
+    const msg = makeMessage('review this PR for auth module', 'find_ast_review_issues');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+      ],
+    };
+    const classified = classify(msg, caps);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(1);
+    expect(result.value[0].tool).toBe('find_ast_review_issues');
+    const args = result.value[0].arguments as Record<string, unknown>;
+    expect(typeof args.query).toBe('string');
+    expect((args.query as string).length).toBeGreaterThan(0);
+  });
+
+  it('[P1] derives arguments from the original agent message for review_code', () => {
+    const msg = makeMessage('find AST issues in authMiddleware.ts', 'find_ast_review_issues');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+      ],
+    };
+    const classified = classify(msg, caps);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value[0].tool).toBe('find_ast_review_issues');
+    expect(result.value[0].arguments).toMatchObject({
+      query: 'find AST issues in authMiddleware.ts',
+    });
+  });
+});
+
+// AC post.1-5: get_style_fingerprint plan produces single GraphQuery
+describe('plan — get_style_fingerprint', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] plans a single get_style_fingerprint query from a classified get_style_fingerprint intent', () => {
+    const msg = makeMessage('what code style does this project use', 'get_style_fingerprint');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+      ],
+    };
+    const classified = classify(msg, caps);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(1);
+    expect(result.value[0].tool).toBe('get_style_fingerprint');
+    expect(result.value[0].arguments).toBeDefined();
+  });
+
+  it('[P1] infers language from file extension in message context', () => {
+    const msg: Record<string, unknown> = {
+      method: 'tools/call',
+      params: {
+        name: 'get_style_fingerprint',
+        arguments: { lang: 'typescript', query: 'match conventions for auth.ts' },
+      },
+    };
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+      ],
+    };
+    const classified = classify(msg, caps);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value[0].tool).toBe('get_style_fingerprint');
+    const args = result.value[0].arguments as Record<string, unknown>;
+    expect(args).toMatchObject({ lang: 'typescript', query: 'match conventions for auth.ts' });
+  });
+
+  it('[P2] falls back to default language when no file extension or lang param is present', () => {
+    const msg = makeMessage('what conventions does this project follow', 'get_style_fingerprint');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+      ],
+    };
+    const classified = classify(msg, caps);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(1);
+    expect(result.value[0].tool).toBe('get_style_fingerprint');
+  });
+});
+
+// AC post.1-7: backward compat — 3 MVP intent plans unchanged after new intents
+describe('plan — backward compat with new intents', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] all 3 MVP intents produce correct plans after new intents registered', () => {
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'memtrace_get_symbol_context', description: '', inputSchema: {} },
+        { name: 'memtrace_get_impact', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+      ],
+    };
+    const fcClassified = classify(
+      {
+        method: 'tools/call',
+        params: { name: 'memtrace_find_code', arguments: { query: 'find fn' } },
+      },
+      caps
+    );
+    const gscClassified = classify(
+      {
+        method: 'tools/call',
+        params: { name: 'memtrace_get_symbol_context', arguments: { query: 'context of fn' } },
+      },
+      caps
+    );
+    const giClassified = classify(
+      {
+        method: 'tools/call',
+        params: { name: 'memtrace_get_impact', arguments: { query: 'impact of fn' } },
+      },
+      caps
+    );
+    expect(fcClassified.ok && gscClassified.ok && giClassified.ok).toBe(true);
+    if (!fcClassified.ok || !gscClassified.ok || !giClassified.ok) return;
+
+    const fcPlan = plan(fcClassified.value, caps);
+    const gscPlan = plan(gscClassified.value, caps);
+    const giPlan = plan(giClassified.value, caps);
+    expect(fcPlan.ok).toBe(true);
+    if (fcPlan.ok) {
+      expect(fcPlan.value.map((q) => q.tool)).toContain('memtrace_find_code');
+    }
+    expect(gscPlan.ok).toBe(true);
+    if (gscPlan.ok) {
+      expect(gscPlan.value.map((q) => q.tool)).toContain('memtrace_get_symbol_context');
+    }
+    expect(giPlan.ok).toBe(true);
+    if (giPlan.ok) {
+      expect(giPlan.value.map((q) => q.tool)).toContain('memtrace_get_impact');
+    }
+  });
+});
+
+// AC post.1-8: plan handles new intents gracefully when tools absent (v0.4.x backward compat)
+describe('plan — v0.4.x passthrough', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] review_code plan returns gracefully when find_ast_review_issues is absent from capabilities', () => {
+    const msg = makeMessage('review this code', 'some_old_tool');
+    const v04xCaps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'memtrace_get_symbol_context', description: '', inputSchema: {} },
+        { name: 'memtrace_get_impact', description: '', inputSchema: {} },
+      ],
+    };
+    const classified = classify(msg, v04xCaps);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, v04xCaps);
+    expect(result.ok).toBe(true);
+  });
+
+  it('[P0] get_style_fingerprint plan returns gracefully when tool absent from capabilities', () => {
+    const msg = makeMessage('what code style is used here', 'old_tool_name');
+    const v04xCaps: MemtraceCapabilities = {
+      tools: [{ name: 'memtrace_find_code', description: '', inputSchema: {} }],
+    };
+    const classified = classify(msg, v04xCaps);
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, v04xCaps);
+    expect(result.ok).toBe(true);
+  });
+});

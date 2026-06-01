@@ -1,6 +1,6 @@
 # Memtrace Middleware
 
-[![CI](https://github.com/your-org/memtrace-middleware/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/memtrace-middleware/actions/workflows/ci.yml)
+[![CI](https://github.com/magalz/memtrace-middleware/actions/workflows/ci.yml/badge.svg)](https://github.com/magalz/memtrace-middleware/actions/workflows/ci.yml)
 ![npm version](https://img.shields.io/npm/v/@memtrace/middleware)
 ![License](https://img.shields.io/npm/l/@memtrace/middleware)
 

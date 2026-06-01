@@ -8,6 +8,8 @@ const ARG_KEY_BY_TOOL: Record<string, string> = {
   memtrace_find_code: 'query',
   memtrace_get_symbol_context: 'symbol',
   memtrace_get_impact: 'target',
+  find_ast_review_issues: 'query',
+  get_style_fingerprint: 'query',
 };
 
 export function plan(
@@ -44,10 +46,21 @@ export function plan(
       continue;
     }
 
-    const argKey = ARG_KEY_BY_TOOL[tool] ?? 'query';
+    const argKey = ARG_KEY_BY_TOOL[tool];
+    const usedFallback = argKey === undefined;
+    const resolvedKey = argKey ?? 'query';
+    if (usedFallback) {
+      logger.warn('plan_arg_key_fallback', { tool, intent: intent.intent_type });
+    }
+    const args: Record<string, unknown> = {
+      [resolvedKey]: extractedArgs[resolvedKey] ?? extractedArgs.query ?? '',
+    };
+    if (extractedArgs.lang) {
+      args.lang = extractedArgs.lang;
+    }
     queries.push({
       tool,
-      arguments: { [argKey]: extractedArgs[argKey] ?? extractedArgs.query ?? '' },
+      arguments: args,
     });
   }
 
@@ -68,10 +81,12 @@ function extractArgs(message: unknown): Record<string, string> {
   const nameVal = typeof args.name === 'string' ? args.name : '';
   const queryVal = typeof args.query === 'string' ? args.query : '';
   const symbolVal = typeof args.symbol === 'string' ? args.symbol : '';
+  const langVal = typeof args.lang === 'string' ? args.lang : '';
 
   return {
     query: queryVal || nameVal || symbolVal,
     symbol: symbolVal || nameVal || queryVal,
     target: typeof args.target === 'string' ? args.target : symbolVal || nameVal || queryVal,
+    lang: langVal,
   };
 }

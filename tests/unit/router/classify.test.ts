@@ -305,6 +305,225 @@ describe('getRegistry', () => {
   });
 });
 
+// AC post.1-1: review_code classification confidence >= 0.95 for known patterns
+describe('classify — review_code', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] classifies review_code from "review this PR" with confidence >= 0.95', () => {
+    const msg = makeMessage('review this PR for the auth module changes', 'find_ast_review_issues');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.intent_type).toBe('review_code');
+    expect(result.value.confidence).toBeGreaterThanOrEqual(0.95);
+    expect(result.value.passthrough).toBe(false);
+  });
+
+  it('[P0] classifies review_code from "find AST issues" with confidence >= 0.95', () => {
+    const msg = makeMessage(
+      'find AST issues in this codebase related to error handling',
+      'find_ast_review_issues'
+    );
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.intent_type).toBe('review_code');
+    expect(result.value.confidence).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it('[P0] classifies review_code from "code review patterns catch" with confidence >= 0.95', () => {
+    const msg = makeMessage(
+      'code review patterns catch potential null pointer issues',
+      'find_ast_review_issues'
+    );
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.intent_type).toBe('review_code');
+    expect(result.value.confidence).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it('[P1] classifies review_code from tool name alone when message has no text content', () => {
+    const msg = makeToolMessage('find_ast_review_issues');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.intent_type).toBe('review_code');
+    expect(result.value.confidence).toBeGreaterThanOrEqual(0.95);
+    expect(result.value.passthrough).toBe(false);
+  });
+});
+
+// AC post.1-4: get_style_fingerprint classification
+describe('classify — get_style_fingerprint', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] classifies get_style_fingerprint from "what code style does this use"', () => {
+    const msg = makeMessage('what code style does this project use', 'get_style_fingerprint');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.intent_type).toBe('get_style_fingerprint');
+    expect(result.value.passthrough).toBe(false);
+  });
+
+  it('[P0] classifies get_style_fingerprint from "match the project conventions"', () => {
+    const msg = makeMessage(
+      'match the project conventions for this codebase',
+      'get_style_fingerprint'
+    );
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.intent_type).toBe('get_style_fingerprint');
+    expect(result.value.passthrough).toBe(false);
+  });
+
+  it('[P1] classifies get_style_fingerprint from tool name alone when message has no text', () => {
+    const msg = makeToolMessage('get_style_fingerprint');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.intent_type).toBe('get_style_fingerprint');
+    expect(result.value.confidence).toBeGreaterThanOrEqual(0.95);
+    expect(result.value.passthrough).toBe(false);
+  });
+});
+
+// AC post.1-7: backward compatibility — 3 MVP intents still classify correctly
+describe('classify — backward compat with new intents', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] preserves backward compatibility — all 3 MVP intents classify correctly after new intents registered', () => {
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'memtrace_get_symbol_context', description: '', inputSchema: {} },
+        { name: 'memtrace_get_impact', description: '', inputSchema: {} },
+        { name: 'find_ast_review_issues', description: '', inputSchema: {} },
+        { name: 'get_style_fingerprint', description: '', inputSchema: {} },
+      ],
+    };
+    const fcResult = classify(
+      { method: 'tools/call', params: { arguments: { query: 'find function authenticateUser' } } },
+      caps
+    );
+    const gscResult = classify(
+      {
+        method: 'tools/call',
+        params: { arguments: { query: 'what calls the validateToken function' } },
+      },
+      caps
+    );
+    const giResult = classify(
+      {
+        method: 'tools/call',
+        params: { arguments: { query: 'what is the blast radius of processPayment' } },
+      },
+      caps
+    );
+    expect(fcResult.ok).toBe(true);
+    if (fcResult.ok) expect(fcResult.value.intent_type).toBe('find_code');
+    expect(gscResult.ok).toBe(true);
+    if (gscResult.ok) expect(gscResult.value.intent_type).toBe('get_symbol_context');
+    expect(giResult.ok).toBe(true);
+    if (giResult.ok) expect(giResult.value.intent_type).toBe('get_impact');
+  });
+});
+
+// AC post.1-8: graceful passthrough when tools absent
+describe('classify — v0.4.x passthrough', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  it('[P0] still classifies review_code from keywords even without find_ast_review_issues in capabilities', () => {
+    const msg = makeMessage('review this PR for security issues', 'some_unknown_tool');
+    const caps: MemtraceCapabilities = {
+      tools: [
+        { name: 'memtrace_find_code', description: '', inputSchema: {} },
+        { name: 'memtrace_get_symbol_context', description: '', inputSchema: {} },
+        { name: 'memtrace_get_impact', description: '', inputSchema: {} },
+      ],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    if (result.value.passthrough) {
+      expect(result.value.intent_type).toBe('unknown');
+    }
+  });
+
+  it('[P0] handles get_style_fingerprint message gracefully when tool absent from capabilities', () => {
+    const msg = makeMessage('what code style does this use', 'some_other_tool');
+    const caps: MemtraceCapabilities = {
+      tools: [{ name: 'memtrace_find_code', description: '', inputSchema: {} }],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+  });
+
+  it('[P1] ambiguous message matching both review_code and get_style_fingerprint keywords produces passthrough', () => {
+    const msg = makeMessage('review the code style in this codebase', 'some_unknown_tool');
+    const caps: MemtraceCapabilities = {
+      tools: [{ name: 'memtrace_find_code', description: '', inputSchema: {} }],
+    };
+    const result = classify(msg, caps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.passthrough).toBe(true);
+    expect(result.value.confidence).toBeLessThan(0.95);
+  });
+});
+
 // AC 1.3a-6 — sample-intents fixture provides test payloads for all 3 MVP intents
 describe('sample-intents fixture', () => {
   it('[P3] contains valid MCP tools/call payloads for all 3 MVP intents plus ambiguous', () => {

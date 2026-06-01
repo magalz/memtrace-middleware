@@ -71,4 +71,33 @@ describe('e2e full pipeline', () => {
     expect(result.metadata!.trace_id).toBeTruthy();
   });
 
+  it('[P1] dispatches review_code message gracefully when find_ast_review_issues absent from backend', async () => {
+    const backend = createE2EMockBackend({ probeFails: false, queryDelayMs: 0 });
+    const adapter = new BaseAdapter(backend);
+    const result = await adapter.dispatch({
+      method: 'tools/call',
+      params: { name: 'find_ast_review_issues', arguments: { query: 'review auth middleware' } },
+    });
+    expect(result).toBeDefined();
+    expect(result.content).toBeDefined();
+    expect(result.metadata).toBeDefined();
+    expect(result.metadata!.trace_id).toBeTruthy();
+    expect(result.metadata!.elapsed_ms).toBeGreaterThanOrEqual(0);
+    expect(result.content[0]?.text).toBeTruthy();
+  });
+
+  it('[P1] dispatches get_style_fingerprint message gracefully when tool absent from backend', async () => {
+    const backend = createE2EMockBackend({ probeFails: false, queryDelayMs: 0 });
+    const adapter = new BaseAdapter(backend);
+    const result = await adapter.dispatch({
+      method: 'tools/call',
+      params: { name: 'get_style_fingerprint', arguments: { lang: 'typescript' } },
+    });
+    expect(result).toBeDefined();
+    expect(result.content).toBeDefined();
+    expect(result.metadata).toBeDefined();
+    expect(result.metadata!.trace_id).toBeTruthy();
+    expect(result.metadata!.elapsed_ms).toBeGreaterThanOrEqual(0);
+    expect(result.content[0]?.text).toBeTruthy();
+  });
 });

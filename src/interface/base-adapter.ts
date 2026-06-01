@@ -185,7 +185,13 @@ export class BaseAdapter implements ToolProvider {
           },
         };
       } catch (err: unknown) {
-        metrics.recordDispatch(false, intentType, 0, Date.now() - dispatchStart, isColdStart() ? 'cold' : 'warm');
+        metrics.recordDispatch(
+          false,
+          intentType,
+          0,
+          Date.now() - dispatchStart,
+          isColdStart() ? 'cold' : 'warm'
+        );
         return {
           content: [
             {

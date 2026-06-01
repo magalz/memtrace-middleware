@@ -30,10 +30,10 @@ describe('CI intent change detection', () => {
     if (hasGitHistory === '0' || hasGitHistory === '1') {
       return;
     }
-    const exitCode = execSync(
-      `npx tsx ${SCRIPT_PATH} --base-ref=HEAD~1 --head-ref=HEAD`,
-      { encoding: 'utf-8', timeout: 15000 },
-    );
+    const exitCode = execSync(`npx tsx ${SCRIPT_PATH} --base-ref=HEAD~1 --head-ref=HEAD`, {
+      encoding: 'utf-8',
+      timeout: 15000,
+    });
     expect([0, 2]).toContain(exitCode);
   });
 

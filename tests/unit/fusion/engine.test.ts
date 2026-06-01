@@ -283,3 +283,138 @@ describe('fuse() — fusion engine', () => {
     expect(fused.value.provenance).toHaveLength(3);
   });
 });
+
+describe('fuse — review_code AST review patterns', () => {
+  it('[P0] annotates AST review results with pattern type, severity, file path, and line number in FusedContext provenance', () => {
+    const results: QueryResult[] = [
+      makeResult({
+        tool: 'find_ast_review_issues',
+        data: [
+          {
+            name: 'null-deref-check',
+            file_path: 'src/auth/middleware.ts',
+            start_line: 42,
+            end_line: 45,
+            centrality: 9,
+            pattern_type: 'null_safety',
+            severity: 'high',
+            message: 'Potential null dereference at line 42',
+          },
+          {
+            name: 'unhandled-error',
+            file_path: 'src/auth/middleware.ts',
+            start_line: 67,
+            end_line: 67,
+            centrality: 7,
+            pattern_type: 'error_handling',
+            severity: 'medium',
+            message: 'Unhandled promise rejection on async call',
+          },
+        ],
+      }),
+    ];
+    const fused = fuse({ results, intent_type: 'review_code' });
+    expect(fused.ok).toBe(true);
+    if (!fused.ok) return;
+    expect(fused.value.blocks.length).toBeGreaterThanOrEqual(1);
+    for (const block of fused.value.blocks) {
+      expect(block.file_path).toBeTruthy();
+      expect(block.start_line).toBeGreaterThan(0);
+    }
+    expect(fused.value.provenance.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('[P1] preserves pattern metadata within block data for review_code fusion', () => {
+    const results: QueryResult[] = [
+      makeResult({
+        tool: 'find_ast_review_issues',
+        data: [
+          {
+            name: 'hardcoded-secret',
+            file_path: 'src/config/secrets.ts',
+            start_line: 5,
+            end_line: 5,
+            centrality: 10,
+            pattern_type: 'security',
+            severity: 'critical',
+            message: 'Hardcoded API key detected',
+          },
+        ],
+      }),
+    ];
+    const fused = fuse({ results, intent_type: 'review_code' });
+    expect(fused.ok).toBe(true);
+    if (!fused.ok) return;
+    expect(fused.value.blocks).toHaveLength(1);
+    expect(fused.value.blocks[0].symbol).toBe('hardcoded-secret');
+    expect(fused.value.blocks[0].file_path).toBe('src/config/secrets.ts');
+    expect(fused.value.blocks[0].start_line).toBe(5);
+  });
+});
+
+describe('fuse — get_style_fingerprint style patterns', () => {
+  it('[P0] includes style pattern results in FusedContext as descriptive metadata via provenance', () => {
+    const results: QueryResult[] = [
+      makeResult({
+        tool: 'get_style_fingerprint',
+        data: [
+          {
+            name: 'ternary-vs-ifelse',
+            file_path: 'src/patterns.ts',
+            start_line: 1,
+            end_line: 1,
+            centrality: 8,
+            style_pattern: 'ternary',
+            usage_percent: 72,
+            description: 'Ternary expressions preferred over if/else',
+          },
+          {
+            name: 'arrow-vs-function',
+            file_path: 'src/patterns.ts',
+            start_line: 1,
+            end_line: 1,
+            centrality: 6,
+            style_pattern: 'arrow_function',
+            usage_percent: 91,
+            description: 'Arrow functions dominate for callbacks',
+          },
+        ],
+      }),
+    ];
+    const fused = fuse({ results, intent_type: 'get_style_fingerprint' });
+    expect(fused.ok).toBe(true);
+    if (!fused.ok) return;
+    expect(fused.value.blocks.length).toBeGreaterThanOrEqual(1);
+    expect(fused.value.provenance.length).toBeGreaterThanOrEqual(1);
+    for (const p of fused.value.provenance) {
+      expect(p).toContain('get_style_fingerprint');
+    }
+  });
+
+  it('[P1] style fingerprint results are descriptive — never prescriptive', () => {
+    const results: QueryResult[] = [
+      makeResult({
+        tool: 'get_style_fingerprint',
+        data: [
+          {
+            name: 'indent-style',
+            file_path: 'src/patterns.ts',
+            start_line: 1,
+            end_line: 1,
+            centrality: 5,
+            style_pattern: 'spaces',
+            usage_percent: 100,
+            description: '2-space indentation used across all TypeScript files',
+          },
+        ],
+      }),
+    ];
+    const fused = fuse({ results, intent_type: 'get_style_fingerprint' });
+    expect(fused.ok).toBe(true);
+    if (!fused.ok) return;
+    for (const p of fused.value.provenance) {
+      expect(p).toContain('get_style_fingerprint');
+      expect(p).toMatch(/^\[memtrace: grounded via/);
+    }
+  });
+});

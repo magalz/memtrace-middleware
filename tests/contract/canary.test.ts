@@ -85,7 +85,11 @@ describe('contract canary', () => {
 
   it('[P1] all legacy intents produce metadata with trace_id and elapsed_ms', async () => {
     const adapter = new BaseAdapter(makeBackend(BASE_TOOLS));
-    for (const tool of ['memtrace_find_code', 'memtrace_get_symbol_context', 'memtrace_get_impact']) {
+    for (const tool of [
+      'memtrace_find_code',
+      'memtrace_get_symbol_context',
+      'memtrace_get_impact',
+    ]) {
       const result = await adapter.dispatch(makeDispatch(tool));
       expect(result.metadata).toBeDefined();
       expect(result.metadata!.trace_id).toBeTruthy();
@@ -103,5 +107,25 @@ describe('contract canary', () => {
     await adapter.dispatch(makeDispatch('memtrace_get_impact'));
     const elapsed = Date.now() - start;
     expect(elapsed).toBeLessThan(10000);
+  });
+
+  it('[P1] all legacy intents produce valid result when new v0.5.x tools are present in capabilities', async () => {
+    const tools = [
+      ...BASE_TOOLS,
+      { name: 'find_ast_review_issues', description: 'AST review', inputSchema: {} },
+      { name: 'get_style_fingerprint', description: 'Style fingerprint', inputSchema: {} },
+    ];
+    const adapter = new BaseAdapter(makeBackend(tools));
+    for (const tool of [
+      'memtrace_find_code',
+      'memtrace_get_symbol_context',
+      'memtrace_get_impact',
+    ]) {
+      const result = await adapter.dispatch(makeDispatch(tool));
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata!.trace_id).toBeTruthy();
+      expect(result.metadata!.elapsed_ms).toBeGreaterThanOrEqual(0);
+      expect(result.content[0]?.text).toBeTruthy();
+    }
   });
 });

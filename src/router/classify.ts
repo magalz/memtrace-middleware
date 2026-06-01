@@ -1,8 +1,10 @@
 import {
   CLASSIFICATION_CONFIDENCE_THRESHOLD,
+  MCP_TOOL_FIND_AST_REVIEW_ISSUES,
   MCP_TOOL_FIND_CODE,
-  MCP_TOOL_GET_SYMBOL_CONTEXT,
   MCP_TOOL_GET_IMPACT,
+  MCP_TOOL_GET_STYLE_FINGERPRINT,
+  MCP_TOOL_GET_SYMBOL_CONTEXT,
 } from '../constants.js';
 import { MiddlewareError } from '../errors.js';
 import { createLogger } from '../logger.js';
@@ -13,10 +15,15 @@ const logger = createLogger('router');
 
 const registry = new IntentRegistry();
 
+const TOOL_BONUS = 4;
+const NO_TEXT_BONUS = 1;
+
 const TOOL_TO_INTENT: Record<string, string> = {
   [MCP_TOOL_FIND_CODE]: 'find_code',
   [MCP_TOOL_GET_SYMBOL_CONTEXT]: 'get_symbol_context',
   [MCP_TOOL_GET_IMPACT]: 'get_impact',
+  [MCP_TOOL_FIND_AST_REVIEW_ISSUES]: 'review_code',
+  [MCP_TOOL_GET_STYLE_FINGERPRINT]: 'get_style_fingerprint',
 };
 
 export function classify(
@@ -38,7 +45,7 @@ export function classify(
 
   for (const tool of Object.keys(TOOL_TO_INTENT)) {
     if (!availableTools.has(tool)) {
-      logger.warn('tool_not_in_capabilities', { tool });
+      logger.debug('tool_not_in_capabilities', { tool });
     }
   }
 
@@ -58,11 +65,11 @@ export function classify(
     }
 
     if (toolName && TOOL_TO_INTENT[toolName] === def.type) {
-      score += 4;
+      score += TOOL_BONUS;
     }
 
     if (!hasText && toolName && TOOL_TO_INTENT[toolName] === def.type) {
-      score += 1;
+      score += NO_TEXT_BONUS;
     }
 
     const weight = def.confidenceWeight ?? 1.0;
@@ -118,6 +125,9 @@ function extractSearchText(message: Record<string, unknown>): string {
   const args = params?.arguments as Record<string, unknown> | undefined;
   if (args?.query && typeof args.query === 'string') return args.query;
   if (args?.name && typeof args.name === 'string') return args.name;
+  logger.debug('extractSearchText_fallback_to_stringify', {
+    message_keys: Object.keys(message).slice(0, 5),
+  });
   return JSON.stringify(message);
 }
 
