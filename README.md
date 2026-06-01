@@ -13,6 +13,24 @@ npm install -g @memtrace/middleware
 memtrace init
 ```
 
+### Local Development Install
+
+```bash
+git clone https://github.com/magalz/memtrace-middleware.git
+cd memtrace-middleware
+pnpm install
+pnpm build
+pnpm link --global .
+```
+
+Then `memtrace` is available globally from the local build.
+
+To uninstall:
+
+```bash
+pnpm unlink --global @memtrace/middleware
+```
+
 ## One-Liner Demo
 
 ```bash
