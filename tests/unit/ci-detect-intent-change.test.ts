@@ -23,7 +23,7 @@ describe('CI intent change detection', () => {
   });
 
   it('[P1] detects changes between different refs when src/router/types.ts differs', () => {
-    const hasGitHistory = execSync('git rev-list --count HEAD~1..HEAD 2>nul || echo 0', {
+    const hasGitHistory = execSync('git rev-list --count HEAD~1..HEAD 2>/dev/null || echo 0', {
       encoding: 'utf-8',
       timeout: 5000,
     }).trim();

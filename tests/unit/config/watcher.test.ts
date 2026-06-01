@@ -46,7 +46,7 @@ describe('config watcher', () => {
 
     // Then: at least one config:changed event is emitted
     expect(events.length).toBeGreaterThanOrEqual(1);
-    watcher.close();
+    await watcher.close();
   });
 
   // AC 1.1b-2 — file deletion reverts to defaults via config:changed event
@@ -67,7 +67,7 @@ describe('config watcher', () => {
 
     // Then: a config:changed event is emitted with defaults
     expect(events.length).toBeGreaterThanOrEqual(1);
-    watcher.close();
+    await watcher.close();
   });
 
   // AC 1.1b-2 — invalid config content emits config:error, keeps current config
@@ -88,6 +88,6 @@ describe('config watcher', () => {
 
     // Then: a config:error event is emitted, current config is preserved
     expect(errors.length).toBeGreaterThanOrEqual(1);
-    watcher.close();
+    await watcher.close();
   });
 });
