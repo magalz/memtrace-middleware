@@ -30,11 +30,17 @@ describe('CI intent change detection', () => {
     if (hasGitHistory === '0' || hasGitHistory === '1') {
       return;
     }
-    const exitCode = execSync(`npx tsx ${SCRIPT_PATH} --base-ref=HEAD~1 --head-ref=HEAD`, {
-      encoding: 'utf-8',
-      timeout: 15000,
-    });
-    expect([0, 2]).toContain(exitCode);
+    try {
+      execSync(`npx tsx ${SCRIPT_PATH} --base-ref=HEAD~1 --head-ref=HEAD`, {
+        encoding: 'utf-8',
+        timeout: 15000,
+      });
+      // exit code 0: changes detected
+    } catch (e: unknown) {
+      const err = e as { status: number };
+      // exit code 2: no intent changes (valid)
+      expect([0, 2]).toContain(err.status);
+    }
   });
 
   it('[P2] script has no dependency on middleware product code', () => {
