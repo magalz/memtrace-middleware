@@ -142,17 +142,25 @@ export function startStatusDisplay(options?: StatusOptions): StatusController {
     flash.tick();
   }, STATUS_REFRESH_MS);
 
-  const handleSignal = () => {
-    stop();
-    process.exit(0);
-  };
-
   let signalHandlerRegistered = false;
+  let sigintHandler: (() => void) | null = null;
+  let sigtermHandler: (() => void) | null = null;
 
   function ensureSignalHandlers(): void {
     if (signalHandlerRegistered) return;
-    process.on('SIGINT', handleSignal);
-    process.on('SIGTERM', handleSignal);
+    if (process.listenerCount('SIGINT') > 0 || process.listenerCount('SIGTERM') > 0) {
+      return;
+    }
+    sigintHandler = () => {
+      stop();
+      process.exit(0);
+    };
+    sigtermHandler = () => {
+      stop();
+      process.exit(0);
+    };
+    process.on('SIGINT', sigintHandler);
+    process.on('SIGTERM', sigtermHandler);
     signalHandlerRegistered = true;
   }
 
@@ -162,8 +170,10 @@ export function startStatusDisplay(options?: StatusOptions): StatusController {
     clearInterval(interval);
     process.stdout.write('\n');
     if (signalHandlerRegistered) {
-      process.off('SIGINT', handleSignal);
-      process.off('SIGTERM', handleSignal);
+      if (sigintHandler) process.off('SIGINT', sigintHandler);
+      if (sigtermHandler) process.off('SIGTERM', sigtermHandler);
+      sigintHandler = null;
+      sigtermHandler = null;
       signalHandlerRegistered = false;
     }
   }
