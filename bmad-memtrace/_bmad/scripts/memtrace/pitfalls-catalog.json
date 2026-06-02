@@ -32,7 +32,11 @@
           "id": "framework-entry-001",
           "pattern": "^(handler|middleware|globalSetup|globalTeardown|setup|teardown)$",
           "reason": "Framework runtime entry point (Next.js, Playwright, Vitest, etc.)",
-          "examples": ["handler in route.ts", "middleware in middleware.ts", "globalSetup in playwright config"]
+          "examples": [
+            "handler in route.ts",
+            "middleware in middleware.ts",
+            "globalSetup in playwright config"
+          ]
         }
       ]
     },
