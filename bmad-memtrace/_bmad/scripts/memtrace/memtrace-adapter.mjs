@@ -10,7 +10,7 @@ const TIMEOUT_TOKEN = 'MEMTRACE_MCP_ERROR_TIMEOUT';
 const SUMMARIZE_TOKEN_LIMIT = 2000;
 const FRESHNESS_MAX_AGE_MINUTES = (() => {
   const env = parseInt(process.env.MEMTRACE_FRESHNESS_MAX_AGE_MINUTES, 10);
-  return (Number.isFinite(env) && env > 0) ? env : 30;
+  return Number.isFinite(env) && env > 0 ? env : 30;
 })();
 
 function parseArgs() {
@@ -42,7 +42,15 @@ Examples:
     process.exit(0);
   }
 
-  const result = { target: null, query: null, repo: null, summarize: false, checkFreshness: false, batch: false, targets: [] };
+  const result = {
+    target: null,
+    query: null,
+    repo: null,
+    summarize: false,
+    checkFreshness: false,
+    batch: false,
+    targets: [],
+  };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--target' && i + 1 < args.length) {
       const val = args[++i];
@@ -75,7 +83,7 @@ Examples:
     process.exit(1);
   }
 
-  if ((result.query === 'get_impact' || result.query === 'find_dead_code')) {
+  if (result.query === 'get_impact' || result.query === 'find_dead_code') {
     if (result.target === null) {
       fail(`Missing required argument: --target is required for --query ${result.query}`);
       process.exit(1);
@@ -89,12 +97,17 @@ Examples:
   // Batch mode: parse multiple targets
   if (result.batch && result.targets.length > 0) {
     // Comma-separated: --target "sym1, sym2, sym3"
-    if (result.targets.some(t => t.includes(','))) {
-      const expanded = result.targets.flatMap(t => t.split(',').map(s => s.trim()).filter(Boolean));
+    if (result.targets.some((t) => t.includes(','))) {
+      const expanded = result.targets.flatMap((t) =>
+        t
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      );
       result.targets = expanded.length > 0 ? expanded : result.targets.filter(Boolean);
     }
     // Filter out any empty strings from repeated --target flags
-    result.targets = result.targets.filter(t => t.length > 0);
+    result.targets = result.targets.filter((t) => t.length > 0);
   }
 
   return result;
@@ -140,14 +153,18 @@ class McpClient {
         if (pending) {
           this._activeRequests.delete(message.id);
           if (message.error) {
-            pending.reject(new Error(`MCP error: ${message.error.message || JSON.stringify(message.error)}`));
+            pending.reject(
+              new Error(`MCP error: ${message.error.message || JSON.stringify(message.error)}`)
+            );
           } else {
             pending.resolve(message.result);
           }
         }
       } catch (err) {
         if (line.trim().startsWith('{')) {
-          console.error(`WARNING: [McpClient] Malformed JSON (${err?.message ?? String(err)}): ${line.slice(0, 120)}`);
+          console.error(
+            `WARNING: [McpClient] Malformed JSON (${err?.message ?? String(err)}): ${line.slice(0, 120)}`
+          );
         }
       }
     }
@@ -175,13 +192,13 @@ class McpClient {
           this.child = spawn(process.execPath, [MEMTRACE_MOCK_PATH], {
             stdio: ['pipe', 'pipe', 'pipe'],
             shell: false,
-            windowsHide: true
+            windowsHide: true,
           });
         } else {
           this.child = spawn('memtrace', ['mcp'], {
             stdio: ['pipe', 'pipe', 'pipe'],
             shell: process.platform === 'win32',
-            windowsHide: true
+            windowsHide: true,
           });
         }
       } catch (err) {
@@ -198,7 +215,8 @@ class McpClient {
           if (useMock) {
             msg = `Mock MCP server not found: ${MEMTRACE_MOCK_PATH}. Ensure the mock script exists at the specified path.`;
           } else {
-            msg = 'memtrace binary not found on PATH. Ensure memtrace is installed (npm install -g memtrace) and available.';
+            msg =
+              'memtrace binary not found on PATH. Ensure memtrace is installed (npm install -g memtrace) and available.';
           }
         } else {
           msg = `memtrace spawn error: ${err?.message ?? String(err)}`;
@@ -222,8 +240,12 @@ class McpClient {
         if (this.child) {
           this.child.removeListener('error', onError);
           this.child.removeListener('exit', onExit);
-          try { this.child.stdout.removeListener('data', stdoutListener); } catch (e) {}
-          try { this.child.stderr.removeListener('data', stderrListener); } catch (e) {}
+          try {
+            this.child.stdout.removeListener('data', stdoutListener);
+          } catch (e) {}
+          try {
+            this.child.stderr.removeListener('data', stderrListener);
+          } catch (e) {}
         }
       };
 
@@ -272,9 +294,11 @@ class McpClient {
       const capabilities = await this.sendRequest('initialize', {
         protocolVersion: '2024-11-05',
         capabilities: {},
-        clientInfo: { name: 'bmad-memtrace-adapter', version: '1.0.0' }
+        clientInfo: { name: 'bmad-memtrace-adapter', version: '1.0.0' },
       });
-      this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }) + '\n');
+      this.child.stdin.write(
+        JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }) + '\n'
+      );
       debugLog('[McpClient] handshake ok');
       return capabilities;
     } catch (err) {
@@ -306,21 +330,28 @@ class McpClient {
       // Shutdown request errors are non-fatal
     }
 
-    try { this.child.stdin.end(); } catch (e) {}
+    try {
+      this.child.stdin.end();
+    } catch (e) {}
 
     let exitListener = null;
     try {
-      await withTimeout(new Promise((resolvePromise) => {
-        exitListener = () => {
-          this.child.removeListener('exit', exitListener);
-          resolvePromise();
-        };
-        this.child.on('exit', exitListener);
-        if (this.child.exitCode !== null || this.child.killed) {
-          this.child.removeListener('exit', exitListener);
-          resolvePromise();
-        }
-      }), 2000, 'shutdown', this._activeTimers);
+      await withTimeout(
+        new Promise((resolvePromise) => {
+          exitListener = () => {
+            this.child.removeListener('exit', exitListener);
+            resolvePromise();
+          };
+          this.child.on('exit', exitListener);
+          if (this.child.exitCode !== null || this.child.killed) {
+            this.child.removeListener('exit', exitListener);
+            resolvePromise();
+          }
+        }),
+        2000,
+        'shutdown',
+        this._activeTimers
+      );
     } catch {
       if (exitListener) this.child.removeListener('exit', exitListener);
     }
@@ -328,12 +359,18 @@ class McpClient {
     if (this.child && this.child.exitCode === null && !this.child.killed) {
       const pid = this.child.pid;
       if (pid) this._killProcessTree(pid);
-      try { this.child.kill('SIGTERM'); } catch (e) {}
+      try {
+        this.child.kill('SIGTERM');
+      } catch (e) {}
     }
 
     if (this.child) {
-      try { this.child.stdout.removeListener('data', this._onStdoutData); } catch (e) {}
-      try { this.child.stderr.removeListener('data', this._onStderrData); } catch (e) {}
+      try {
+        this.child.stdout.removeListener('data', this._onStdoutData);
+      } catch (e) {}
+      try {
+        this.child.stderr.removeListener('data', this._onStderrData);
+      } catch (e) {}
     }
 
     debugLog('[McpClient] shutdown ok');
@@ -342,15 +379,24 @@ class McpClient {
   _killProcessTree(pid) {
     if (process.platform === 'win32') {
       try {
-        execFileSync('taskkill', ['/f', '/pid', String(pid), '/t'], { windowsHide: true, timeout: 5000 });
+        execFileSync('taskkill', ['/f', '/pid', String(pid), '/t'], {
+          windowsHide: true,
+          timeout: 5000,
+        });
       } catch (err) {
         if (err?.code !== 128 && err?.status !== 128) {
           // code/status 128 = "process not found" — already dead, not an error
-          debugLog(`[McpClient] taskkill warning for pid ${pid}: ${err?.stack ?? err?.message ?? String(err)}`);
+          debugLog(
+            `[McpClient] taskkill warning for pid ${pid}: ${err?.stack ?? err?.message ?? String(err)}`
+          );
         }
       }
     } else {
-      try { process.kill(pid, 'SIGTERM'); } catch (e) { /* already dead */ }
+      try {
+        process.kill(pid, 'SIGTERM');
+      } catch (e) {
+        /* already dead */
+      }
     }
   }
 
@@ -369,13 +415,21 @@ class McpClient {
     }
     this._activeTimers.clear();
 
-    try { this.child.stdout.removeListener('data', this._onStdoutData); } catch (e) {}
-    try { this.child.stderr.removeListener('data', this._onStderrData); } catch (e) {}
+    try {
+      this.child.stdout.removeListener('data', this._onStdoutData);
+    } catch (e) {}
+    try {
+      this.child.stderr.removeListener('data', this._onStderrData);
+    } catch (e) {}
 
     const pid = this.child.pid;
-    try { this.child.stdin.end(); } catch (e) {}
+    try {
+      this.child.stdin.end();
+    } catch (e) {}
     if (pid) this._killProcessTree(pid);
-    try { this.child.kill('SIGTERM'); } catch (e) {}
+    try {
+      this.child.kill('SIGTERM');
+    } catch (e) {}
 
     this.child = null;
     debugLog('[McpClient] kill ok');
@@ -391,9 +445,10 @@ function resolveRepoId(args) {
   // Try each ancestor directory, walking up
   for (let i = parts.length; i > 0; i--) {
     const dir = parts.slice(0, i).join('/');
-    const candidate = process.platform === 'win32'
-      ? resolve(dir.endsWith(':') ? dir + '\\' : (dir || parts[0]), '.memtrace-workspace')
-      : resolve('/', dir, '.memtrace-workspace');
+    const candidate =
+      process.platform === 'win32'
+        ? resolve(dir.endsWith(':') ? dir + '\\' : dir || parts[0], '.memtrace-workspace')
+        : resolve('/', dir, '.memtrace-workspace');
     if (existsSync(candidate)) {
       return parts[i - 1] || 'project';
     }
@@ -402,7 +457,9 @@ function resolveRepoId(args) {
   // Fallback: use CWD basename
   const fallback = parts[parts.length - 1] || 'project';
   if (fallback === 'project' && !args.repo) {
-    console.error('WARNING: Could not detect repo ID from CWD or .memtrace-workspace. Using "project".');
+    console.error(
+      'WARNING: Could not detect repo ID from CWD or .memtrace-workspace. Using "project".'
+    );
   }
   return fallback;
 }
@@ -410,10 +467,16 @@ function resolveRepoId(args) {
 async function checkIndexFreshness(client, repoId) {
   const listResult = await client.callTool('list_indexed_repositories', {});
   const repos = Array.isArray(listResult?.repos) ? listResult.repos : [];
-  const match = repos.find(r => r && r.repo_id === repoId);
+  const match = repos.find((r) => r && r.repo_id === repoId);
 
   if (!match) {
-    return { found: false, repo_id: repoId, last_indexed: null, age_minutes: null, is_fresh: false };
+    return {
+      found: false,
+      repo_id: repoId,
+      last_indexed: null,
+      age_minutes: null,
+      is_fresh: false,
+    };
   }
 
   const lastIndexed = match.last_indexed_at || match.last_indexed;
@@ -421,14 +484,22 @@ async function checkIndexFreshness(client, repoId) {
     return { found: true, repo_id: repoId, last_indexed: null, age_minutes: null, is_fresh: false };
   }
 
-  const ageMinutes = Math.round((Date.now() - Date.parse(lastIndexed)) / 60000 * 10) / 10;
+  const ageMinutes = Math.round(((Date.now() - Date.parse(lastIndexed)) / 60000) * 10) / 10;
   const valid = Number.isFinite(ageMinutes);
   if (!valid) {
-    console.error(`WARNING: Unparseable last_indexed timestamp for repo "${repoId}": "${lastIndexed}"`);
+    console.error(
+      `WARNING: Unparseable last_indexed timestamp for repo "${repoId}": "${lastIndexed}"`
+    );
   }
   const isFresh = valid && ageMinutes <= FRESHNESS_MAX_AGE_MINUTES;
 
-  return { found: true, repo_id: repoId, last_indexed: lastIndexed, age_minutes: valid ? ageMinutes : null, is_fresh: isFresh };
+  return {
+    found: true,
+    repo_id: repoId,
+    last_indexed: lastIndexed,
+    age_minutes: valid ? ageMinutes : null,
+    is_fresh: isFresh,
+  };
 }
 
 async function queryGetImpact(client, target, repoId) {
@@ -436,35 +507,35 @@ async function queryGetImpact(client, target, repoId) {
   return {
     target,
     risk_level: result.risk || 'Low',
-    affected_symbols: (result.affected_symbols || []).map(s => ({
+    affected_symbols: (result.affected_symbols || []).map((s) => ({
       name: s.name,
       file: s.file || '',
-      depth: s.depth || 1
+      depth: s.depth || 1,
     })),
     affected_files: result.affected_files || [],
     total_count: result.total_affected || result.affected_symbols?.length || 0,
-    elapsed_ms: 0
+    elapsed_ms: 0,
   };
 }
 
 async function queryFindDeadCode(client, target, repoId) {
   const result = await client.callTool('find_dead_code', {
     repo_id: repoId,
-    file_path: target
+    file_path: target,
   });
   const raw = result?.symbols;
-  const symbols = (Array.isArray(raw) ? raw : []).map(s => ({
+  const symbols = (Array.isArray(raw) ? raw : []).map((s) => ({
     name: s.name || '<unknown>',
     kind: s.kind || 'Function',
     file: s.file || '',
-    line: s.line || 0
+    line: s.line || 0,
   }));
   return {
     query: 'find_dead_code',
     target,
     symbols,
     total_count: symbols.length,
-    elapsed_ms: 0
+    elapsed_ms: 0,
   };
 }
 
@@ -473,15 +544,17 @@ async function queryListRepos(client) {
   const repos = Array.isArray(result?.repos) ? result.repos : [];
   return {
     query: 'list_repos',
-    repositories: repos.map(r => {
+    repositories: repos.map((r) => {
       const repoId = r.repo_id;
       const lastIndexed = r.last_indexed_at || r.last_indexed || null;
       let ageMinutes = null;
       let isFresh = false;
       if (lastIndexed) {
-        ageMinutes = Math.round((Date.now() - Date.parse(lastIndexed)) / 60000 * 10) / 10;
+        ageMinutes = Math.round(((Date.now() - Date.parse(lastIndexed)) / 60000) * 10) / 10;
         if (!Number.isFinite(ageMinutes)) {
-          console.error(`WARNING: Unparseable last_indexed timestamp for repo "${repoId}": "${lastIndexed}"`);
+          console.error(
+            `WARNING: Unparseable last_indexed timestamp for repo "${repoId}": "${lastIndexed}"`
+          );
         }
         isFresh = ageMinutes <= FRESHNESS_MAX_AGE_MINUTES;
       }
@@ -489,16 +562,16 @@ async function queryListRepos(client) {
         repo_id: repoId,
         last_indexed: lastIndexed,
         total_nodes: r.total_nodes ?? r.nodes ?? 0,
-        freshness: { age_minutes: ageMinutes, is_fresh: isFresh }
+        freshness: { age_minutes: ageMinutes, is_fresh: isFresh },
       };
     }),
-    elapsed_ms: 0
+    elapsed_ms: 0,
   };
 }
 
 function estimateTokens(obj) {
   try {
-    return Math.ceil(JSON.stringify(obj).length / 4 * 1.15);
+    return Math.ceil((JSON.stringify(obj).length / 4) * 1.15);
   } catch {
     return Infinity;
   }
@@ -522,18 +595,22 @@ function summarizeBlastRadius(result) {
   const isFiniteDepth = (s) => typeof s.depth === 'number' && isFinite(s.depth);
 
   const crit = symbols
-    .filter(s => typeof s === 'object' && s !== null && isFiniteDepth(s) && s.depth <= 2)
+    .filter((s) => typeof s === 'object' && s !== null && isFiniteDepth(s) && s.depth <= 2)
     .sort((a, b) => (a.depth ?? 99) - (b.depth ?? 99) || (a.name || '').localeCompare(b.name || ''))
     .slice(0, 20)
-    .map(s => ({ name: s.name, file: s.file || '', depth: s.depth }));
+    .map((s) => ({ name: s.name, file: s.file || '', depth: s.depth }));
 
   const moduleImpact = {};
   for (const [prefix, syms] of modules) {
-    const valid = syms.filter(s => typeof s === 'object' && s !== null);
-    const sorted = [...valid].sort((a, b) => (a.depth ?? 99) - (b.depth ?? 99) || (a.name || '').localeCompare(b.name || ''));
+    const valid = syms.filter((s) => typeof s === 'object' && s !== null);
+    const sorted = [...valid].sort(
+      (a, b) => (a.depth ?? 99) - (b.depth ?? 99) || (a.name || '').localeCompare(b.name || '')
+    );
     moduleImpact[prefix] = {
       count: syms.length,
-      top_symbols: sorted.slice(0, 3).map(s => ({ name: s.name, file: s.file || '', depth: s.depth }))
+      top_symbols: sorted
+        .slice(0, 3)
+        .map((s) => ({ name: s.name, file: s.file || '', depth: s.depth })),
     };
   }
 
@@ -546,7 +623,7 @@ function summarizeBlastRadius(result) {
     total_affected: symbols.length,
     total_critical: crit.length,
     critical_dependents: crit,
-    module_impact: moduleImpact
+    module_impact: moduleImpact,
   };
   summarized.token_estimate = estimateTokens(summarized);
 
@@ -559,7 +636,9 @@ function summarizeBlastRadius(result) {
     } else if (cur > MIN_CRITICAL) {
       summarized.critical_dependents = summarized.critical_dependents.slice(0, MIN_CRITICAL);
       summarized.total_critical = summarized.critical_dependents.length;
-    } else if (Object.keys(summarized.module_impact).some(k => summarized.module_impact[k].top_symbols)) {
+    } else if (
+      Object.keys(summarized.module_impact).some((k) => summarized.module_impact[k].top_symbols)
+    ) {
       for (const key of Object.keys(summarized.module_impact)) {
         delete summarized.module_impact[key].top_symbols;
       }
@@ -606,7 +685,9 @@ async function runFreshnessCheck(repoId) {
     await withTimeout(freshClient.handshake(), TIMEOUT_MS);
     freshness = await withTimeout(checkIndexFreshness(freshClient, repoId), TIMEOUT_MS);
     const ageStr = freshness.age_minutes !== null ? `${freshness.age_minutes}m` : 'unknown';
-    console.error(`[FRESHNESS] repo=${freshness.repo_id} age=${ageStr} fresh=${freshness.is_fresh}`);
+    console.error(
+      `[FRESHNESS] repo=${freshness.repo_id} age=${ageStr} fresh=${freshness.is_fresh}`
+    );
   } catch (err) {
     freshClient.kill();
     console.error(`[FRESHNESS] ERROR: ${err?.message ?? String(err)}`);
@@ -711,7 +792,7 @@ async function runBatchQuery(args, repoId, start) {
     results,
     total_succeeded: totalSucceeded,
     total_failed: totalFailed,
-    elapsed_ms: Date.now() - start
+    elapsed_ms: Date.now() - start,
   };
 
   try {
@@ -737,7 +818,9 @@ async function main() {
 
   // Pre-flight: batch mode only supports get_impact and find_dead_code
   if (args.batch && !['get_impact', 'find_dead_code'].includes(args.query)) {
-    fail(`--batch does not support --query ${args.query}. Supported: get_impact, find_dead_code. See --help.`);
+    fail(
+      `--batch does not support --query ${args.query}. Supported: get_impact, find_dead_code. See --help.`
+    );
     process.exit(1);
   }
 
@@ -771,7 +854,9 @@ async function main() {
   // Batch mode: process targets sequentially
   if (args.batch) {
     if (!args.targets || args.targets.length === 0) {
-      fail('--batch requires at least one --target value. Use --target "sym1,sym2" or repeated --target flags.');
+      fail(
+        '--batch requires at least one --target value. Use --target "sym1,sym2" or repeated --target flags.'
+      );
       process.exit(1);
     }
     await runBatchQuery(args, repoId, start);
@@ -780,7 +865,8 @@ async function main() {
   }
 }
 
-const isMainModule = process.argv[1] &&
+const isMainModule =
+  process.argv[1] &&
   import.meta.url.toLowerCase().endsWith(process.argv[1].replace(/\\/g, '/').toLowerCase());
 if (isMainModule) {
   main();
