@@ -140,11 +140,9 @@ describe('BaseAdapter empty-plan guard (Story 5.5)', () => {
   it('[P1] returns valid response even when metrics.recordDispatch throws', async () => {
     // Given: metrics.recordDispatch throws
     const { metrics } = await import('../../../src/telemetry/metrics.js');
-    const recordDispatchSpy = vi
-      .spyOn(metrics, 'recordDispatch')
-      .mockImplementation(() => {
-        throw new Error('metrics pipeline failure');
-      });
+    const recordDispatchSpy = vi.spyOn(metrics, 'recordDispatch').mockImplementation(() => {
+      throw new Error('metrics pipeline failure');
+    });
 
     const mockBackend = createMockBackend({
       listTools: async () => [],
