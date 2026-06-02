@@ -1,7 +1,7 @@
 // AC 1.4-6: BaseAdapter orchestrator: classify→plan→execute→fuse pipeline, no direct backend imports (FR24)
 // AC 1.4-10: BaseAdapter e2e — dispatch find_code through full pipeline → valid FusedContext
 // AC 1.4-3: CLI adapter factory creates fully wired ToolProvider (~50 lines)
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import { MiddlewareError } from '../../src/errors.js';
 import type { MemtraceBackend } from '../../src/backend/trait.js';
@@ -132,6 +132,110 @@ describe('BaseAdapter orchestration (Story 1.4)', () => {
       params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
     });
     expect(response).toHaveProperty('content');
+  });
+
+  // Story 5.5 — AC1, AC2, AC3: empty query plan bypass
+  describe('empty query plan bypass (Story 5.5)', () => {
+    // AC1, AC3 — Empty capabilities trigger empty plan, execution and fusion skipped, no throw
+    it('[P0] handles empty query plan gracefully — empty capabilities trigger empty plan, no throw, metadata present', async () => {
+      // Given: mock backend with empty capabilities (listTools returns [])
+      const spyExecute = vi.fn(async () => {
+        throw new Error('execute should never be called for empty plan');
+      });
+      const mockBackend = createMockBackend({
+        listTools: async () => [],
+        execute: spyExecute,
+      });
+      const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+      const adapter = new BaseAdapter(mockBackend);
+      // When: a find_code message is dispatched (plan will produce 0 queries)
+      const msg = {
+        method: 'tools/call',
+        params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
+      };
+      const response = await adapter.dispatch(msg);
+      // Then: response succeeds gracefully — content present, metadata with trace_id, no thrown errors
+      expect(response).toHaveProperty('content');
+      expect(response.content.length).toBeGreaterThan(0);
+      expect(response.metadata).toBeDefined();
+      expect(response.metadata?.trace_id).toBeTruthy();
+      // And: backend.execute was never called (execution and fusion skipped)
+      expect(spyExecute).not.toHaveBeenCalled();
+    });
+
+    // AC2 — Response includes partial:true equivalent (tier reflects degraded state)
+    it('[P0] empty query plan returns partial:true via metadata tier', async () => {
+      // Given: mock backend with empty capabilities
+      const mockBackend = createMockBackend({
+        listTools: async () => [],
+        execute: async () => {
+          throw new Error('should not call');
+        },
+      });
+      const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+      const adapter = new BaseAdapter(mockBackend);
+      const msg = {
+        method: 'tools/call',
+        params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
+      };
+      // When: dispatched
+      const response = await adapter.dispatch(msg);
+      // Then: metadata tier is defined (IntentReduced = partial/degraded state)
+      expect(response.metadata).toBeDefined();
+      expect(response.metadata?.tier).toBeDefined();
+      // And: content text reflects 'no results' for empty blocks
+      const textContent = response.content[0].text;
+      expect(textContent).toBeTruthy();
+    });
+
+    // AC3 — Empty plan does not throw, hang, or return corrupted FusedContext
+    it('[P0] empty query plan does not throw or hang — response resolves within timeout', async () => {
+      // Given: mock backend with empty capabilities
+      const mockBackend = createMockBackend({
+        listTools: async () => [],
+        execute: async () => {
+          throw new Error('should not call');
+        },
+      });
+      const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+      const adapter = new BaseAdapter(mockBackend);
+      const msg = {
+        method: 'tools/call',
+        params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
+      };
+      // When/Then: dispatch resolves without throwing (no hang, no exception)
+      await expect(adapter.dispatch(msg)).resolves.toBeDefined();
+    });
+
+    // AC1, AC2, AC3 — Response shape integrity for empty plan
+    it('[P1] empty query plan response has valid shape — content array, metadata fields', async () => {
+      // Given: mock backend with empty capabilities
+      const mockBackend = createMockBackend({
+        listTools: async () => [],
+        execute: async () => {
+          throw new Error('should not call');
+        },
+      });
+      const { BaseAdapter } = await import('../../src/interface/base-adapter.js');
+      const adapter = new BaseAdapter(mockBackend);
+      const msg = {
+        method: 'tools/call',
+        params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
+      };
+      // When: dispatched
+      const response = await adapter.dispatch(msg);
+      // Then: response has expected shape — content array with text, metadata with trace_id
+      expect(response.content).toBeDefined();
+      expect(Array.isArray(response.content)).toBe(true);
+      expect(response.content.length).toBeGreaterThan(0);
+      expect(response.content[0].type).toBe('text');
+      expect(response.metadata?.trace_id).toBeTruthy();
+      expect(typeof response.metadata?.elapsed_ms).toBe('number');
+      // And: content text is present and non-empty (empty plan returns 'no results' text, not JSON)
+      const text = response.content[0].text;
+      expect(text).toBeTruthy();
+      expect(typeof text).toBe('string');
+    });
   });
 
   // Post-review: dispatch timeout enforced with intent_timeout error

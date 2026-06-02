@@ -607,3 +607,81 @@ describe('plan — v0.4.x passthrough', () => {
     expect(result.ok).toBe(true);
   });
 });
+
+// Story 5.5 — empty query plan edge cases (AC: 1, 3)
+describe('plan — empty query plan edge cases (Story 5.5)', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+  });
+
+  // Sub-task 2.1 — intent with empty tools list
+  it('[P2] returns empty array when intent definition has no tools', () => {
+    // Given: a test intent registered with empty tools list
+    const intentType = 'empty_tools_intent' as const;
+    getRegistry().register({
+      type: intentType,
+      patterns: [],
+      tools: [],
+    });
+    const intent: ClassifiedIntent = {
+      intent_type: intentType,
+      confidence: 0.9,
+      passthrough: false,
+      original_message: {
+        method: 'tools/call',
+        params: { name: 'memtrace_find_code', arguments: { query: 'test' } },
+      },
+    };
+    // When: plan() is called
+    const result = plan(intent, mockCapabilities);
+    // Then: returns ok with empty array — no tools to produce queries
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(0);
+  });
+
+  // Sub-task 2.2 — all tools absent from capabilities
+  it('[P2] returns empty array when all tools are absent from capabilities', () => {
+    // Given: capabilities with no matching tools for the intent
+    const emptyCaps: MemtraceCapabilities = { tools: [] };
+    const classified = classifyAndPlan(
+      'find function authenticateUser',
+      'memtrace_find_code',
+      emptyCaps
+    );
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    // When: plan() is called with empty capabilities
+    const result = plan(classified.value, emptyCaps);
+    // Then: returns empty array — no available tools
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(0);
+  });
+
+  // Sub-task 2.3 — null original_message does not throw
+  it('[P2] does not throw when original_message is null', () => {
+    // Given: a classified intent whose original_message is set to null
+    const classified = classifyAndPlan('find function authenticateUser', 'memtrace_find_code');
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    classified.value.original_message = null;
+    // When: plan() is called with null original_message
+    const result = plan(classified.value, mockCapabilities);
+    // Then: does not throw, returns ok
+    expect(result.ok).toBe(true);
+  });
+
+  // Sub-task 2.3 — missing params on original_message does not throw
+  it('[P2] does not throw when original_message has no params property', () => {
+    // Given: a classified intent whose original_message has no params
+    const classified = classifyAndPlan('find function authenticateUser', 'memtrace_find_code');
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    (classified.value.original_message as Record<string, unknown>).params = undefined;
+    // When: plan() is called with missing params
+    const result = plan(classified.value, mockCapabilities);
+    // Then: does not throw, returns ok (name fallback from tool name should work)
+    expect(result.ok).toBe(true);
+  });
+});
