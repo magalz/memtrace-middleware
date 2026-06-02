@@ -34,11 +34,33 @@ export class DegradationMachine {
   private consecutiveProbeFailures = 0;
   private consecutiveProbeSuccesses = 0;
   private floorTier: DegradationTier = DegradationTier.Full;
+  private forceTier: DegradationTier | null = null;
   private lastTransitionReason: string | null = null;
   private lastTransitionAt: string | null = null;
   private tierHistory: TierTransition[] = [];
 
+  setForceTier(tier: DegradationTier): void {
+    this.forceTier = tier;
+    log.info('force_tier_active', { tier });
+  }
+
+  clearForceTier(): void {
+    if (this.forceTier !== null) {
+      const previous = this.forceTier;
+      this.forceTier = null;
+      log.info('force_tier_cleared', { previous });
+    }
+  }
+
+  isForceActive(): boolean {
+    return this.forceTier !== null;
+  }
+
   recordProbeResult(success: boolean): DegradationTier {
+    if (this.forceTier !== null) {
+      return this.forceTier;
+    }
+
     if (success) {
       this.consecutiveProbeFailures = 0;
       this.consecutiveProbeSuccesses++;
@@ -73,7 +95,7 @@ export class DegradationMachine {
   }
 
   getCurrentTier(): DegradationTier {
-    return this.currentTier;
+    return this.forceTier ?? this.currentTier;
   }
 
   getFloorTier(): DegradationTier {
@@ -111,6 +133,7 @@ export class DegradationMachine {
     this.currentTier = DegradationTier.Full;
     this.consecutiveProbeFailures = 0;
     this.consecutiveProbeSuccesses = 0;
+    this.forceTier = null;
     this.lastTransitionReason = null;
     this.lastTransitionAt = null;
     this.tierHistory = [];

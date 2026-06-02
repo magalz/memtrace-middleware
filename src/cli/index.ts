@@ -15,10 +15,16 @@ import {
 } from '../config/index.js';
 import type { MiddlewareConfig } from '../config/types.js';
 import { MIDDLEWARE_VERSION, STATUS_REFRESH_MS } from '../constants.js';
-import { initializeDegradation, shutdownDegradation } from '../degrade/index.js';
+import {
+  initializeDegradation,
+  shutdownDegradation,
+  setForceTier,
+  clearForceTier,
+} from '../degrade/index.js';
 import { createLogger } from '../logger.js';
 import { createDegradedMcpServer, createMcpServer, type McpServerInstance } from './mcp-server.js';
 import { startStatusDisplay } from './status.js';
+import { DegradationTier } from '../types.js';
 
 const log = createLogger('cli');
 
@@ -26,10 +32,30 @@ let activeMcpServer: McpServerInstance | null = null;
 let activeBackend: MemtraceBackend | null = null;
 
 function printUsage(): void {
-  process.stderr.write('usage: memtrace --status | init [--force] | start\n');
+  process.stderr.write(
+    'usage: memtrace --status | init [--force] | start [--force-tier <tier>] [--degradation-floor <tier>]\n'
+  );
 }
 
-export async function startServer(config: MiddlewareConfig = DEFAULT_CONFIG): Promise<void> {
+export function parseTierArg(raw: string): DegradationTier | null {
+  if (!raw) {
+    return null;
+  }
+  const normalized = raw.toLowerCase();
+  const map: Record<string, DegradationTier> = {
+    full: DegradationTier.Full,
+    intent_reduced: DegradationTier.IntentReduced,
+    passthrough: DegradationTier.Passthrough,
+    fail_closed: DegradationTier.FailClosed,
+  };
+  return map[normalized] ?? null;
+}
+
+interface StartConfig extends MiddlewareConfig {
+  force_tier?: DegradationTier;
+}
+
+export async function startServer(config: StartConfig = DEFAULT_CONFIG): Promise<void> {
   if (activeMcpServer) {
     log.warn('server_already_running');
     return;
@@ -44,6 +70,12 @@ export async function startServer(config: MiddlewareConfig = DEFAULT_CONFIG): Pr
     log.info('backend_connected');
 
     initializeDegradation(transport, config);
+    if (config.force_tier) {
+      setForceTier(config.force_tier);
+      process.stderr.write(
+        `Force tier active: ${config.force_tier} — auto-degradation suspended\n`
+      );
+    }
     const adapter = createCliAdapter(transport, config);
     const mcpServer = createMcpServer(transport, adapter);
     activeMcpServer = mcpServer;
@@ -69,6 +101,12 @@ export async function startServer(config: MiddlewareConfig = DEFAULT_CONFIG): Pr
     const noop = createNoopBackend();
     activeBackend = noop;
     initializeDegradation(noop, config);
+    if (config.force_tier) {
+      setForceTier(config.force_tier);
+      process.stderr.write(
+        `Force tier active: ${config.force_tier} — auto-degradation suspended\n`
+      );
+    }
     const mcpServer = createDegradedMcpServer();
     activeMcpServer = mcpServer;
 
@@ -165,7 +203,52 @@ async function main(): Promise<void> {
   }
 
   if (args[0] === 'start') {
-    await startServer();
+    const forceTierIdx = args.lastIndexOf('--force-tier');
+    let forceTier: DegradationTier | undefined;
+    if (forceTierIdx !== -1) {
+      const rawVal = args[forceTierIdx + 1] ?? '';
+      const tier = parseTierArg(rawVal);
+      if (!tier) {
+        log.warn('invalid_force_tier_arg', { raw_value: rawVal });
+        process.stderr.write(`Error: invalid --force-tier value "${rawVal}".\n`);
+        process.stderr.write('Valid values: full | intent_reduced | passthrough | fail_closed\n');
+        process.exit(1);
+      }
+      forceTier = tier;
+    }
+
+    const floorIdx = args.lastIndexOf('--degradation-floor');
+    let config: StartConfig = DEFAULT_CONFIG;
+    if (floorIdx !== -1) {
+      const rawVal = args[floorIdx + 1] ?? '';
+      const tier = parseTierArg(rawVal);
+      if (!tier) {
+        log.warn('invalid_degradation_floor_arg', { raw_value: rawVal });
+        process.stderr.write(`Error: invalid --degradation-floor value "${rawVal}".\n`);
+        process.stderr.write('Valid values: full | intent_reduced | passthrough | fail_closed\n');
+        process.exit(1);
+      }
+      const floorMap: Record<string, MiddlewareConfig['degradation_floor']> = {
+        full: 'Full',
+        intent_reduced: 'Intent-reduced',
+        passthrough: 'Passthrough',
+        fail_closed: 'Fail-closed',
+      };
+      const floorValue = floorMap[rawVal.toLowerCase()];
+      if (!floorValue) {
+        log.warn('invalid_degradation_floor_value', { raw_value: rawVal });
+        process.stderr.write(`Error: invalid --degradation-floor value "${rawVal}".\n`);
+        process.stderr.write('Valid values: full | intent_reduced | passthrough | fail_closed\n');
+        process.exit(1);
+      }
+      config = { ...config, degradation_floor: floorValue };
+    }
+
+    if (forceTier) {
+      config = { ...config, force_tier: forceTier };
+    }
+
+    await startServer(config);
     return;
   }
 
@@ -197,6 +280,7 @@ export async function shutdown(): Promise<void> {
   activeBackend = null;
 
   shutdownDegradation();
+  clearForceTier();
 }
 
 const isMainModule =

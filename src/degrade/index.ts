@@ -3,6 +3,7 @@ import { ProbeTimer } from './probe-timer.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import { normalizeFloor, type DegradationFloor, type MiddlewareConfig } from '../config/types.js';
 import { createLogger } from '../logger.js';
+import { DegradationTier } from '../types.js';
 
 export { DegradationMachine, degradationMachine };
 export { ProbeTimer };
@@ -10,6 +11,34 @@ export { ProbeTimer };
 const log = createLogger('degrade');
 
 let probeTimer: ProbeTimer | null = null;
+let lastProbeIntervalMs: number | null = null;
+
+export function setForceTier(tier: DegradationTier): void {
+  if (probeTimer) {
+    probeTimer.stop();
+  }
+  degradationMachine.setForceTier(tier);
+  log.info('force_tier_activated', { tier, probe_timer_stopped: true });
+}
+
+export function clearForceTier(): void {
+  const wasForced = degradationMachine.isForceActive();
+  degradationMachine.clearForceTier();
+  if (wasForced && probeTimer && lastProbeIntervalMs !== null) {
+    try {
+      probeTimer.restart(lastProbeIntervalMs);
+      log.info('probe_timer_restarted_after_force_clear', { interval_ms: lastProbeIntervalMs });
+    } catch (err: unknown) {
+      log.error('probe_restart_after_force_clear_failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+}
+
+export function isForceActive(): boolean {
+  return degradationMachine.isForceActive();
+}
 
 export function getFloorOverride(): string | undefined {
   return degradationMachine.getFloorTier();
@@ -27,7 +56,16 @@ export function onConfigChanged(delta: Partial<MiddlewareConfig>): void {
     delta.timeout_budgets?.probe_interval_ms !== undefined &&
     probeTimer
   ) {
+    if (degradationMachine.isForceActive()) {
+      lastProbeIntervalMs = delta.timeout_budgets.probe_interval_ms;
+      log.info('probe_interval_updated_force_active', {
+        interval_ms: delta.timeout_budgets.probe_interval_ms,
+        note: 'timer not restarted — force-tier active',
+      });
+      return;
+    }
     try {
+      lastProbeIntervalMs = delta.timeout_budgets.probe_interval_ms;
       probeTimer.restart(delta.timeout_budgets.probe_interval_ms);
       log.info('probe_interval_updated', { interval_ms: delta.timeout_budgets.probe_interval_ms });
     } catch (err: unknown) {
@@ -42,6 +80,7 @@ export function initializeDegradation(backend: MemtraceBackend, config: Middlewa
   probeTimer = new ProbeTimer(backend, degradationMachine);
 
   const intervalMs = config.timeout_budgets.probe_interval_ms;
+  lastProbeIntervalMs = intervalMs;
   degradationMachine.setFloorTier(normalizeFloor(config.degradation_floor));
   probeTimer.start(intervalMs);
 
@@ -56,5 +95,6 @@ export function shutdownDegradation(): void {
     probeTimer.stop();
     probeTimer = null;
   }
+  lastProbeIntervalMs = null;
   log.info('degradation_shutdown');
 }
