@@ -78,7 +78,7 @@ development_status:
   5-3-init-auto-detection: done
   5-4-force-tier-cli: done
   5-5-empty-query-plan-bypass: done
-  5-6-adapter-hardening: backlog
+  5-6-adapter-hardening: review
   epic-6: backlog
   6-1-classification-hardening: backlog
   6-2-single-point-intent-registration: backlog

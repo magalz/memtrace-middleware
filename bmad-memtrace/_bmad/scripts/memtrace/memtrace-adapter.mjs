@@ -147,7 +147,7 @@ class McpClient {
         }
       } catch (err) {
         if (line.trim().startsWith('{')) {
-          console.error(`WARNING: [McpClient] Malformed JSON (${err.message}): ${line.slice(0, 120)}`);
+          console.error(`WARNING: [McpClient] Malformed JSON (${err?.message ?? String(err)}): ${line.slice(0, 120)}`);
         }
       }
     }
@@ -185,24 +185,25 @@ class McpClient {
           });
         }
       } catch (err) {
-        debugLog('[McpClient] spawn error', err.message);
-        reject(new Error(`Failed to spawn memtrace: ${err.message}`));
+        const spawnErrMsg = err?.message ?? String(err);
+        debugLog('[McpClient] spawn error', err?.stack ?? spawnErrMsg);
+        reject(new Error(`Failed to spawn memtrace: ${spawnErrMsg}`));
         return;
       }
 
       const onError = (err) => {
         cleanup();
         let msg;
-        if (err.code === 'ENOENT') {
+        if (err?.code === 'ENOENT') {
           if (useMock) {
             msg = `Mock MCP server not found: ${MEMTRACE_MOCK_PATH}. Ensure the mock script exists at the specified path.`;
           } else {
             msg = 'memtrace binary not found on PATH. Ensure memtrace is installed (npm install -g memtrace) and available.';
           }
         } else {
-          msg = `memtrace spawn error: ${err.message}`;
+          msg = `memtrace spawn error: ${err?.message ?? String(err)}`;
         }
-        debugLog('[McpClient] spawn error', msg);
+        debugLog('[McpClient] spawn error', err?.stack ?? err?.message ?? String(err));
         reject(new Error(msg));
       };
 
@@ -221,6 +222,8 @@ class McpClient {
         if (this.child) {
           this.child.removeListener('error', onError);
           this.child.removeListener('exit', onExit);
+          try { this.child.stdout.removeListener('data', stdoutListener); } catch (e) {}
+          try { this.child.stderr.removeListener('data', stderrListener); } catch (e) {}
         }
       };
 
@@ -248,7 +251,7 @@ class McpClient {
       try {
         this.child.stdin.write(request);
       } catch (err) {
-        reject(new Error(`Failed to write request: ${err.message}`));
+        reject(new Error(`Failed to write request: ${err?.message ?? String(err)}`));
         return;
       }
       this._activeRequests.set(id, { resolve: resolvePromise, reject });
@@ -275,7 +278,7 @@ class McpClient {
       debugLog('[McpClient] handshake ok');
       return capabilities;
     } catch (err) {
-      debugLog('[McpClient] handshake error', err.message);
+      debugLog('[McpClient] handshake error', err?.stack ?? err?.message ?? String(err));
       throw err;
     }
   }
@@ -341,9 +344,9 @@ class McpClient {
       try {
         execFileSync('taskkill', ['/f', '/pid', String(pid), '/t'], { windowsHide: true, timeout: 5000 });
       } catch (err) {
-        if (err.code !== 128 && err.status !== 128) {
+        if (err?.code !== 128 && err?.status !== 128) {
           // code/status 128 = "process not found" — already dead, not an error
-          debugLog(`[McpClient] taskkill warning for pid ${pid}: ${err.message}`);
+          debugLog(`[McpClient] taskkill warning for pid ${pid}: ${err?.stack ?? err?.message ?? String(err)}`);
         }
       }
     } else {
@@ -606,7 +609,7 @@ async function runFreshnessCheck(repoId) {
     console.error(`[FRESHNESS] repo=${freshness.repo_id} age=${ageStr} fresh=${freshness.is_fresh}`);
   } catch (err) {
     freshClient.kill();
-    console.error(`[FRESHNESS] ERROR: ${err.message}`);
+    console.error(`[FRESHNESS] ERROR: ${err?.message ?? String(err)}`);
     return { found: false, repo_id: repoId, age_minutes: null, is_fresh: false };
   }
   try {
@@ -646,7 +649,7 @@ async function runSingleQuery(args, repoId, start) {
     try {
       console.log(JSON.stringify(result, null, 2));
     } catch (serializeErr) {
-      fail(`Failed to serialize result: ${serializeErr.message}`);
+      fail(`Failed to serialize result: ${serializeErr?.message ?? String(serializeErr)}`);
       process.exit(1);
     }
     process.exit(0);
@@ -658,7 +661,7 @@ async function runSingleQuery(args, repoId, start) {
       console.log(TIMEOUT_TOKEN);
       console.error(`ERROR: Query timed out after ${elapsed}ms`);
     } else {
-      console.error(`ERROR: ${err.message}`);
+      console.error(`ERROR: ${err?.message ?? String(err)}`);
     }
     process.exit(1);
   }
@@ -697,7 +700,7 @@ async function runBatchQuery(args, repoId, start) {
       totalSucceeded++;
     } catch (err) {
       batchClient.kill();
-      results.push({ target, error: err.message });
+      results.push({ target, error: err?.message ?? String(err) });
       totalFailed++;
     }
   }
@@ -714,7 +717,7 @@ async function runBatchQuery(args, repoId, start) {
   try {
     console.log(JSON.stringify(output, null, 2));
   } catch (serializeErr) {
-    fail(`Failed to serialize result: ${serializeErr.message}`);
+    fail(`Failed to serialize result: ${serializeErr?.message ?? String(serializeErr)}`);
     process.exit(1);
   }
 
@@ -755,7 +758,7 @@ async function main() {
           console.log(JSON.stringify(diagResult, null, 2));
         } catch (diagErr) {
           diagClient.kill();
-          fail(`Failed to emit diagnostic: ${diagErr.message}`);
+          fail(`Failed to emit diagnostic: ${diagErr?.message ?? String(diagErr)}`);
           process.exit(1);
         }
       } else {

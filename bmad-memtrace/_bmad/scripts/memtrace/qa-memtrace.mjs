@@ -59,15 +59,51 @@ async function readJsonFile(filePath) {
   try {
     return JSON.parse(await readFile(resolved, 'utf-8'));
   } catch (err) {
-    if (err.code === 'ENOENT') {
+    if (err?.code === 'ENOENT') {
       throw new Error(`File not found: ${resolved}`);
     }
     throw err;
   }
 }
 
-function compute(blastData, coverageData, threshold) {
-  if (!Array.isArray(blastData.affected_symbols) || blastData.affected_symbols.length === 0) {
+function normalizeBlastData(raw) {
+  const syms = Array.isArray(raw?.affected_symbols) ? raw.affected_symbols
+    : Array.isArray(raw?.symbols) ? raw.symbols
+    : [];
+  const total = typeof raw?.total_count === 'number' ? raw.total_count
+    : typeof raw?.total_count === 'string' ? Number(raw.total_count)
+    : typeof raw?.total_affected === 'number' ? raw.total_affected
+    : typeof raw?.total_affected === 'string' ? Number(raw.total_affected)
+    : syms.length;
+  return {
+    symbols: syms.filter(s => s != null && typeof s === 'object'),
+    totalCount: total,
+  };
+}
+
+function normalizeCoverageData(raw) {
+  const mods = Array.isArray(raw?.modules) ? raw.modules
+    : Array.isArray(raw?.coverage?.modules) ? raw.coverage.modules
+    : [];
+  return {
+    modules: mods.filter(m => m != null && typeof m === 'object').map(m => ({
+      path: m?.module ?? m?.file ?? m?.path ?? '',
+      coverage: typeof m?.coverage === 'string' ? m.coverage
+        : typeof m?.status === 'string' ? m.status
+        : 'None',
+      symbolsCovered: Array.isArray(m?.symbols_covered) ? m.symbols_covered
+        : Array.isArray(m?.covered_symbols) ? m.covered_symbols
+        : Array.isArray(m?.covered) ? m.covered
+        : [],
+    })),
+  };
+}
+
+function compute(rawBlastData, rawCoverageData, threshold) {
+  const blastData = normalizeBlastData(rawBlastData);
+  const coverageData = normalizeCoverageData(rawCoverageData);
+
+  if (blastData.symbols.length === 0) {
     return {
       status: 'pass',
       blast_radius_total: 0,
@@ -79,34 +115,34 @@ function compute(blastData, coverageData, threshold) {
       uncovered_details: [],
       elapsed_ms: 0,
       note: 'Empty blast radius — no nodes to intersect',
-      total_count_reported: blastData.total_count
+      total_count_reported: blastData.totalCount
     };
   }
 
   const blastSet = new Map();
-  for (const sym of blastData.affected_symbols) {
+  for (const sym of blastData.symbols) {
     const key = `${sym.file}:${sym.name}`;
     blastSet.set(key, sym);
   }
 
-  if (blastData.total_count !== undefined && blastData.total_count !== blastSet.size) {
-    console.error(`WARNING: total_count mismatch: reported=${blastData.total_count}, actual=${blastSet.size}`);
+  if (blastData.totalCount !== undefined && blastData.totalCount !== blastSet.size) {
+    console.error(`WARNING: total_count mismatch: reported=${blastData.totalCount}, actual=${blastSet.size}`);
   }
 
   const coveredSet = new Set();
   for (const mod of coverageData.modules) {
-    const modPath = mod.module || '';
+    const modPath = mod.path || '';
     const cov = mod.coverage || '';
 
     if (cov === 'Yes') {
-      for (const sym of (mod.symbols_covered || [])) {
+      for (const sym of (mod.symbolsCovered || [])) {
         if (blastSet.has(`${modPath}:${sym}`)) {
           coveredSet.add(`${modPath}:${sym}`);
         }
       }
     } else if (cov.startsWith('Partial:')) {
       const n = parseInt(cov.split(':')[1], 10) || 0;
-      const covered = (mod.symbols_covered || []).slice(0, n);
+      const covered = (mod.symbolsCovered || []).slice(0, n);
       for (const sym of covered) {
         if (blastSet.has(`${modPath}:${sym}`)) {
           coveredSet.add(`${modPath}:${sym}`);
@@ -138,7 +174,7 @@ function compute(blastData, coverageData, threshold) {
     passed,
     uncovered_details: uncoveredDetails,
     elapsed_ms: 0,
-    total_count_reported: blastData.total_count
+    total_count_reported: blastData.totalCount
   };
 }
 
@@ -146,20 +182,25 @@ async function main() {
   const args = parseArgs();
   const start = Date.now();
 
-  const blastData = await readJsonFile(args.blastRadius);
-  if (!Array.isArray(blastData.affected_symbols)) {
-    throw new Error('Invalid blast-radius data: "affected_symbols" must be an array');
+  const rawBlast = await readJsonFile(args.blastRadius);
+  const rawCoverage = await readJsonFile(args.testCoverage);
+
+  // Normalize before validation to support adapter format evolution
+  const blastData = normalizeBlastData(rawBlast);
+  const coverageData = normalizeCoverageData(rawCoverage);
+
+  if (!Array.isArray(blastData.symbols)) {
+    throw new Error('Invalid blast-radius data: symbols array is required');
   }
-  if (typeof blastData.total_count !== 'number' || !Number.isFinite(blastData.total_count)) {
-    throw new Error('Invalid blast-radius data: "total_count" must be a finite number');
+  if (typeof blastData.totalCount !== 'number' || !Number.isFinite(blastData.totalCount)) {
+    throw new Error('Invalid blast-radius data: total_count must be a finite number');
   }
 
-  const coverageData = await readJsonFile(args.testCoverage);
   if (!Array.isArray(coverageData.modules)) {
-    throw new Error('Invalid test-coverage data: "modules" must be an array');
+    throw new Error('Invalid test-coverage data: modules array is required');
   }
 
-  const result = compute(blastData, coverageData, args.threshold);
+  const result = compute(rawBlast, rawCoverage, args.threshold);
   result.elapsed_ms = Date.now() - start;
 
   console.log(JSON.stringify(result, null, 2));
@@ -172,10 +213,10 @@ const timeout = new Promise((_, reject) =>
 
 Promise.race([main(), timeout])
   .catch(err => {
-    if (err.message === 'TIMEOUT') {
+    if (err?.message === 'TIMEOUT') {
       console.log(TIMEOUT_TOKEN);
     } else {
-      fail(err.message);
+      fail(err?.message ?? String(err));
     }
     process.exit(1);
   });

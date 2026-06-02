@@ -748,6 +748,103 @@ describe('memtrace-adapter.mjs', () => {
       });
     });
 
+    describe('listener cleanup', () => {
+      it('cleanup pattern: removeListener in try/catch handles all listener types', () => {
+        const child = makeMockChild();
+        const fn1 = () => {};
+        const fn2 = () => {};
+
+        child.stdout.on('data', fn1);
+        child.stderr.on('data', fn2);
+        assert.equal(child.stdout.listenerCount('data'), 1);
+        assert.equal(child.stderr.listenerCount('data'), 1);
+
+        // Verify the cleanup pattern (matching adapter's shutdown/kill style)
+        try { child.stdout.removeListener('data', fn1); } catch (e) {}
+        try { child.stderr.removeListener('data', fn2); } catch (e) {}
+        assert.equal(child.stdout.listenerCount('data'), 0);
+        assert.equal(child.stderr.listenerCount('data'), 0);
+      });
+
+      it('cleanup pattern: removeListener is safe on streams without listeners', () => {
+        const child = makeMockChild();
+        const fn = () => {};
+
+        // removeListener on a stream with no matching listener should not throw
+        assert.doesNotThrow(() => {
+          try { child.stdout.removeListener('data', fn); } catch (e) {}
+        });
+        assert.equal(child.stdout.listenerCount('data'), 0);
+      });
+
+      it('shutdown() removes stdout/stderr data listeners when child is alive', async () => {
+        const client = new McpClient();
+        const child = makeMockChild();
+        // Child must appear alive: no exitCode, not killed
+        child.exitCode = null;
+        child.killed = false;
+        client.child = child;
+        client._onStdoutData = () => {};
+        client._onStderrData = () => {};
+        child.stdout.on('data', client._onStdoutData);
+        child.stderr.on('data', client._onStderrData);
+
+        assert.equal(child.stdout.listenerCount('data'), 1);
+
+        // shutdown() calls sendRequest('shutdown') → stdin.write → may fail
+        // then calls kill() which removes listeners. The result: listeners are cleaned.
+        await client.shutdown();
+
+        assert.equal(child.stdout.listenerCount('data'), 0);
+        assert.equal(child.stderr.listenerCount('data'), 0);
+      });
+
+      it('kill() removes stdout/stderr data listeners', () => {
+        const client = new McpClient();
+        const child = makeMockChild();
+        client.child = child;
+        client._onStdoutData = () => {};
+        client._onStderrData = () => {};
+        child.stdout.on('data', client._onStdoutData);
+        child.stderr.on('data', client._onStderrData);
+
+        assert.equal(child.stdout.listenerCount('data'), 1);
+
+        client.kill();
+
+        assert.equal(child.stdout.listenerCount('data'), 0);
+        assert.equal(child.stderr.listenerCount('data'), 0);
+        assert.equal(client.child, null);
+      });
+    });
+
+    describe('safe error access', () => {
+      it('caught null does not throw on message access', () => {
+        // Verify err?.message ?? String(err) handles null safely
+        const err = null;
+        const msg = err?.message ?? String(err);
+        assert.equal(msg, 'null');
+      });
+
+      it('caught string error returns the string itself', () => {
+        const err = 'some error string';
+        const msg = err?.message ?? String(err);
+        assert.equal(msg, 'some error string');
+      });
+
+      it('caught undefined defaults to string representation', () => {
+        const err = undefined;
+        const msg = err?.message ?? String(err);
+        assert.equal(msg, 'undefined');
+      });
+
+      it('caught Error object returns .message', () => {
+        const err = new Error('test error');
+        const msg = err?.message ?? String(err);
+        assert.equal(msg, 'test error');
+      });
+    });
+
     describe('regression', () => {
       it('McpClient public API signatures remain unchanged', () => {
         const client = new McpClient();

@@ -166,12 +166,13 @@ test('total_count mismatch logs warning and output includes field', () => {
   assert.ok(r.stderr.includes('WARNING: total_count mismatch: reported=99, actual=1'), `expected mismatch warning in stderr, got: ${r.stderr}`);
 });
 
-test('total_count absent from input — validated and rejected', () => {
+test('total_count absent from input — normalized with default from symbols length', () => {
   const br = { target: 'test', risk_level: 'Low', affected_symbols: [{ name: 'foo', file: 'src/a.ts', depth: 1 }] };
   const tc = makeTc([{ module: 'src/a.ts', test_files: ['test/a.test.ts'], symbols_covered: ['foo'], coverage: 'Yes' }]);
   const r = runScript(br, tc);
-  assert.equal(r.exitCode, 1);
-  assert.ok(r.stderr.includes('total_count'), `expected total_count validation error in stderr, got: ${r.stderr}`);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.output.passed, true);
+  assert.equal(r.output.total_count_reported, 1);
 });
 
 test('empty blast radius with total_count mismatch', () => {
@@ -183,6 +184,42 @@ test('empty blast radius with total_count mismatch', () => {
   assert.equal(r.output.blast_radius_total, 0);
   assert.equal(r.output.total_count_reported, 3);
   assert.equal(r.output.covered_nodes, 0);
+});
+
+test('normalizeBlastData accepts evolved format (symbols instead of affected_symbols)', () => {
+  const br = { target: 'test', risk_level: 'Low', symbols: [{ name: 'foo', file: 'src/a.ts', depth: 1 }], total_affected: 1 };
+  const tc = makeTc([{ module: 'src/a.ts', test_files: ['test/a.test.ts'], symbols_covered: ['foo'], coverage: 'Yes' }]);
+  const r = runScript(br, tc);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.output.passed, true);
+  assert.equal(r.output.covered_nodes, 1);
+});
+
+test('normalizeCoverageData accepts evolved format (file + status + covered_symbols)', () => {
+  const br = makeBr([{ name: 'foo', file: 'src/a.ts', depth: 1 }]);
+  const tc = { coverage: { modules: [{ file: 'src/a.ts', status: 'Yes', covered_symbols: ['foo'] }] } };
+  const r = runScript(br, tc);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.output.passed, true);
+  assert.equal(r.output.covered_nodes, 1);
+});
+
+test('normalize handles malformed adapter output gracefully (empty raw)', () => {
+  const br = {};
+  const tc = {};
+  const r = runScript(br, tc);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.output.passed, true);
+  assert.ok(r.output.note.includes('Empty blast radius'));
+});
+
+test('total_count as numeric string "5" is coerced and accepted', () => {
+  const br = { target: 'test', risk_level: 'Low', affected_symbols: [{ name: 'foo', file: 'src/a.ts', depth: 1 }], total_count: "5" };
+  const tc = makeTc([{ module: 'src/a.ts', test_files: ['test/a.test.ts'], symbols_covered: ['foo'], coverage: 'Yes' }]);
+  const r = runScript(br, tc);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.output.passed, true);
+  assert.equal(r.output.total_count_reported, 5);
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
