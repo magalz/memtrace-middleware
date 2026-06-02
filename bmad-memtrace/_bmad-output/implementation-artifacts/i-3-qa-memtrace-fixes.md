@@ -114,10 +114,12 @@ so that its output is deterministic, consistent, and every input field serves a 
 ### Previous Story Intelligence
 
 From i-2-hermetic-mcp-mocking (done, 2026-05-29):
+
 - **Pattern for deterministic tests:** i-2 replaced live Memtrace with mock, making all 62 adapter tests deterministic. The qa-memtrace test suite is already hermetic (no external deps, uses temp files). This story follows the same principle — fixes are validated against the existing hermetic test suite.
 - **"Additive, not destructive":** The `total_count_reported` field is added to output without removing existing fields. JSON consumers that ignore unknown fields are unaffected.
 
 From i-1-mcpclient-refactor (done, 2026-05-29):
+
 - **Backward compatibility without API changes:** i-1 refactored McpClient internals while preserving the public API surface. This story does the same — internal fixes only, no CLI flag changes, no output format breakage.
 - **Error message preservation:** The "File not found" error message format must stay identical after the TOCTOU fix — callers (tests, CI scripts) may parse this string.
 

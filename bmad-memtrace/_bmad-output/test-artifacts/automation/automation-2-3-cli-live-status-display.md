@@ -11,21 +11,21 @@
 
 ### Existing Test Coverage (33 new tests)
 
-| Test File | Tests | P0 | P1 | P2 | AC Coverage |
-|---|---|---|---|---|---|
-| `tests/unit/telemetry/ring-buffer.test.ts` | 17 | 5 | 5 | 7 | AC 3, AC 5 ✅ |
-| `tests/unit/cli/status.test.ts` | 16 | 3 | 10 | 3 | AC 1, 2, 4, 6 ✅ |
+| Test File                                  | Tests | P0  | P1  | P2  | AC Coverage      |
+| ------------------------------------------ | ----- | --- | --- | --- | ---------------- |
+| `tests/unit/telemetry/ring-buffer.test.ts` | 17    | 5   | 5   | 7   | AC 3, AC 5 ✅    |
+| `tests/unit/cli/status.test.ts`            | 16    | 3   | 10  | 3   | AC 1, 2, 4, 6 ✅ |
 
 ### Source Module Coverage
 
-| Module | Tests | Direct Test | Coverage Status |
-|---|---|---|---|
-| `src/telemetry/ring-buffer.ts` | 17 | ✅ ring-buffer.test.ts | FULL |
-| `src/telemetry/metrics.ts` | 0 | ❌ No dedicated test | INDIRECT (via integration) |
-| `src/telemetry/emitter.ts` | 0 | ❌ No test | NONE |
-| `src/telemetry/uptime.ts` | 0 | ❌ No test | NONE |
-| `src/cli/status.ts` | 16 | ✅ status.test.ts | FULL |
-| `src/cli/index.ts` | 0 | No automated test | OMITTED (CLI entry invokes platform APIs) |
+| Module                         | Tests | Direct Test            | Coverage Status                           |
+| ------------------------------ | ----- | ---------------------- | ----------------------------------------- |
+| `src/telemetry/ring-buffer.ts` | 17    | ✅ ring-buffer.test.ts | FULL                                      |
+| `src/telemetry/metrics.ts`     | 0     | ❌ No dedicated test   | INDIRECT (via integration)                |
+| `src/telemetry/emitter.ts`     | 0     | ❌ No test             | NONE                                      |
+| `src/telemetry/uptime.ts`      | 0     | ❌ No test             | NONE                                      |
+| `src/cli/status.ts`            | 16    | ✅ status.test.ts      | FULL                                      |
+| `src/cli/index.ts`             | 0     | No automated test      | OMITTED (CLI entry invokes platform APIs) |
 
 ---
 
@@ -228,14 +228,14 @@ describe('getUptimeSeconds', () => {
 
 ## Summary
 
-| Metric | Value |
-|---|---|
-| Existing tests for story | 33 (17 ring-buffer + 16 status) |
-| Automation gaps identified | 3 (all P2/P3 — optional) |
-| Blocking gaps | 0 |
-| New test files proposed | 3 |
-| New test cases proposed | 14 |
-| Priority breakdown (proposed) | P1: 6, P2: 5, P3: 3 |
+| Metric                        | Value                           |
+| ----------------------------- | ------------------------------- |
+| Existing tests for story      | 33 (17 ring-buffer + 16 status) |
+| Automation gaps identified    | 3 (all P2/P3 — optional)        |
+| Blocking gaps                 | 0                               |
+| New test files proposed       | 3                               |
+| New test cases proposed       | 14                              |
+| Priority breakdown (proposed) | P1: 6, P2: 5, P3: 3             |
 
 **Assessment**: The existing test suite (33 tests) provides FULL coverage of all 6 acceptance criteria. The three automation gaps are optional enhancements that would improve structural coverage completeness but are NOT blocking. Priority recommendation: implement the metrics.test.ts (7 tests, P1-P2) in the next sprint; emitter.test.ts and uptime.test.ts (P3) are nice-to-haves.
 

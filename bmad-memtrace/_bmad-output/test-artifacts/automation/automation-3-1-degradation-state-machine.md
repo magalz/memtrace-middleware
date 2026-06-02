@@ -33,13 +33,13 @@ inputDocuments:
 
 The traceability matrix identified the following coverage gaps:
 
-| Priority | AC   | Description                      | Current Coverage | Severity     |
-| -------- | ---- | -------------------------------- | ---------------- | ------------ |
-| P0       | AC-7 | FailClosed dispatch error        | NONE ❌          | CRITICAL     |
-| P1       | AC-4 | IntentReduced sequential/no-fusion | NONE ❌         | PR BLOCKER   |
-| P1       | AC-5 | Passthrough passthrough flag     | NONE ❌          | PR BLOCKER   |
-| P1       | AC-14| Error type preserved end-to-end  | PARTIAL ⚠️      | PR BLOCKER   |
-| P0       | AC-2 | Structured logging on transition | PARTIAL ⚠️      | NON-BLOCKING |
+| Priority | AC    | Description                        | Current Coverage | Severity     |
+| -------- | ----- | ---------------------------------- | ---------------- | ------------ |
+| P0       | AC-7  | FailClosed dispatch error          | NONE ❌          | CRITICAL     |
+| P1       | AC-4  | IntentReduced sequential/no-fusion | NONE ❌          | PR BLOCKER   |
+| P1       | AC-5  | Passthrough passthrough flag       | NONE ❌          | PR BLOCKER   |
+| P1       | AC-14 | Error type preserved end-to-end    | PARTIAL ⚠️       | PR BLOCKER   |
+| P0       | AC-2  | Structured logging on transition   | PARTIAL ⚠️       | NON-BLOCKING |
 
 ---
 
@@ -113,7 +113,13 @@ it('[P1] IntentReduced dispatch runs sequentially', async () => {
       maxConcurrent = Math.max(maxConcurrent, concurrentCount);
       await new Promise((r) => setTimeout(r, 5));
       concurrentCount--;
-      return { tool: 'memtrace_find_code', data: [], trace_id: 't1', elapsed_ms: 2, degraded: false };
+      return {
+        tool: 'memtrace_find_code',
+        data: [],
+        trace_id: 't1',
+        elapsed_ms: 2,
+        degraded: false,
+      };
     },
     probe: async () => true,
     listTools: async () => mockCapabilities.tools,
@@ -338,6 +344,7 @@ pnpm test
 ```
 
 Expected results after adding 6 new tests:
+
 - Total tests: 240 (234 existing + 6 new)
 - All 240 should pass
 - No regressions in existing tests
@@ -348,12 +355,12 @@ Expected results after adding 6 new tests:
 
 After adding these tests:
 
-| Priority | Total | FULL Coverage | Coverage % | Status       |
-| -------- | ----- | ------------- | ---------- | ------------ |
-| P0       | 8     | 8             | 100%       | ✅ PASS      |
-| P1       | 3     | 3             | 100%       | ✅ PASS      |
-| P2       | 3     | 3             | 100%       | ✅ PASS      |
-| **Total**| **14**| **14**        | **100%**   | ✅ PASS      |
+| Priority  | Total  | FULL Coverage | Coverage % | Status  |
+| --------- | ------ | ------------- | ---------- | ------- |
+| P0        | 8      | 8             | 100%       | ✅ PASS |
+| P1        | 3      | 3             | 100%       | ✅ PASS |
+| P2        | 3      | 3             | 100%       | ✅ PASS |
+| **Total** | **14** | **14**        | **100%**   | ✅ PASS |
 
 ---
 

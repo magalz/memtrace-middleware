@@ -59,21 +59,21 @@ The test suite for Story 3.1 is well-structured with 30 tests across 3 files. Al
 
 ## Quality Criteria Assessment
 
-| Criterion                            | Status                          | Violations | Notes                                                         |
-| ------------------------------------ | ------------------------------- | ---------- | ------------------------------------------------------------- |
-| BDD Format (Given-When-Then)         | ✅ PASS                         | 0          | All 30 tests use `it('[P0/P1/P2] description')` BDD naming   |
-| Test IDs                             | ⚠️ WARN                         | 1          | No formal test ID system; only `[P0/P1/P2]` priority markers |
-| Priority Markers (P0/P1/P2/P3)       | ✅ PASS                         | 0          | All tests have priority markers                               |
-| Hard Waits (sleep, waitForTimeout)   | ✅ PASS                         | 0          | No hard waits in any test                                     |
-| Determinism (no conditionals)        | ✅ PASS                         | 0          | All tests are deterministic                                   |
-| Isolation (cleanup, no shared state) | ✅ PASS                         | 0          | All suites have beforeEach/afterEach with reset               |
-| Fixture Patterns                     | ✅ PASS                         | 0          | Dedicated fixture module + factory functions                  |
-| Data Factories                       | ✅ PASS                         | 0          | `createProbeMockBackend()` and `createDegradationConfig()`    |
-| Network-First Pattern                | ✅ PASS                         | 0          | N/A — no network-dependent tests                              |
-| Explicit Assertions                  | ✅ PASS                         | 0          | Uses `toBe`, `toBeNull`, `toContain`, `toBeTypeOf`            |
-| Test Length (≤300 lines)             | ✅ PASS                         | 150/122   | All files under 150 lines                                     |
-| Test Duration (≤1.5 min)             | ✅ PASS                         | 8.59s     | Full suite completes in 8.59s                                 |
-| Flakiness Patterns                   | ✅ PASS                         | 0          | No flakiness patterns detected                                |
+| Criterion                            | Status  | Violations | Notes                                                        |
+| ------------------------------------ | ------- | ---------- | ------------------------------------------------------------ |
+| BDD Format (Given-When-Then)         | ✅ PASS | 0          | All 30 tests use `it('[P0/P1/P2] description')` BDD naming   |
+| Test IDs                             | ⚠️ WARN | 1          | No formal test ID system; only `[P0/P1/P2]` priority markers |
+| Priority Markers (P0/P1/P2/P3)       | ✅ PASS | 0          | All tests have priority markers                              |
+| Hard Waits (sleep, waitForTimeout)   | ✅ PASS | 0          | No hard waits in any test                                    |
+| Determinism (no conditionals)        | ✅ PASS | 0          | All tests are deterministic                                  |
+| Isolation (cleanup, no shared state) | ✅ PASS | 0          | All suites have beforeEach/afterEach with reset              |
+| Fixture Patterns                     | ✅ PASS | 0          | Dedicated fixture module + factory functions                 |
+| Data Factories                       | ✅ PASS | 0          | `createProbeMockBackend()` and `createDegradationConfig()`   |
+| Network-First Pattern                | ✅ PASS | 0          | N/A — no network-dependent tests                             |
+| Explicit Assertions                  | ✅ PASS | 0          | Uses `toBe`, `toBeNull`, `toContain`, `toBeTypeOf`           |
+| Test Length (≤300 lines)             | ✅ PASS | 150/122    | All files under 150 lines                                    |
+| Test Duration (≤1.5 min)             | ✅ PASS | 8.59s      | Full suite completes in 8.59s                                |
+| Flakiness Patterns                   | ✅ PASS | 0          | No flakiness patterns detected                               |
 
 **Total Violations**: 0 Critical, 0 High, 2 Medium, 1 Low
 
@@ -123,12 +123,14 @@ No critical issues detected. ✅
 Tests use `[P0]` priority markers in their descriptions but lack formal test IDs that would enable selective execution, cross-referencing with acceptance criteria, and CI filtering. The story file defines "Embedded Tests" (AC 8-14) but there's no mapping back from test names to these IDs.
 
 **Current Code**:
+
 ```typescript
 // ⚠️ No formal test ID — only priority marker
 it('[P0] three consecutive probe failures triggers Full → IntentReduced', () => { ... });
 ```
 
 **Recommended Improvement**:
+
 ```typescript
 // ✅ Formal test ID following project convention
 it('[P0] 3.1-UNIT-003: three consecutive probe failures triggers Full → IntentReduced', () => { ... });
@@ -153,6 +155,7 @@ P2 — Non-blocking but improves maintainability as test suite grows.
 The `[P2] rapid probe calls do not corrupt state` test asserts only `expect(degradationMachine.getCurrentTier()).toBeTypeOf('string')` and `expect(results.length).toBe(100)`. This verifies the method returns a string and doesn't crash, but doesn't verify that the internal state is consistent (e.g., that `consecutiveProbeFailures` and `consecutiveProbeSuccesses` sum to ≤ HYSTERESIS_PROBE_COUNT, or that the tier is valid).
 
 **Current Code**:
+
 ```typescript
 it('[P2] rapid probe calls do not corrupt state', () => {
   const results: DegradationTier[] = [];
@@ -165,6 +168,7 @@ it('[P2] rapid probe calls do not corrupt state', () => {
 ```
 
 **Recommended Improvement**:
+
 ```typescript
 it('[P2] rapid probe calls do not corrupt state', () => {
   const results: DegradationTier[] = [];
@@ -201,11 +205,13 @@ P2 — Low risk in practice (JS is single-threaded), but improves confidence in 
 The test `[P2] error type preserved end-to-end through degrade chain` is labeled P2 but it covers AC-14 which is a P1 acceptance criterion ("error type preserved end-to-end"). Priority should match the acceptance criterion priority.
 
 **Current Code**:
+
 ```typescript
 it('[P2] error type preserved end-to-end through degrade chain', async () => {
 ```
 
 **Recommended Improvement**:
+
 ```typescript
 it('[P1] error type preserved end-to-end through degrade chain', async () => {
 ```
@@ -230,6 +236,7 @@ P2 — Corrects semantic mismatch; doesn't affect test correctness.
 Every test in the `DegradationMachine` suite calls `degradationMachine.reset()` in `beforeEach`, ensuring zero shared state between tests. This is essential when testing a singleton — without it, test order would determine results.
 
 **Code Example**:
+
 ```typescript
 describe('DegradationMachine', () => {
   beforeEach(() => {
@@ -254,6 +261,7 @@ This pattern should be followed in any test suite that exercises a singleton or 
 Timer tests use `vi.useFakeTimers()` in `beforeEach` and `vi.useRealTimers()` in `afterEach`, making probe-interval tests deterministic and fast (no real waits). The pattern ensures cleanup even if a test fails.
 
 **Code Example**:
+
 ```typescript
 describe('ProbeTimer', () => {
   beforeEach(() => {
@@ -282,6 +290,7 @@ Standard pattern for any timer-dependent tests across the project.
 `createDegradationConfig()` uses `Partial<MiddlewareConfig>` overrides on top of `DEFAULT_CONFIG`, enabling minimal test setup while supporting all config variations. `createProbeMockBackend()` provides a clean `MemtraceBackend` stub with failure injection. This reduces boilerplate in every test file.
 
 **Code Example**:
+
 ```typescript
 export function createDegradationConfig(overrides?: Partial<MiddlewareConfig>): MiddlewareConfig {
   return { ...DEFAULT_CONFIG, ...overrides };
@@ -453,17 +462,17 @@ Test quality is excellent with 93/100 score. All tests follow consistent BDD con
 
 ### Violation Summary by Location
 
-| Line   | Severity      | Criterion     | Issue                            | Fix                          |
-| ------ | ------------- | ------------- | -------------------------------- | ---------------------------- |
-| 147    | P2 (Medium)   | Assertions    | Weak type-only assertion         | Add valid-tier invariant     |
-| 1-122  | P2 (Medium)   | Test IDs      | No formal test ID system         | Add 3.1-INT/UNIT IDs         |
-| 112    | P2 (Medium)   | Priority      | P2 label for P1 AC               | Change to [P1]               |
+| Line  | Severity    | Criterion  | Issue                    | Fix                      |
+| ----- | ----------- | ---------- | ------------------------ | ------------------------ |
+| 147   | P2 (Medium) | Assertions | Weak type-only assertion | Add valid-tier invariant |
+| 1-122 | P2 (Medium) | Test IDs   | No formal test ID system | Add 3.1-INT/UNIT IDs     |
+| 112   | P2 (Medium) | Priority   | P2 label for P1 AC       | Change to [P1]           |
 
 ### Quality Trends
 
-| Review Date  | Score | Grade     | Critical Issues | Trend |
-| ------------ | ----- | --------- | --------------- | ----- |
-| 2026-05-29   | 93/100 | Excellent | 0               | ➡️ N/A (first review) |
+| Review Date | Score  | Grade     | Critical Issues | Trend                 |
+| ----------- | ------ | --------- | --------------- | --------------------- |
+| 2026-05-29  | 93/100 | Excellent | 0               | ➡️ N/A (first review) |
 
 ---
 

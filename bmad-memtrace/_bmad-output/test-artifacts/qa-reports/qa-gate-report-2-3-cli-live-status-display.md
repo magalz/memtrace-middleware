@@ -8,14 +8,14 @@
 
 ## Gates Assessment
 
-| Gate | Threshold | Actual | Status |
-|---|---|---|---|
-| `minTests` | ≥422 | 204 (all project) | ⚠️ NOTE |
-| `zeroFailures` | 0 failures | 0 | ✅ PASS |
-| `maxSkipped` | ≤8 skips | 0 | ✅ PASS |
-| Test Review Score | ≥70 | 97/100 | ✅ PASS |
-| AC Coverage | 100% | 100% (6/6) | ✅ PASS |
-| P0 Blockers | 0 | 0 | ✅ PASS |
+| Gate              | Threshold  | Actual            | Status  |
+| ----------------- | ---------- | ----------------- | ------- |
+| `minTests`        | ≥422       | 204 (all project) | ⚠️ NOTE |
+| `zeroFailures`    | 0 failures | 0                 | ✅ PASS |
+| `maxSkipped`      | ≤8 skips   | 0                 | ✅ PASS |
+| Test Review Score | ≥70        | 97/100            | ✅ PASS |
+| AC Coverage       | 100%       | 100% (6/6)        | ✅ PASS |
+| P0 Blockers       | 0          | 0                 | ✅ PASS |
 
 **Note**: The minTests threshold (≥422) is from the full project CI configuration. This story adds 33 new tests (204 total across 20 files). The full project gate will be evaluated at epic-level.
 
@@ -23,14 +23,15 @@
 
 ## Test Review
 
-| Metric | Value |
-|---|---|
-| Score | **97/100** (Excellent) |
-| Grade | A |
+| Metric         | Value                                   |
+| -------------- | --------------------------------------- |
+| Score          | **97/100** (Excellent)                  |
+| Grade          | A                                       |
 | Files reviewed | 2 (ring-buffer.test.ts, status.test.ts) |
-| Tests reviewed | 33 |
+| Tests reviewed | 33                                      |
 
 **Key findings:**
+
 - ✅ All 33 tests have priority markers ([P0]/[P1]/[P2])
 - ✅ No hard waits, no flaky patterns, no shared state
 - ✅ Ring buffer tests cover all invariants (capacity, overflow, wrap-around, edge cases, stress)
@@ -41,25 +42,25 @@
 
 ## Traceability
 
-| AC | Description | Coverage | Tests |
-|---|---|---|---|
-| AC-1 | Live status display with health dot, tier, intents, counts, confidence | FULL ✅ | status.test.ts (8 tests) |
-| AC-2 | Transient success/failure flash signal | FULL ✅ | status.test.ts createFlashTracker (4 tests) |
-| AC-3 | Ring buffer as data source for display | FULL ✅ | ring-buffer.test.ts (17 tests) |
-| AC-4 | TTY (ANSI/\r) vs piped (NDJSON) output | FULL ✅ | status.test.ts (6 tests) |
-| AC-5 | Ring buffer capacity, overflow, concurrent read | FULL ✅ | ring-buffer.test.ts (all 17 tests) |
-| AC-6 | CLI output fields present with correct types | FULL ✅ | status.test.ts (6 tests) |
-| **Total** | | **100% (6/6)** | **33 tests** |
+| AC        | Description                                                            | Coverage       | Tests                                       |
+| --------- | ---------------------------------------------------------------------- | -------------- | ------------------------------------------- |
+| AC-1      | Live status display with health dot, tier, intents, counts, confidence | FULL ✅        | status.test.ts (8 tests)                    |
+| AC-2      | Transient success/failure flash signal                                 | FULL ✅        | status.test.ts createFlashTracker (4 tests) |
+| AC-3      | Ring buffer as data source for display                                 | FULL ✅        | ring-buffer.test.ts (17 tests)              |
+| AC-4      | TTY (ANSI/\r) vs piped (NDJSON) output                                 | FULL ✅        | status.test.ts (6 tests)                    |
+| AC-5      | Ring buffer capacity, overflow, concurrent read                        | FULL ✅        | ring-buffer.test.ts (all 17 tests)          |
+| AC-6      | CLI output fields present with correct types                           | FULL ✅        | status.test.ts (6 tests)                    |
+| **Total** |                                                                        | **100% (6/6)** | **33 tests**                                |
 
 ---
 
 ## Automation Gaps
 
-| Gap | Priority | Action |
-|---|---|---|
-| No metrics unit test (metrics.ts) | P2 | Optional — add `tests/unit/telemetry/metrics.test.ts` (8 tests) |
-| No emitter test (emitter.ts) | P3 | Optional — add `tests/unit/telemetry/emitter.test.ts` (1 test) |
-| No uptime test (uptime.ts) | P3 | Optional — add `tests/unit/telemetry/uptime.test.ts` (1 test) |
+| Gap                               | Priority | Action                                                          |
+| --------------------------------- | -------- | --------------------------------------------------------------- |
+| No metrics unit test (metrics.ts) | P2       | Optional — add `tests/unit/telemetry/metrics.test.ts` (8 tests) |
+| No emitter test (emitter.ts)      | P3       | Optional — add `tests/unit/telemetry/emitter.test.ts` (1 test)  |
+| No uptime test (uptime.ts)        | P3       | Optional — add `tests/unit/telemetry/uptime.test.ts` (1 test)   |
 
 **No blocking gaps.** All ACs have full test coverage.
 
@@ -92,6 +93,7 @@
 **QA Gate**: ✅ **PASS**
 
 All criteria met:
+
 - Test Review Score: **97/100** (≥70) ✅
 - AC Coverage: **100%** (6/6) ✅
 - Zero test failures: **0 failures** ✅
@@ -101,4 +103,5 @@ All criteria met:
 **Recommendation**: Proceed to Code Review (CR) phase.
 
 ---
-*Generated by QA-Verify workflow. Artifacts in `_bmad-output/test-artifacts/`*
+
+_Generated by QA-Verify workflow. Artifacts in `_bmad-output/test-artifacts/`_

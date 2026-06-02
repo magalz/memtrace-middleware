@@ -33,7 +33,7 @@ so that the codebase is consistent and maintainable.
   - [x] 2.1: Search for `story-6`, `story6`, `epic-6`, `epic6` — NO matches in SKILL.md, customize.toml, or step files across ALL 8 skills ✅
   - [x] 2.2: Search for `6.1`-`6.6` — NO matches in skill execution files ✅
   - [x] 2.3: ALL triggers are content-based (user says "run code review", "talk to Murat", etc.) ✅
-  - [x] 2.4: False positives documented: bmad-story-automator/data/*.md contains tmux naming examples and historical notes referencing epic6/s6.2 — these are DATA files, not business logic triggers. NOT actionable. ⚠️
+  - [x] 2.4: False positives documented: bmad-story-automator/data/\*.md contains tmux naming examples and historical notes referencing epic6/s6.2 — these are DATA files, not business logic triggers. NOT actionable. ⚠️
 
 - [x] **Task 3 (AC: 3)**: Audit graceful degradation at every Memtrace injection point
   - [x] 3.1: bmad-code-review — "Structural audit is advisory/supplemental — NEVER block the review on Memtrace availability" ✅
@@ -69,22 +69,23 @@ so that the codebase is consistent and maintainable.
 
 ### Epic 6 Skills Inventory
 
-| Story | Skill(s) | Location | Pattern Type | Has Memtrace? |
-|-------|----------|----------|--------------|---------------|
-| 6.1 | `bmad-create-architecture` | `{outer}/.agents/skills/` | workflow | No (no Memtrace in customize.toml) |
-| 6.1 | `bmad-check-implementation-readiness` | `{outer}/.agents/skills/` | workflow | No (no Memtrace in customize.toml) |
-| 6.2 | `bmad-code-review` | `{inner}/.agents/skills/` | workflow | Yes |
-| 6.3 | `bmad-tea` | `{inner}/.agents/skills/` | persona+dispatch | Yes |
-| 6.4 | `bmad-agent-tech-writer` | `{inner}/.agents/skills/` | persona+dispatch | Yes |
-| 6.5 | `bmad-agent-pm` | `{inner}/.agents/skills/` | persona+dispatch | Yes |
-| 6.6 | `bmad-party-mode` | `{inner}/.agents/skills/` | orchestrator | Yes (inline in SKILL.md) |
-| 6.6 | `bmad-story-automator` | `{inner}/.agents/skills/` | workflow | N/A (no customize.toml) |
+| Story | Skill(s)                              | Location                  | Pattern Type     | Has Memtrace?                      |
+| ----- | ------------------------------------- | ------------------------- | ---------------- | ---------------------------------- |
+| 6.1   | `bmad-create-architecture`            | `{outer}/.agents/skills/` | workflow         | No (no Memtrace in customize.toml) |
+| 6.1   | `bmad-check-implementation-readiness` | `{outer}/.agents/skills/` | workflow         | No (no Memtrace in customize.toml) |
+| 6.2   | `bmad-code-review`                    | `{inner}/.agents/skills/` | workflow         | Yes                                |
+| 6.3   | `bmad-tea`                            | `{inner}/.agents/skills/` | persona+dispatch | Yes                                |
+| 6.4   | `bmad-agent-tech-writer`              | `{inner}/.agents/skills/` | persona+dispatch | Yes                                |
+| 6.5   | `bmad-agent-pm`                       | `{inner}/.agents/skills/` | persona+dispatch | Yes                                |
+| 6.6   | `bmad-party-mode`                     | `{inner}/.agents/skills/` | orchestrator     | Yes (inline in SKILL.md)           |
+| 6.6   | `bmad-story-automator`                | `{inner}/.agents/skills/` | workflow         | N/A (no customize.toml)            |
 
 **Legend**: `{outer}` = `D:\Repos\bmad-memtrace`, `{inner}` = `D:\Repos\bmad-memtrace\bmad-memtrace`
 
 ### Persona+Dispatch Pattern Requirements
 
 Persona agents (bmad-tea, bmad-agent-tech-writer, bmad-agent-pm) MUST have:
+
 - SKILL.md: Step 1 resolves `[agent]` block (key=agent, not key=workflow)
 - SKILL.md: Step 3 "Adopt Persona" layer: role, identity, communication_style, principles from customize.toml
 - SKILL.md: Step 8 "Dispatch or Present Menu" with menu items
@@ -92,6 +93,7 @@ Persona agents (bmad-tea, bmad-agent-tech-writer, bmad-agent-pm) MUST have:
 - customize.toml: `persistent_facts` includes Memtrace references with graceful degradation
 
 Workflow agents (bmad-code-review, bmad-create-architecture, bmad-check-implementation-readiness) MUST have:
+
 - SKILL.md: Step 1 resolves `[workflow]` block (key=workflow)
 - customize.toml: `[workflow]` section (no `[agent]` block)
 - NO persona, NO menu, NO icon/role/identity
@@ -99,6 +101,7 @@ Workflow agents (bmad-code-review, bmad-create-architecture, bmad-check-implemen
 ### Memtrace Graceful Degradation Pattern
 
 Every skill that references Memtrace MUST include ALL of:
+
 1. **Graceful degradation language**: e.g., "NEVER block on Memtrace availability", "fall back to heuristic", "advisory only"
 2. **Anti-Promise.all**: "sequential for...of with await — NEVER Promise.all" or equivalent
 3. **Freshness check**: "list_indexed_repositories" or "check index freshness" before trusting graph data
@@ -114,6 +117,7 @@ Every skill that references Memtrace MUST include ALL of:
 ### Testing Approach
 
 This audit is entirely READ-ONLY. Testing means verifying patterns in files, not running code:
+
 1. Read each SKILL.md, customize.toml, and step files — cross-check against architecture patterns
 2. Use `git log --diff-filter=M -- "_bmad/scripts/memtrace/*"` to verify AC6
 3. Use `grep` / file search for hardcoded story numbers (AC2)
@@ -123,6 +127,7 @@ This audit is entirely READ-ONLY. Testing means verifying patterns in files, not
 ### Known State (Pre-Audit Baseline)
 
 From previous stories in Epic 7 (7.1-7.5) and the code review artifacts:
+
 - All Epic 6 skills have been implemented and reviewed (6.3 code review was "clean review, no actionable findings")
 - `_bmad/scripts/memtrace/smoke-test.mjs` was ADDED by story 7.4 — this is a new file, not a modification of existing Epic 3-4 files
 - Epic 2 files (`qa-memtrace.mjs`, `validate-dead-code.mjs`, `pitfalls-catalog.json`) exist in `_bmad/scripts/memtrace/` alongside Epic 3-4 files — this is expected (they were the foundation)
@@ -132,7 +137,7 @@ From previous stories in Epic 7 (7.1-7.5) and the code review artifacts:
 
 - [x] [Review][Patch] Inconsistent timestamp format in `last_updated` field [sprint-status.yaml:2,38] — `last_updated` changed from ISO 8601 (`2026-05-21T18:00:00Z`) to incomplete format (`2026-05-22T15:05`), missing seconds and timezone designator. Fix: use consistent ISO 8601 format.
 
-- [x] [Review][Dismiss] Hardcoded story number in audit filename — AC #2 applies to skill files (SKILL.md, customize.toml, steps/*.md), not implementation artifact filenames. `N-M-title.md` naming is the project convention for all stories.
+- [x] [Review][Dismiss] Hardcoded story number in audit filename — AC #2 applies to skill files (SKILL.md, customize.toml, steps/\*.md), not implementation artifact filenames. `N-M-title.md` naming is the project convention for all stories.
 
 ### References
 
@@ -166,7 +171,7 @@ Final verified results of all 6 ACs across all Epic 6 skills:
 
 **AC1 (persona+dispatch) — PASS** ✅ All 8 skills correctly follow their designated pattern. 3 persona agents use `[agent]` block with full identity/menu. 5 workflow/orchestrator agents use `[workflow]` or have no customize.toml. The "customize.toml fact only" requirement is satisfied: SKILL.md hardcodes base name/title (e.g., "Murat / Master Test Architect") while customize.toml provides configurable identity layer (role, identity, communication_style, principles, menu).
 
-**AC2 (no hardcoded numbers) — PASS** ✅ Zero hardcoded story/epic numbers in all skill execution files (SKILL.md, customize.toml, steps/*.md). False positives found in bmad-story-automator/data/*.md (documentation examples) — documented, not actionable.
+**AC2 (no hardcoded numbers) — PASS** ✅ Zero hardcoded story/epic numbers in all skill execution files (SKILL.md, customize.toml, steps/_.md). False positives found in bmad-story-automator/data/_.md (documentation examples) — documented, not actionable.
 
 **AC3 (graceful degradation) — PASS** ✅ All 5 Memtrace-referencing skills have explicit "NEVER block" / "fall back to heuristic" language. Outer skills (bmad-create-architecture, bmad-check-implementation-readiness) have no Memtrace references — no guard needed.
 
@@ -182,16 +187,16 @@ Final verified results of all 6 ACs across all Epic 6 skills:
 
 **PASS** ✅ All 8 skills comply:
 
-| Skill | customize.toml Block | Persona? | Menu? | Steps? |
-|-------|---------------------|----------|-------|--------|
-| bmad-tea | `[agent]` | ✅ | ✅ menu[9] | Step 3 layers persona |
-| bmad-agent-tech-writer | `[agent]` | ✅ | ✅ menu[5] | Step 3 layers persona |
-| bmad-agent-pm | `[agent]` | ✅ | ✅ menu[6] | Step 3 layers persona |
-| bmad-code-review | `[workflow]` | No (correct) | No | Step 1 key=workflow |
-| bmad-party-mode | `[workflow]` | No (custom orchestrator) | No | No persona |
-| bmad-story-automator | N/A (no file) | No (correct) | No | workflow-only |
-| bmad-create-architecture (outer) | `[workflow]` | No (correct) | No | Step 1 key=workflow |
-| bmad-check-implementation-readiness (outer) | `[workflow]` | No (correct) | No | Step 1 key=workflow |
+| Skill                                       | customize.toml Block | Persona?                 | Menu?      | Steps?                |
+| ------------------------------------------- | -------------------- | ------------------------ | ---------- | --------------------- |
+| bmad-tea                                    | `[agent]`            | ✅                       | ✅ menu[9] | Step 3 layers persona |
+| bmad-agent-tech-writer                      | `[agent]`            | ✅                       | ✅ menu[5] | Step 3 layers persona |
+| bmad-agent-pm                               | `[agent]`            | ✅                       | ✅ menu[6] | Step 3 layers persona |
+| bmad-code-review                            | `[workflow]`         | No (correct)             | No         | Step 1 key=workflow   |
+| bmad-party-mode                             | `[workflow]`         | No (custom orchestrator) | No         | No persona            |
+| bmad-story-automator                        | N/A (no file)        | No (correct)             | No         | workflow-only         |
+| bmad-create-architecture (outer)            | `[workflow]`         | No (correct)             | No         | Step 1 key=workflow   |
+| bmad-check-implementation-readiness (outer) | `[workflow]`         | No (correct)             | No         | Step 1 key=workflow   |
 
 **Finding**: Persona descriptions exist in BOTH SKILL.md Step 3 Overview (hardcoded) AND customize.toml `[agent]` block. AC1 says "customize.toml fact only". This is intentional architecture: the SKILL.md Overview establishes the base persona identity (name/title), while customize.toml provides configurable layer (role, identity, communication_style, principles). The template hardcodes the base identity (e.g., "Murat / Master Test Architect") in the Overview because it's the default, while customize.toml allows users to override role/identity/style/principles. This IS the canonical pattern — not a violation.
 
@@ -200,11 +205,13 @@ Final verified results of all 6 ACs across all Epic 6 skills:
 **PASS** ✅ Zero hardcoded story numbers in skill execution files.
 
 Files scanned (grep for `story-6`, `story6`, `epic-6`, `epic6`, `6.1`-`6.6`):
+
 - All SKILL.md files across 8 skills: 0 matches
 - All customize.toml files (6 files): 0 matches
-- All step files (bmad-code-review/steps/*, bmad-create-architecture/steps/*, bmad-check-implementation-readiness/steps/*): 0 matches
+- All step files (bmad-code-review/steps/_, bmad-create-architecture/steps/_, bmad-check-implementation-readiness/steps/\*): 0 matches
 
 **False positives** (bmad-story-automator/data/ files — reference/documentation, not business logic):
+
 - `data/tmux-commands.md` lines 12, 59, 63, 67-68: tmux session naming examples (e.g., `e6-s64`, `s6.2`)
 - `data/workflow-commands.md` line 115: story ID pattern conversion docs (`6.1` -> `6-1`)
 - `data/complexity-scoring.md` line 141: historical learning examples ("Stories 6.5-6.8")
@@ -217,13 +224,13 @@ These are **DATA files** in a subdirectory — not skill execution files. They c
 
 **PASS** ✅ All 5 Memtrace-referencing skills have explicit graceful degradation:
 
-| Skill | Exact Text | Source |
-|-------|-----------|--------|
-| bmad-code-review | "Structural audit is advisory/supplemental — NEVER block the review on Memtrace availability" | customize.toml line 35 |
-| bmad-tea | "Structural coverage is advisory — NEVER block the trace workflow on Memtrace availability" | customize.toml line 40 |
+| Skill                  | Exact Text                                                                                                                                                      | Source                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| bmad-code-review       | "Structural audit is advisory/supplemental — NEVER block the review on Memtrace availability"                                                                   | customize.toml line 35 |
+| bmad-tea               | "Structural coverage is advisory — NEVER block the trace workflow on Memtrace availability"                                                                     | customize.toml line 40 |
 | bmad-agent-tech-writer | "Memtrace data is advisory — fall back to heuristic file-reading when Memtrace is unavailable. NEVER block the documentation workflow on Memtrace availability" | customize.toml line 41 |
-| bmad-agent-pm | "Memtrace data is advisory enrichment — fall back to heuristic analysis when Memtrace is unavailable. NEVER block the retrospective on Memtrace availability" | customize.toml line 40 |
-| bmad-party-mode | "Graceful degradation: If Memtrace is unavailable or the index is stale (>30 min)... never block party mode activation on Memtrace availability" | SKILL.md lines 48-52 |
+| bmad-agent-pm          | "Memtrace data is advisory enrichment — fall back to heuristic analysis when Memtrace is unavailable. NEVER block the retrospective on Memtrace availability"   | customize.toml line 40 |
+| bmad-party-mode        | "Graceful degradation: If Memtrace is unavailable or the index is stale (>30 min)... never block party mode activation on Memtrace availability"                | SKILL.md lines 48-52   |
 
 **Outer skills** (bmad-create-architecture, bmad-check-implementation-readiness): No Memtrace references in customize.toml (only project-context.md in persistent_facts). **No guard needed** — these skills were implemented before Memtrace was available.
 
@@ -233,15 +240,16 @@ These are **DATA files** in a subdirectory — not skill execution files. They c
 
 **PASS** ✅ All Memtrace query points enforce sequential processing:
 
-| Skill | Exact Text | Source |
-|-------|-----------|--------|
-| bmad-code-review | "All queries MUST use sequential for...of with await — NEVER Promise.all" | customize.toml line 36 |
-| bmad-tea | "All graph queries MUST use sequential for...of with await — NEVER Promise.all" | customize.toml line 41 |
-| bmad-agent-tech-writer | "All graph queries MUST use sequential for...of with await — NEVER Promise.all" | customize.toml line 42 |
-| bmad-agent-pm | "All graph queries MUST use sequential for...of with await — NEVER Promise.all" | customize.toml line 41 |
-| bmad-party-mode | "Process ALL queries STRICTLY SEQUENTIALLY using for...of with await — NEVER Promise.all" | SKILL.md line 47 |
+| Skill                  | Exact Text                                                                                | Source                 |
+| ---------------------- | ----------------------------------------------------------------------------------------- | ---------------------- |
+| bmad-code-review       | "All queries MUST use sequential for...of with await — NEVER Promise.all"                 | customize.toml line 36 |
+| bmad-tea               | "All graph queries MUST use sequential for...of with await — NEVER Promise.all"           | customize.toml line 41 |
+| bmad-agent-tech-writer | "All graph queries MUST use sequential for...of with await — NEVER Promise.all"           | customize.toml line 42 |
+| bmad-agent-pm          | "All graph queries MUST use sequential for...of with await — NEVER Promise.all"           | customize.toml line 41 |
+| bmad-party-mode        | "Process ALL queries STRICTLY SEQUENTIALLY using for...of with await — NEVER Promise.all" | SKILL.md line 47       |
 
 **Adapter enforcement**: `memtrace-adapter.mjs`:
+
 - Line 27: `--batch` flag documented as "Process multiple --target values sequentially (anti-Promise.all)"
 - Line 360: `for (const s of symbols) {` — main impact analysis loop
 - Line 379: `for (const [prefix, syms] of modules) {` — module summarization
@@ -255,13 +263,13 @@ These are **DATA files** in a subdirectory — not skill execution files. They c
 
 **PASS** ✅ All 5 Memtrace-referencing skills include freshness check:
 
-| Skill | Exact Text | Source |
-|-------|-----------|--------|
-| bmad-code-review | "Index freshness check via list_indexed_repositories is mandatory before trusting graph output" | customize.toml line 35 |
-| bmad-tea | "list_indexed_repositories for freshness check" | customize.toml line 40 |
-| bmad-agent-tech-writer | "Check index freshness via list_indexed_repositories before trusting graph output" | customize.toml line 41 |
-| bmad-agent-pm | "Check index freshness via list_indexed_repositories before trusting graph output" | customize.toml line 40 |
-| bmad-party-mode | Step 4.5: "If Memtrace is unavailable or the index is stale (>30 min since last_indexed_at)" | SKILL.md line 48 |
+| Skill                  | Exact Text                                                                                      | Source                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------- |
+| bmad-code-review       | "Index freshness check via list_indexed_repositories is mandatory before trusting graph output" | customize.toml line 35 |
+| bmad-tea               | "list_indexed_repositories for freshness check"                                                 | customize.toml line 40 |
+| bmad-agent-tech-writer | "Check index freshness via list_indexed_repositories before trusting graph output"              | customize.toml line 41 |
+| bmad-agent-pm          | "Check index freshness via list_indexed_repositories before trusting graph output"              | customize.toml line 40 |
+| bmad-party-mode        | Step 4.5: "If Memtrace is unavailable or the index is stale (>30 min since last_indexed_at)"    | SKILL.md line 48       |
 
 **Architecture alignment**: The pattern from `architecture.md#Cross-Cutting Concerns` is correctly embedded in all skills. The 30-minute threshold appears in bmad-party-mode's inline check. Other skills reference it via `list_indexed_repositories` — the adapter's already-implemented freshness check function.
 
@@ -271,18 +279,18 @@ These are **DATA files** in a subdirectory — not skill execution files. They c
 
 Git log classification of all 10 commits touching `_bmad/scripts/memtrace/`:
 
-| Commit | Epic | Type | Files Changed | Scope OK? |
-|--------|------|------|---------------|-----------|
-| 79b3f7d9 | 2.3 | Modify | quality-gate.mjs | ✅ Original Epic |
-| 792fb507 | 2.4 | Modify | pitfalls-catalog | ✅ Original Epic |
-| bf572f94 | 2.3 | Modify | qa-memtrace | ✅ Original Epic |
-| ffb430ed | 3.1-3.2 | Modify | adapter (new) | ✅ Original Epic |
-| abd758e7 | 3.3 | Modify | adapter | ✅ Original Epic |
-| 72e293f3 | 3.4 | Modify | adapter | ✅ Original Epic |
-| 3a94cc45 | 3.4 | Modify | adapter | ✅ Original Epic |
-| aecd1ac2 | 4.2 | Modify | adapter | ✅ Original Epic |
-| 30742f16 | 4.1 | Modify | adapter + test | ✅ Original Epic |
-| d03623ea | 7.4 | **Add** NEW | smoke-test.mjs | ✅ Expansion (new file only) |
+| Commit   | Epic    | Type        | Files Changed    | Scope OK?                    |
+| -------- | ------- | ----------- | ---------------- | ---------------------------- |
+| 79b3f7d9 | 2.3     | Modify      | quality-gate.mjs | ✅ Original Epic             |
+| 792fb507 | 2.4     | Modify      | pitfalls-catalog | ✅ Original Epic             |
+| bf572f94 | 2.3     | Modify      | qa-memtrace      | ✅ Original Epic             |
+| ffb430ed | 3.1-3.2 | Modify      | adapter (new)    | ✅ Original Epic             |
+| abd758e7 | 3.3     | Modify      | adapter          | ✅ Original Epic             |
+| 72e293f3 | 3.4     | Modify      | adapter          | ✅ Original Epic             |
+| 3a94cc45 | 3.4     | Modify      | adapter          | ✅ Original Epic             |
+| aecd1ac2 | 4.2     | Modify      | adapter          | ✅ Original Epic             |
+| 30742f16 | 4.1     | Modify      | adapter + test   | ✅ Original Epic             |
+| d03623ea | 7.4     | **Add** NEW | smoke-test.mjs   | ✅ Expansion (new file only) |
 
 **Verification**: `git log --all --diff-filter=M -- _bmad/scripts/memtrace/*` returns only Epic 2-4 commits (except d03623ea which shows as "M" but actually only added `smoke-test.mjs` — no existing files modified). Zero pre-existing files were modified by Epics 5, 6, or 7.
 
@@ -328,22 +336,22 @@ Git log classification of all 10 commits touching `_bmad/scripts/memtrace/`:
 
 This story is READ-ONLY audit. Files to inspect (DO NOT MODIFY):
 
-| File | Purpose |
-|------|---------|
-| `{inner}/.agents/skills/bmad-code-review/SKILL.md` | Audit: workflow pattern, Memtrace usage |
-| `{inner}/.agents/skills/bmad-code-review/customize.toml` | Audit: [workflow] block, persistent_facts |
-| `{inner}/.agents/skills/bmad-code-review/steps/*.md` | Audit: hardcoded numbers, Memtrace references |
-| `{inner}/.agents/skills/bmad-tea/SKILL.md` | Audit: persona+dispatch pattern |
-| `{inner}/.agents/skills/bmad-tea/customize.toml` | Audit: [agent] block, persistent_facts |
-| `{inner}/.agents/skills/bmad-agent-tech-writer/SKILL.md` | Audit: persona+dispatch pattern |
-| `{inner}/.agents/skills/bmad-agent-tech-writer/customize.toml` | Audit: [agent] block, persistent_facts |
-| `{inner}/.agents/skills/bmad-agent-pm/SKILL.md` | Audit: persona+dispatch pattern |
-| `{inner}/.agents/skills/bmad-agent-pm/customize.toml` | Audit: [agent] block, persistent_facts |
-| `{inner}/.agents/skills/bmad-party-mode/SKILL.md` | Audit: workflow pattern, inline Memtrace |
-| `{inner}/.agents/skills/bmad-party-mode/customize.toml` | Audit: [workflow] block, persistent_facts |
-| `{inner}/.agents/skills/bmad-story-automator/SKILL.md` | Audit: workflow pattern (no customize.toml) |
-| `{outer}/.agents/skills/bmad-create-architecture/SKILL.md` | Audit: workflow pattern |
-| `{outer}/.agents/skills/bmad-create-architecture/customize.toml` | Audit: no Memtrace without guard |
-| `{outer}/.agents/skills/bmad-check-implementation-readiness/SKILL.md` | Audit: workflow pattern |
-| `{outer}/.agents/skills/bmad-check-implementation-readiness/customize.toml` | Audit: no Memtrace without guard |
-| `{inner}/_bmad/scripts/memtrace/*` | Audit: git log for scope violations |
+| File                                                                        | Purpose                                       |
+| --------------------------------------------------------------------------- | --------------------------------------------- |
+| `{inner}/.agents/skills/bmad-code-review/SKILL.md`                          | Audit: workflow pattern, Memtrace usage       |
+| `{inner}/.agents/skills/bmad-code-review/customize.toml`                    | Audit: [workflow] block, persistent_facts     |
+| `{inner}/.agents/skills/bmad-code-review/steps/*.md`                        | Audit: hardcoded numbers, Memtrace references |
+| `{inner}/.agents/skills/bmad-tea/SKILL.md`                                  | Audit: persona+dispatch pattern               |
+| `{inner}/.agents/skills/bmad-tea/customize.toml`                            | Audit: [agent] block, persistent_facts        |
+| `{inner}/.agents/skills/bmad-agent-tech-writer/SKILL.md`                    | Audit: persona+dispatch pattern               |
+| `{inner}/.agents/skills/bmad-agent-tech-writer/customize.toml`              | Audit: [agent] block, persistent_facts        |
+| `{inner}/.agents/skills/bmad-agent-pm/SKILL.md`                             | Audit: persona+dispatch pattern               |
+| `{inner}/.agents/skills/bmad-agent-pm/customize.toml`                       | Audit: [agent] block, persistent_facts        |
+| `{inner}/.agents/skills/bmad-party-mode/SKILL.md`                           | Audit: workflow pattern, inline Memtrace      |
+| `{inner}/.agents/skills/bmad-party-mode/customize.toml`                     | Audit: [workflow] block, persistent_facts     |
+| `{inner}/.agents/skills/bmad-story-automator/SKILL.md`                      | Audit: workflow pattern (no customize.toml)   |
+| `{outer}/.agents/skills/bmad-create-architecture/SKILL.md`                  | Audit: workflow pattern                       |
+| `{outer}/.agents/skills/bmad-create-architecture/customize.toml`            | Audit: no Memtrace without guard              |
+| `{outer}/.agents/skills/bmad-check-implementation-readiness/SKILL.md`       | Audit: workflow pattern                       |
+| `{outer}/.agents/skills/bmad-check-implementation-readiness/customize.toml` | Audit: no Memtrace without guard              |
+| `{inner}/_bmad/scripts/memtrace/*`                                          | Audit: git log for scope violations           |

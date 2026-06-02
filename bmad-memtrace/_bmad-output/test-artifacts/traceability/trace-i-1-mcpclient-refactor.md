@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-load-context', 'step-02-requirements-analysis', 'step-03-test-mapping', 'step-04-coverage-summary', 'step-05-quality-gate']
+stepsCompleted:
+  [
+    'step-01-load-context',
+    'step-02-requirements-analysis',
+    'step-03-test-mapping',
+    'step-04-coverage-summary',
+    'step-05-quality-gate',
+  ]
 lastStep: 'step-05-quality-gate'
 lastSaved: '2026-05-29'
 workflowType: 'testarch-trace'
@@ -34,15 +41,16 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage Summary
 
-| Priority  | Total Criteria | FULL Coverage | Coverage % | Status       |
-| --------- | -------------- | ------------- | ---------- | ------------ |
-| P0        | 7              | 7             | 100%       | ✅ PASS      |
-| P1        | 1              | 1             | 100%       | ✅ PASS      |
-| P2        | 0              | 0             | N/A        | N/A          |
-| P3        | 0              | 0             | N/A        | N/A          |
-| **Total** | **8**          | **8**         | **100%**   | **✅ PASS**  |
+| Priority  | Total Criteria | FULL Coverage | Coverage % | Status      |
+| --------- | -------------- | ------------- | ---------- | ----------- |
+| P0        | 7              | 7             | 100%       | ✅ PASS     |
+| P1        | 1              | 1             | 100%       | ✅ PASS     |
+| P2        | 0              | 0             | N/A        | N/A         |
+| P3        | 0              | 0             | N/A        | N/A         |
+| **Total** | **8**          | **8**         | **100%**   | **✅ PASS** |
 
 **Legend:**
+
 - ✅ PASS — Coverage meets quality gate threshold (100%)
 - ⚠️ WARN — Coverage below threshold but not critical
 - ❌ FAIL — Coverage below minimum threshold (blocker)
@@ -58,6 +66,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-002 (Promise mismatch, Score: 12)
 
 **Tests:**
+
 - `should resolve with result on matching id` — `memtrace-adapter.test.mjs:519`
   - **Given:** McpClient has an active request with id=1 in registry
   - **When:** Stream listener receives `{"id":1,"result":{"ok":true}}`
@@ -95,6 +104,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-001 (Resource leak, Score: 12), R-004 (Stale promise, Score: 9)
 
 **Tests:**
+
 - `should reject with TimeoutError containing phase` — `memtrace-adapter.test.mjs:490`
   - **Given:** withTimeout is called with a never-settling promise, 10ms timeout, and phase="query"
   - **When:** The timeout fires
@@ -122,6 +132,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-001 (Resource leak, Score: 12)
 
 **Tests:**
+
 - `should no-op when child is null (never spawned)` — `memtrace-adapter.test.mjs:612`
   - **Given:** An McpClient instance that was never spawned (child is null)
   - **When:** `shutdown()` is called
@@ -144,6 +155,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-001 (Resource leak, Score: 12)
 
 **Tests:**
+
 - `should reject all pending requests` — `memtrace-adapter.test.mjs:628`
   - **Given:** Two active requests (r1, r2) in registry
   - **When:** `kill()` is called
@@ -176,6 +188,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-005 (Malformed JSON, Score: 6)
 
 **Tests:**
+
 - `should skip malformed lines starting with { and process valid ones after` — `memtrace-adapter.test.mjs:586`
   - **Given:** An active request in registry
   - **When:** Stream listener receives a partial/malformed JSON line followed by a valid JSON line
@@ -198,6 +211,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-006 (Debug output safety)
 
 **Tests:**
+
 - `should log stderr data with [MCP stderr] prefix` — `memtrace-adapter.test.mjs:677`
   - **Given:** An McpClient with active child process
   - **When:** Child process emits data to stderr ("some diagnostics error\n", "more info\n")
@@ -215,6 +229,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-003 (Regression, Score: 12)
 
 **Tests:**
+
 - `McpClient public API signatures remain unchanged` — `memtrace-adapter.test.mjs:730`
   - **Given:** A new McpClient instance
   - **When:** All public methods are inspected
@@ -237,6 +252,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Risk Link:** R-006 (Debug output safety)
 
 **Tests:**
+
 - `should emit [McpClient] lines when MEMTRACE_DEBUG=1` — `memtrace-adapter.test.mjs:701`
   - **Given:** MEMTRACE_DEBUG=1 environment variable set
   - **When:** debugLog() is called with "[McpClient] spawn start" and "[McpClient] spawn ok"
@@ -328,11 +344,11 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage by Test Level
 
-| Test Level | Tests             | Criteria Covered     | Coverage %       |
-| ---------- | ----------------- | -------------------- | ---------------- |
-| Unit       | 21 (new)          | AC#1, AC#2, AC#3, AC#4, AC#5, AC#6, AC#7, AC#8 | 100% |
-| Integration | 39 (existing)     | AC#7 (regression baseline), AC#1 (indirect) | 100% by proxy |
-| **Total**  | **60**            | **8**                | **100%** |
+| Test Level  | Tests         | Criteria Covered                               | Coverage %    |
+| ----------- | ------------- | ---------------------------------------------- | ------------- |
+| Unit        | 21 (new)      | AC#1, AC#2, AC#3, AC#4, AC#5, AC#6, AC#7, AC#8 | 100%          |
+| Integration | 39 (existing) | AC#7 (regression baseline), AC#1 (indirect)    | 100% by proxy |
+| **Total**   | **60**        | **8**                                          | **100%**      |
 
 ---
 
@@ -340,13 +356,14 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### Structural Coverage Summary
 
-| Category          | Total  | Covered | Uncovered | Coverage % | Status       |
-| ----------------- | ------ | ------- | --------- | ---------- | ------------ |
-| Exported Symbols  | 4      | 4       | 0         | 100%       | ✅ PASS      |
-| Internal Symbols  | 17     | 17      | 0         | 100%       | ✅ PASS      |
-| **All Symbols**   | **21** | **21**  | **0**     | **100%**   | **✅ PASS**  |
+| Category         | Total  | Covered | Uncovered | Coverage % | Status      |
+| ---------------- | ------ | ------- | --------- | ---------- | ----------- |
+| Exported Symbols | 4      | 4       | 0         | 100%       | ✅ PASS     |
+| Internal Symbols | 17     | 17      | 0         | 100%       | ✅ PASS     |
+| **All Symbols**  | **21** | **21**  | **0**     | **100%**   | **✅ PASS** |
 
 **Legend:**
+
 - ✅ PASS — All exported symbols have test coverage
 - ⚠️ WARN — Some exported symbols lack coverage
 - ❌ FAIL — Critical exported symbols have no test coverage
@@ -472,16 +489,20 @@ None.
 #### Non-Functional Requirements (NFRs)
 
 **Security**: NOT_ASSESSED ℹ️
+
 - No security-specific tests; this is a unit-level infrastructure refactor
 
 **Performance**: PASS ✅
+
 - All unit tests complete in <100ms; integration tests in <7s
 
 **Reliability**: PASS ✅
+
 - All timeout, shutdown, kill paths verified for cleanup and idempotence
 - Zero resource leaks verified via listener count assertions
 
 **Maintainability**: PASS ✅
+
 - Test review score: 93/100 (Grade A)
 - Clean, well-organized test structure
 
@@ -492,6 +513,7 @@ None.
 **Burn-in Results**: Not available (not configured for this project)
 
 **Flaky Tests Detected**: 0 ✅
+
 - All 60 tests deterministic on single run; mock-based unit tests have zero external dependencies
 
 **Stability Score**: 100%
@@ -502,13 +524,13 @@ None.
 
 #### P0 Criteria (Must ALL Pass)
 
-| Criterion             | Threshold | Actual                    | Status   |
-| --------------------- | --------- | ------------------------- | -------- |
-| P0 Coverage           | 100%      | 100%                      | ✅ PASS  |
-| P0 Test Pass Rate     | 100%      | 100%                      | ✅ PASS  |
-| Security Issues       | 0         | 0                         | ✅ PASS  |
-| Critical NFR Failures | 0         | 0                         | ✅ PASS  |
-| Flaky Tests           | 0         | 0                         | ✅ PASS  |
+| Criterion             | Threshold | Actual | Status  |
+| --------------------- | --------- | ------ | ------- |
+| P0 Coverage           | 100%      | 100%   | ✅ PASS |
+| P0 Test Pass Rate     | 100%      | 100%   | ✅ PASS |
+| Security Issues       | 0         | 0      | ✅ PASS |
+| Critical NFR Failures | 0         | 0      | ✅ PASS |
+| Flaky Tests           | 0         | 0      | ✅ PASS |
 
 **P0 Evaluation**: ✅ ALL PASS
 
@@ -516,12 +538,12 @@ None.
 
 #### P1 Criteria (Required for PASS, May Accept for CONCERNS)
 
-| Criterion              | Threshold                 | Actual               | Status   |
-| ---------------------- | ------------------------- | -------------------- | -------- |
-| P1 Coverage            | ≥90%                      | 100%                 | ✅ PASS  |
-| P1 Test Pass Rate      | ≥95%                      | 100%                 | ✅ PASS  |
-| Overall Test Pass Rate | ≥95%                      | 100%                 | ✅ PASS  |
-| Overall Coverage       | ≥90%                      | 100%                 | ✅ PASS  |
+| Criterion              | Threshold | Actual | Status  |
+| ---------------------- | --------- | ------ | ------- |
+| P1 Coverage            | ≥90%      | 100%   | ✅ PASS |
+| P1 Test Pass Rate      | ≥95%      | 100%   | ✅ PASS |
+| Overall Test Pass Rate | ≥95%      | 100%   | ✅ PASS |
+| Overall Coverage       | ≥90%      | 100%   | ✅ PASS |
 
 **P1 Evaluation**: ✅ ALL PASS
 
@@ -529,10 +551,10 @@ None.
 
 #### P2/P3 Criteria (Informational, Don't Block)
 
-| Criterion         | Actual          | Notes                                                        |
-| ----------------- | --------------- | ------------------------------------------------------------ |
-| P2 Test Pass Rate | N/A             | No P2 tests defined                                          |
-| P3 Test Pass Rate | N/A             | No P3 tests defined                                          |
+| Criterion         | Actual | Notes               |
+| ----------------- | ------ | ------------------- |
+| P2 Test Pass Rate | N/A    | No P2 tests defined |
+| P3 Test Pass Rate | N/A    | No P3 tests defined |
 
 ---
 
@@ -575,8 +597,8 @@ Story I.1 is ready for code review and merge.
 ```yaml
 traceability_and_gate:
   traceability:
-    story_id: "i-1-mcpclient-refactor"
-    date: "2026-05-29"
+    story_id: 'i-1-mcpclient-refactor'
+    date: '2026-05-29'
     coverage:
       overall: 100%
       p0: 100%
@@ -592,7 +614,7 @@ traceability_and_gate:
       blocker_issues: 0
       warning_issues: 0
     structural_coverage:
-      status: "available"
+      status: 'available'
       statistics:
         total_symbols: 21
         covered_symbols: 21
@@ -603,13 +625,13 @@ traceability_and_gate:
         high: 0
         medium: 0
     recommendations:
-      - "Proceed to code review (CR phase)"
-      - "Add test IDs for CI traceability (P3 - optional)"
+      - 'Proceed to code review (CR phase)'
+      - 'Add test IDs for CI traceability (P3 - optional)'
 
   gate_decision:
-    decision: "PASS"
-    gate_type: "story"
-    decision_mode: "deterministic"
+    decision: 'PASS'
+    gate_type: 'story'
+    decision_mode: 'deterministic'
     criteria:
       p0_coverage: 100%
       p0_pass_rate: 100%
@@ -628,9 +650,9 @@ traceability_and_gate:
       min_overall_pass_rate: 95
       min_coverage: 90
     evidence:
-      test_results: "node --test _bmad/scripts/memtrace/memtrace-adapter.test.mjs"
-      traceability: "_bmad-output/test-artifacts/traceability/trace-i-1-mcpclient-refactor.md"
-    next_steps: "Proceed to code review (CR phase per QA workflow)"
+      test_results: 'node --test _bmad/scripts/memtrace/memtrace-adapter.test.mjs'
+      traceability: '_bmad-output/test-artifacts/traceability/trace-i-1-mcpclient-refactor.md'
+    next_steps: 'Proceed to code review (CR phase per QA workflow)'
 ```
 
 ---

@@ -107,9 +107,10 @@ so that I can mathematically identify missing test coverage.
 
 This story installs the Test Architect Agent (`bmad-tea`, Murat) and its `bmad-testarch-trace` workflow into the project, then integrates Memtrace structural graph queries to add a **structural symbol-to-test coverage dimension** to the existing requirements-based traceability workflow.
 
-**Before this story:** The Test Architect's coverage traceability workflow maps only *requirements* (acceptance criteria, user journeys, API endpoints) to tests. It has zero awareness of the actual codebase structure. The `bmad-tea` persona and `bmad-testarch-trace` workflow do not exist in the project.
+**Before this story:** The Test Architect's coverage traceability workflow maps only _requirements_ (acceptance criteria, user journeys, API endpoints) to tests. It has zero awareness of the actual codebase structure. The `bmad-tea` persona and `bmad-testarch-trace` workflow do not exist in the project.
 
 **After this story:** The Test Architect has Memtrace-powered structural intelligence:
+
 - The trace workflow queries the Memtrace graph to discover all exported functional symbols in a target module
 - It cross-references those symbols against the discovered test files to identify which symbols have coverage and which don't
 - Uncovered exported symbols are flagged as HIGH severity gaps — these are functional code with zero test coverage
@@ -142,11 +143,13 @@ This implements **FR14** (Test Architect Agent can cross-reference test files ag
 ### Skill Architecture
 
 **bmad-tea (Murat, the dispatcher):**
+
 - **Role:** Persona/dispatch layer. Murat doesn't execute test workflows directly — he dispatches to `bmad-testarch-trace`, `bmad-testarch-framework`, `bmad-testarch-atdd`, etc.
 - **Current state:** Exists in outer `.agents/skills/`, NOT in inner project. Has no Memtrace awareness.
 - **Change:** Copy to inner project. Add one persistent fact acknowledging Memtrace structural coverage capability.
 
 **bmad-testarch-trace (Coverage Traceability):**
+
 - **Role:** Primary coverage gap analysis workflow. Murat dispatches here when user wants coverage traceability.
 - **Architecture:** Tri-modal (Create/Validate/Edit) with 5 create-mode steps:
   - Step 1: Resolve coverage oracle (requirements → spec → synthetic)
@@ -165,7 +168,7 @@ This implements **FR14** (Test Architect Agent can cross-reference test files ag
 ### Injection Point Rationale
 
 1. **Why inject symbol discovery in Step 2 (not Step 1)?**
-   Step 1 resolves the coverage *oracle* (requirements, specs, synthetic journeys). Step 2 discovers *tests*. The structural symbol discovery is a parallel test-discovery path — finding what's in the codebase TO test. Keeping it in Step 2 maintains the "gather inputs" phase cohesion.
+   Step 1 resolves the coverage _oracle_ (requirements, specs, synthetic journeys). Step 2 discovers _tests_. The structural symbol discovery is a parallel test-discovery path — finding what's in the codebase TO test. Keeping it in Step 2 maintains the "gather inputs" phase cohesion.
 
 2. **Why inject symbol-to-test mapping in Step 3 (not Step 4)?**
    Step 3 builds the traceability matrix. Structural symbol-to-test mapping is a coverage dimension just like requirement-to-test mapping. It belongs in the mapping step, feeding into Step 4's gap analysis. Putting it in Step 4 would bypass the matrix-building phase.
@@ -188,6 +191,7 @@ All files are in `D:\Repos\bmad-memtrace\bmad-memtrace\.agents\skills\`.
 **Source:** `D:\Repos\bmad-memtrace\.agents\skills\bmad-tea\`
 **Target:** `D:\Repos\bmad-memtrace\bmad-memtrace\.agents\skills\bmad-tea\`
 **Files to copy:**
+
 - `SKILL.md` (80 lines — persona definition, activation, dispatch)
 - `customize.toml` (104 lines — agent config, menu, persistent_facts)
 - `resources/tea-index.csv` (knowledge fragment index)
@@ -198,6 +202,7 @@ All files are in `D:\Repos\bmad-memtrace\bmad-memtrace\.agents\skills\`.
 **Source:** `D:\Repos\bmad-memtrace\.agents\skills\bmad-testarch-trace\`
 **Target:** `D:\Repos\bmad-memtrace\bmad-memtrace\.agents\skills\bmad-testarch-trace\`
 **Files to copy:**
+
 - `SKILL.md` (87 lines — workflow definition, activation, mode dispatch)
 - `customize.toml` (40 lines — workflow config)
 - `workflow.yaml` (80 lines — workflow configuration)
@@ -220,6 +225,7 @@ All files are in `D:\Repos\bmad-memtrace\bmad-memtrace\.agents\skills\`.
 #### Task 2: `bmad-tea/customize.toml` (UPDATE)
 
 **Current state (104 lines):**
+
 - Agent definition (Murat, Master Test Architect)
 - Menu: TMT → bmad-teach-me-testing, TF → bmad-testarch-framework, etc. (9 menu items)
 - `persistent_facts = ["file:{project-root}/**/project-context.md"]`
@@ -236,6 +242,7 @@ persistent_facts = [
 ```
 
 **What must be preserved:**
+
 - All existing fields: name, title, icon, role, identity, communication_style, principles
 - ALL menu entries (TMT, TF, AT, TA, TD, TR, NR, CI, RV) — these dispatch to other testarch skills
 - activation_steps_prepend and activation_steps_append (both empty)
@@ -246,6 +253,7 @@ persistent_facts = [
 #### Task 3: `bmad-testarch-trace/steps-c/step-02-discover-tests.md` (UPDATE)
 
 **Current state (132 lines):**
+
 - Mandatory execution rules, execution protocols
 - Section 1: Discover Tests (search for test IDs, feature matches, patterns)
 - Section 2: Categorize by Level (E2E/API/Component/Unit)
@@ -256,7 +264,7 @@ persistent_facts = [
 **What this story changes:**
 Insert a new subsection "3.5: Discover Structural Symbols (Memtrace)" between sections 3 (Build Coverage Heuristics Inventory) and 4 (Save Progress):
 
-```
+````
 ### 3.5: Discover Structural Symbols (Memtrace)
 
 If the project repository is indexed by Memtrace, query the graph to discover exported
@@ -319,9 +327,10 @@ const structural_symbol_inventory = {
   ],
   diagnostic: null // set to "Partial — some queries failed" if partial
 };
-```
+````
 
 **Graceful Degradation:**
+
 - If `list_indexed_repositories` returns empty or the project repo is NOT indexed:
   set `structural_symbol_inventory = { status: "unavailable", symbols: [], diagnostic: "Memtrace not indexed" }`
 - If an individual `find_symbol` query times out or fails:
@@ -329,9 +338,11 @@ const structural_symbol_inventory = {
 - NEVER block the step on Memtrace availability — structural discovery is supplemental
 
 **If Unavailable:**
+
 - Set `structural_symbol_inventory = { status: "unavailable", symbols: [], diagnostic: "Memtrace not available" }`
 - Continue to section 4 (Save Progress)
 - The remaining steps will skip structural analysis gracefully
+
 ```
 
 **What must be preserved:**
@@ -354,6 +365,7 @@ const structural_symbol_inventory = {
 Insert a new subsection "1.5: Map Structural Symbols to Tests (Memtrace)" between sections 1 (Build Matrix) and 2 (Validate Coverage Logic):
 
 ```
+
 ### 1.5: Map Structural Symbols to Tests (Memtrace)
 
 If `structural_symbol_inventory` is available (status = "available" or "partial"),
@@ -374,13 +386,13 @@ For each symbol in `structural_symbol_inventory.symbols`:
 
 2. **Determine coverage status per symbol:**
 
-   | Condition | Coverage Status |
-   |-----------|----------------|
-   | Symbol found in test file(s) with assertions/exercises | `FULL` |
-   | Symbol referenced in test file(s) but only imported/mocked | `PARTIAL` |
-   | Symbol not found in any test file | `NONE` |
-   | Symbol only in unit test, missing E2E/integration | `UNIT-ONLY` |
-   | Symbol only in E2E test, missing unit test | `INTEGRATION-ONLY` |
+   | Condition                                                  | Coverage Status    |
+   | ---------------------------------------------------------- | ------------------ |
+   | Symbol found in test file(s) with assertions/exercises     | `FULL`             |
+   | Symbol referenced in test file(s) but only imported/mocked | `PARTIAL`          |
+   | Symbol not found in any test file                          | `NONE`             |
+   | Symbol only in unit test, missing E2E/integration          | `UNIT-ONLY`        |
+   | Symbol only in E2E test, missing unit test                 | `INTEGRATION-ONLY` |
 
 3. **Assign priority based on symbol characteristics:**
 
@@ -417,14 +429,17 @@ const structural_coverage_matrix = structural_symbol_inventory.symbols.map(symbo
 ```
 
 **Integration with requirements matrix:**
+
 - The `structural_coverage_matrix` is a SEPARATE array from the requirements-based `traceabilityMatrix`
 - Both feed into Step 4 independently
 - Do NOT merge structural symbols into the requirements-based matrix — they are different dimensions
 
 **Graceful Degradation:**
+
 - If `structural_symbol_inventory.status` is `"partial"`: apply cross-reference only to symbols that were successfully discovered, note which were missed
 - If test file search for a symbol fails: mark that symbol's coverage as `"unknown"` with a diagnostic note
 - NEVER block or halt on structural mapping failures
+
 ```
 
 **What must be preserved:**
@@ -455,6 +470,7 @@ const structural_coverage_matrix = structural_symbol_inventory.symbols.map(symbo
 **A) Insert new subsection "2.5: Structural Coverage Gap Analysis (Memtrace)"** between section 2 (Coverage Heuristics Checks) and section 3 (Generate Recommendations):
 
 ```
+
 ### 2.5: Structural Coverage Gap Analysis (Memtrace)
 
 If `structural_coverage_matrix` is available (not empty/null), analyze structural coverage
@@ -466,19 +482,21 @@ gaps — symbols in the codebase that lack corresponding test coverage.
 **Classify structural gaps:**
 
 ```javascript
-const structuralUncovered = structural_coverage_matrix.filter(s => s.coverage === 'NONE');
-const structuralPartial = structural_coverage_matrix.filter(s => s.coverage === 'PARTIAL');
-const structuralUnitOnly = structural_coverage_matrix.filter(s => s.coverage === 'UNIT-ONLY');
+const structuralUncovered = structural_coverage_matrix.filter((s) => s.coverage === 'NONE');
+const structuralPartial = structural_coverage_matrix.filter((s) => s.coverage === 'PARTIAL');
+const structuralUnitOnly = structural_coverage_matrix.filter((s) => s.coverage === 'UNIT-ONLY');
 
 // Exported symbols with NO coverage are HIGH severity gaps
-const structuralHighGaps = structuralUncovered.filter(s => s.exported);
+const structuralHighGaps = structuralUncovered.filter((s) => s.exported);
 // Non-exported symbols with NO coverage are MEDIUM severity gaps
-const structuralMediumGaps = structuralUncovered.filter(s => !s.exported);
+const structuralMediumGaps = structuralUncovered.filter((s) => !s.exported);
 // Partial coverage is MEDIUM severity
 const structuralPartialGaps = structuralPartial;
 
 // Export status takes priority over complexity for gap severity
-const structuralCriticalGaps = structuralUncovered.filter(s => s.exported && s.risk_level === 'critical');
+const structuralCriticalGaps = structuralUncovered.filter(
+  (s) => s.exported && s.risk_level === 'critical'
+);
 ```
 
 **Merge structural gaps into existing gap arrays:**
@@ -489,28 +507,34 @@ const structuralCriticalGaps = structuralUncovered.filter(s => s.exported && s.r
 // Structural medium gaps (internal symbols, no tests) → merged into mediumGaps
 // Do NOT mutate the original arrays — create new merged arrays
 
-const allHighGaps = [...highGaps, ...structuralHighGaps.map(s => ({
-  id: s.id,
-  priority: 'P1',
-  description: s.description,
-  coverage: 'NONE',
-  reason: 'Exported structural symbol has zero test coverage'
-}))];
+const allHighGaps = [
+  ...highGaps,
+  ...structuralHighGaps.map((s) => ({
+    id: s.id,
+    priority: 'P1',
+    description: s.description,
+    coverage: 'NONE',
+    reason: 'Exported structural symbol has zero test coverage',
+  })),
+];
 
-const allMediumGaps = [...mediumGaps, ...structuralMediumGaps.map(s => ({
-  id: s.id,
-  priority: 'P2',
-  description: s.description,
-  coverage: 'NONE',
-  reason: 'Internal structural symbol has zero test coverage'
-}))];
+const allMediumGaps = [
+  ...mediumGaps,
+  ...structuralMediumGaps.map((s) => ({
+    id: s.id,
+    priority: 'P2',
+    description: s.description,
+    coverage: 'NONE',
+    reason: 'Internal structural symbol has zero test coverage',
+  })),
+];
 ```
 
 **Calculate structural coverage statistics:**
 
 ```javascript
 const structuralTotal = structural_coverage_matrix.length;
-const structuralCovered = structural_coverage_matrix.filter(s => s.coverage === 'FULL').length;
+const structuralCovered = structural_coverage_matrix.filter((s) => s.coverage === 'FULL').length;
 const structuralCoveragePct = safePct(structuralCovered, structuralTotal);
 
 const structuralCoverageStatistics = {
@@ -520,23 +544,25 @@ const structuralCoverageStatistics = {
   partially_covered: structuralPartial.length,
   coverage_percentage: structuralCoveragePct,
   exported: {
-    total: structural_coverage_matrix.filter(s => s.exported).length,
-    covered: structural_coverage_matrix.filter(s => s.exported && s.coverage === 'FULL').length,
-    uncovered: structuralHighGaps.length
+    total: structural_coverage_matrix.filter((s) => s.exported).length,
+    covered: structural_coverage_matrix.filter((s) => s.exported && s.coverage === 'FULL').length,
+    uncovered: structuralHighGaps.length,
   },
   priority_breakdown: {
-    P0: structural_coverage_matrix.filter(s => s.priority === 'P0').length,
-    P1: structural_coverage_matrix.filter(s => s.priority === 'P1').length,
-    P2: structural_coverage_matrix.filter(s => s.priority === 'P2').length,
-    P3: structural_coverage_matrix.filter(s => s.priority === 'P3').length
-  }
+    P0: structural_coverage_matrix.filter((s) => s.priority === 'P0').length,
+    P1: structural_coverage_matrix.filter((s) => s.priority === 'P1').length,
+    P2: structural_coverage_matrix.filter((s) => s.priority === 'P2').length,
+    P3: structural_coverage_matrix.filter((s) => s.priority === 'P3').length,
+  },
 };
 ```
 
 **Graceful Degradation:**
+
 - If `structural_coverage_matrix` is empty/null: skip this entire subsection, set `structuralCoverageStatistics` to null
 - If `structural_symbol_inventory.status` is `"partial"`: apply gap analysis only to successfully discovered symbols, note the partial status in diagnostics
-```
+
+````
 
 **B) Add structural recommendations to section 3 (Generate Recommendations):**
 
@@ -567,7 +593,7 @@ if (structural_coverage_matrix && structural_coverage_matrix.length > 0) {
     });
   }
 }
-```
+````
 
 **C) Add structural coverage to section 5 (Complete Coverage Matrix):**
 
@@ -599,6 +625,7 @@ Add to the summary display:
 ```
 
 **What must be preserved:**
+
 - ALL existing sections 0-8 with their code blocks, logic, and sequence — unchanged
 - Orchestration mode resolution (unchanged)
 - Existing gap analysis logic (section 1) — structural gaps MERGE INTO existing arrays, don't replace them
@@ -702,20 +729,21 @@ Insert a new section AFTER "Coverage by Test Level" and BEFORE "Traceability Rec
 **Also update the Integrated YAML Snippet** to include structural coverage:
 
 ```yaml
-  structural_coverage:  # Only when Memtrace was available
-    status: "{available | partial | unavailable}"
-    statistics:
-      total_symbols: {SYM_TOTAL}
-      covered_symbols: {SYM_COVERED}
-      coverage_percentage: {SYM_PCT}
-      exported_uncovered: {EXP_UNCOVERED}
-    gaps:
-      critical: {CRITICAL_STRUCTURAL_COUNT}
-      high: {HIGH_STRUCTURAL_COUNT}
-      medium: {MEDIUM_STRUCTURAL_COUNT}
+structural_coverage: # Only when Memtrace was available
+  status: '{available | partial | unavailable}'
+  statistics:
+    total_symbols: { SYM_TOTAL }
+    covered_symbols: { SYM_COVERED }
+    coverage_percentage: { SYM_PCT }
+    exported_uncovered: { EXP_UNCOVERED }
+  gaps:
+    critical: { CRITICAL_STRUCTURAL_COUNT }
+    high: { HIGH_STRUCTURAL_COUNT }
+    medium: { MEDIUM_STRUCTURAL_COUNT }
 ```
 
 **What must be preserved:**
+
 - ALL existing template sections from PHASE 1 to PHASE 2 to Sign-Off — unchanged
 - The structural coverage section is INSERTED as a new section within Phase 1, not as a replacement
 - Template frontmatter additions are appends only
@@ -725,6 +753,7 @@ Insert a new section AFTER "Coverage by Test Level" and BEFORE "Traceability Rec
 #### Task 7: `bmad-testarch-trace/customize.toml` (UPDATE)
 
 **Current state (40 lines):**
+
 - `persistent_facts = ["file:{project-root}/**/project-context.md"]`
 - Empty activation steps
 
@@ -739,6 +768,7 @@ persistent_facts = [
 ```
 
 **What must be preserved:**
+
 - All existing fields: activation_steps_prepend, activation_steps_append (both empty)
 - on_complete (empty)
 - The existing `file:{project-root}/**/project-context.md` persistent fact entry
@@ -802,6 +832,7 @@ persistent_facts = [
 ### Git Intelligence
 
 Recent commits show consistent patterns:
+
 - `feat(story-6.2): implement code reviewer deep audit with independent get_impact and find_dead_code queries`
 - `feat(story-6.1): implement architect and readiness validator structural context`
 - `chore: alphabetize npm scripts and fix test file formatting`
@@ -813,21 +844,21 @@ Recent commits show consistent patterns:
 
 **Files installed (2 directories, all files):**
 
-| # | File/Directory | Source | Destination | Action |
-|---|---------------|--------|-------------|--------|
-| 1 | `bmad-tea/` (entire directory) | `D:\Repos\bmad-memtrace\.agents\skills\bmad-tea\` | `.agents\skills\bmad-tea\` | NEW (copy) |
-| 2 | `bmad-testarch-trace/` (entire directory) | `D:\Repos\bmad-memtrace\.agents\skills\bmad-testarch-trace\` | `.agents\skills\bmad-testarch-trace\` | NEW (copy) |
+| #   | File/Directory                            | Source                                                       | Destination                           | Action     |
+| --- | ----------------------------------------- | ------------------------------------------------------------ | ------------------------------------- | ---------- |
+| 1   | `bmad-tea/` (entire directory)            | `D:\Repos\bmad-memtrace\.agents\skills\bmad-tea\`            | `.agents\skills\bmad-tea\`            | NEW (copy) |
+| 2   | `bmad-testarch-trace/` (entire directory) | `D:\Repos\bmad-memtrace\.agents\skills\bmad-testarch-trace\` | `.agents\skills\bmad-testarch-trace\` | NEW (copy) |
 
 **Files modified (5 files):**
 
-| # | File | Action | Description |
-|---|------|--------|-------------|
-| 3 | `.agents/skills/bmad-tea/customize.toml` | UPDATE | Add Memtrace structural coverage persistent fact |
-| 4 | `.agents/skills/bmad-testarch-trace/customize.toml` | UPDATE | Add Memtrace structural coverage persistent fact |
-| 5 | `.agents/skills/bmad-testarch-trace/steps-c/step-02-discover-tests.md` | UPDATE | Add subsection 3.5: Discover Structural Symbols (Memtrace) |
-| 6 | `.agents/skills/bmad-testarch-trace/steps-c/step-03-map-criteria.md` | UPDATE | Add subsection 1.5: Map Structural Symbols to Tests (Memtrace) |
-| 7 | `.agents/skills/bmad-testarch-trace/steps-c/step-04-analyze-gaps.md` | UPDATE | Add subsection 2.5: Structural Coverage Gap Analysis + structural recs + structural stats |
-| 8 | `.agents/skills/bmad-testarch-trace/trace-template.md` | UPDATE | Add Structural Coverage Analysis section + YAML snippet update |
+| #   | File                                                                   | Action | Description                                                                               |
+| --- | ---------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------- |
+| 3   | `.agents/skills/bmad-tea/customize.toml`                               | UPDATE | Add Memtrace structural coverage persistent fact                                          |
+| 4   | `.agents/skills/bmad-testarch-trace/customize.toml`                    | UPDATE | Add Memtrace structural coverage persistent fact                                          |
+| 5   | `.agents/skills/bmad-testarch-trace/steps-c/step-02-discover-tests.md` | UPDATE | Add subsection 3.5: Discover Structural Symbols (Memtrace)                                |
+| 6   | `.agents/skills/bmad-testarch-trace/steps-c/step-03-map-criteria.md`   | UPDATE | Add subsection 1.5: Map Structural Symbols to Tests (Memtrace)                            |
+| 7   | `.agents/skills/bmad-testarch-trace/steps-c/step-04-analyze-gaps.md`   | UPDATE | Add subsection 2.5: Structural Coverage Gap Analysis + structural recs + structural stats |
+| 8   | `.agents/skills/bmad-testarch-trace/trace-template.md`                 | UPDATE | Add Structural Coverage Analysis section + YAML snippet update                            |
 
 **No new files created.**
 **No scripts modified** — `memtrace-adapter.mjs`, `qa-memtrace.mjs`, `validate-dead-code.mjs`, `package.json`, and all other files remain untouched.
@@ -844,6 +875,7 @@ This story modifies only markdown instruction files, toml config files, and mark
 #### Structural Verification (Manual)
 
 **Skill installation verification:**
+
 - [ ] `bmad-tea/SKILL.md` exists in inner project with same content as outer original
 - [ ] `bmad-tea/customize.toml` exists with complete menu (all 9 entries)
 - [ ] `bmad-tea/resources/` contains `tea-index.csv` and `knowledge/` subdirectory
@@ -854,12 +886,14 @@ This story modifies only markdown instruction files, toml config files, and mark
 - [ ] `bmad-testarch-trace/trace-template.md`, `workflow.yaml`, `checklist.md`, `instructions.md` exist
 
 **bmad-tea verification:**
+
 - [ ] `customize.toml`: `persistent_facts` array has 2 entries (project-context.md + Memtrace fact)
 - [ ] `customize.toml`: All 9 menu entries (TMT, TF, AT, TA, TD, TR, NR, CI, RV) unchanged
 - [ ] `customize.toml`: Role, identity, communication_style, principles unchanged
 - [ ] `SKILL.md`: Unchanged from outer original
 
 **bmad-testarch-trace step-02 verification:**
+
 - [ ] New subsection "3.5: Discover Structural Symbols (Memtrace)" present between sections 3 and 4
 - [ ] Graceful degradation language present (advisory, skip if unavailable, partial state)
 - [ ] `list_indexed_repositories` availability check required before queries
@@ -870,6 +904,7 @@ This story modifies only markdown instruction files, toml config files, and mark
 - [ ] Existing sections 1-4 (Discover, Categorize, Heuristics, Save) preserved unchanged
 
 **bmad-testarch-trace step-03 verification:**
+
 - [ ] New subsection "1.5: Map Structural Symbols to Tests (Memtrace)" present between sections 1 and 2
 - [ ] Cross-reference process documented (search test files for symbol names)
 - [ ] Coverage status determination table present (FULL/PARTIAL/NONE/UNIT-ONLY/INTEGRATION-ONLY)
@@ -880,6 +915,7 @@ This story modifies only markdown instruction files, toml config files, and mark
 - [ ] Existing sections 1-3 (Build Matrix, Validate, Save) preserved unchanged
 
 **bmad-testarch-trace step-04 verification:**
+
 - [ ] New subsection "2.5: Structural Coverage Gap Analysis (Memtrace)" present between sections 2 and 3
 - [ ] Structural gap classification (exported=HIGH, internal=MEDIUM, critical risk=P0)
 - [ ] Merging logic documented (structural gaps MERGE INTO existing arrays)
@@ -892,6 +928,7 @@ This story modifies only markdown instruction files, toml config files, and mark
 - [ ] Deduplicated test inventory logic unchanged
 
 **trace-template.md verification:**
+
 - [ ] "Structural Coverage Analysis" section present between "Coverage by Test Level" and "Traceability Recommendations"
 - [ ] Structural Coverage Summary table present
 - [ ] Detailed Symbol-Test Mapping section present
@@ -901,6 +938,7 @@ This story modifies only markdown instruction files, toml config files, and mark
 - [ ] ALL existing template sections preserved unchanged
 
 **Cross-file consistency:**
+
 - [ ] `structural_symbol_inventory` variable name consistent across all 3 step files
 - [ ] `structural_coverage_matrix` variable name consistent across steps 03 and 04
 - [ ] Graceful degradation pattern consistent (unavailable → skip, partial → apply to available data)
@@ -973,29 +1011,29 @@ opencode-go/deepseek-v4-flash
 
 ### File List
 
-| File | Action | Description |
-|------|--------|-------------|
-| `.agents/skills/bmad-tea/` (entire directory) | NEW (copy) | Murat Test Architect persona with full knowledge resources |
-| `.agents/skills/bmad-testarch-trace/` (entire directory) | NEW (copy) | Coverage traceability workflow with 5 create-mode steps + edit/validate modes |
-| `.agents/skills/bmad-tea/customize.toml` | UPDATE | Added Memtrace structural coverage persistent fact |
-| `.agents/skills/bmad-testarch-trace/customize.toml` | UPDATE | Added Memtrace structural coverage persistent fact |
-| `.agents/skills/bmad-testarch-trace/steps-c/step-02-discover-tests.md` | UPDATE | Added subsection 3.5: Discover Structural Symbols (Memtrace) |
-| `.agents/skills/bmad-testarch-trace/steps-c/step-03-map-criteria.md` | UPDATE | Added subsection 1.5: Map Structural Symbols to Tests (Memtrace) |
-| `.agents/skills/bmad-testarch-trace/steps-c/step-04-analyze-gaps.md` | UPDATE | Added subsection 2.5: Structural Coverage Gap Analysis + structural recs + stats + matrix + summary |
-| `.agents/skills/bmad-testarch-trace/trace-template.md` | UPDATE | Added Structural Coverage Analysis section + YAML snippet update |
-| `.agents/skills/bmad-testarch-trace/steps-c/step-02-discover-tests.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/bmad-testarch-trace/steps-c/step-03-map-criteria.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/bmad-testarch-trace/steps-c/step-04-analyze-gaps.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/bmad-code-review/steps/step-01-gather-context.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/bmad-code-review/steps/step-02-review.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/gds-code-review/steps/step-01-gather-context.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/gds-code-review/steps/step-02-review.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/bmad-quick-dev/step-oneshot.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `.agents/skills/bmad-quick-dev/step-03-implement.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `src/bmm-skills/3-solutioning/bmad-create-architecture/steps/step-02-context.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `src/bmm-skills/3-solutioning/bmad-create-architecture/steps/step-07-validation.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `src/bmm-skills/3-solutioning/bmad-check-implementation-readiness/steps/step-02-prd-analysis.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
-| `src/bmm-skills/3-solutioning/bmad-check-implementation-readiness/steps/step-06-final-assessment.md` | UPDATE | Added `## 🧠 Memtrace Context (Self-Contained)` block |
+| File                                                                                                 | Action     | Description                                                                                         |
+| ---------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
+| `.agents/skills/bmad-tea/` (entire directory)                                                        | NEW (copy) | Murat Test Architect persona with full knowledge resources                                          |
+| `.agents/skills/bmad-testarch-trace/` (entire directory)                                             | NEW (copy) | Coverage traceability workflow with 5 create-mode steps + edit/validate modes                       |
+| `.agents/skills/bmad-tea/customize.toml`                                                             | UPDATE     | Added Memtrace structural coverage persistent fact                                                  |
+| `.agents/skills/bmad-testarch-trace/customize.toml`                                                  | UPDATE     | Added Memtrace structural coverage persistent fact                                                  |
+| `.agents/skills/bmad-testarch-trace/steps-c/step-02-discover-tests.md`                               | UPDATE     | Added subsection 3.5: Discover Structural Symbols (Memtrace)                                        |
+| `.agents/skills/bmad-testarch-trace/steps-c/step-03-map-criteria.md`                                 | UPDATE     | Added subsection 1.5: Map Structural Symbols to Tests (Memtrace)                                    |
+| `.agents/skills/bmad-testarch-trace/steps-c/step-04-analyze-gaps.md`                                 | UPDATE     | Added subsection 2.5: Structural Coverage Gap Analysis + structural recs + stats + matrix + summary |
+| `.agents/skills/bmad-testarch-trace/trace-template.md`                                               | UPDATE     | Added Structural Coverage Analysis section + YAML snippet update                                    |
+| `.agents/skills/bmad-testarch-trace/steps-c/step-02-discover-tests.md`                               | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/bmad-testarch-trace/steps-c/step-03-map-criteria.md`                                 | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/bmad-testarch-trace/steps-c/step-04-analyze-gaps.md`                                 | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/bmad-code-review/steps/step-01-gather-context.md`                                    | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/bmad-code-review/steps/step-02-review.md`                                            | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/gds-code-review/steps/step-01-gather-context.md`                                     | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/gds-code-review/steps/step-02-review.md`                                             | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/bmad-quick-dev/step-oneshot.md`                                                      | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `.agents/skills/bmad-quick-dev/step-03-implement.md`                                                 | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `src/bmm-skills/3-solutioning/bmad-create-architecture/steps/step-02-context.md`                     | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `src/bmm-skills/3-solutioning/bmad-create-architecture/steps/step-07-validation.md`                  | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `src/bmm-skills/3-solutioning/bmad-check-implementation-readiness/steps/step-02-prd-analysis.md`     | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
+| `src/bmm-skills/3-solutioning/bmad-check-implementation-readiness/steps/step-06-final-assessment.md` | UPDATE     | Added `## 🧠 Memtrace Context (Self-Contained)` block                                               |
 
 ### Change Log
 

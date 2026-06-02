@@ -59,6 +59,7 @@ so that the adapter layer is robust under edge-case conditions.
 **Root cause:** `McpClient.spawn()` at `memtrace-adapter.mjs:166-241` (see lines 220–235).
 
 When `spawn()` sets up the child process, it registers:
+
 ```js
 // Lines 232-235 — Listeners attached
 this.child.on('error', onError);
@@ -68,6 +69,7 @@ this.child.stderr.on('data', stderrListener);
 ```
 
 But the `cleanup()` closure at line 220 only removes `error` and `exit` listeners:
+
 ```js
 const cleanup = () => {
   if (this.child) {
@@ -81,13 +83,18 @@ const cleanup = () => {
 **Impact:** If `onError` fires (ENOENT, spawn failure) or `onExit` fires (crash), the stdout/stderr data listeners remain attached to a dead process. The `McpClient` instance holds references via `this.child` and the bound listener functions, preventing garbage collection. In long-running processes that spawn/teardown many McpClient instances (like CI), this accumulates.
 
 **Fix:** Add to the `cleanup()` closure:
+
 ```js
 const cleanup = () => {
   if (this.child) {
     this.child.removeListener('error', onError);
     this.child.removeListener('exit', onExit);
-    try { this.child.stdout.removeListener('data', this._onStdoutData); } catch (e) {}
-    try { this.child.stderr.removeListener('data', this._onStderrData); } catch (e) {}
+    try {
+      this.child.stdout.removeListener('data', this._onStdoutData);
+    } catch (e) {}
+    try {
+      this.child.stderr.removeListener('data', this._onStderrData);
+    } catch (e) {}
   }
 };
 ```
@@ -102,26 +109,26 @@ Note: `shutdown()` (line 332-333) and `kill()` (line 369-370) already clean up s
 
 **`memtrace-adapter.mjs` — lines to fix:**
 
-| Line | Context | Current Code | Risk |
-|------|---------|-------------|------|
-| 150 | JSON parse catch | `${err.message}` | If JSON.parse throws a non-Error (rare but defensive) |
-| 188 | Spawn try/catch | `err.message` | Caught from `spawn()` which always throws Error — **low risk** |
-| 203 | `onError` cb | `err.message` | Node.js `ChildProcess 'error'` event — always Error — **low risk** |
-| 278 | `handshake` catch | `err.message` | Caught from `sendRequest` rejection — always Error — **low risk** |
-| 609 | `runFreshnessCheck` catch | `err.message` | Outer catch can receive anything (kill may throw, etc.) — **HIGH risk** |
-| 649 | Serialize catch | `serializeErr.message` | `JSON.stringify` — always Error — **low risk** |
-| 661 | `runSingleQuery` catch | `err.message` | Outer catch — can catch `undefined` from `client.kill()` — **HIGH risk** |
-| 700 | `runBatchQuery` catch | `err.message` | Same as above — **HIGH risk** |
-| 757 | Freshness diag catch | `diagErr.message` | Outer catch — **HIGH risk** |
+| Line | Context                   | Current Code           | Risk                                                                     |
+| ---- | ------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| 150  | JSON parse catch          | `${err.message}`       | If JSON.parse throws a non-Error (rare but defensive)                    |
+| 188  | Spawn try/catch           | `err.message`          | Caught from `spawn()` which always throws Error — **low risk**           |
+| 203  | `onError` cb              | `err.message`          | Node.js `ChildProcess 'error'` event — always Error — **low risk**       |
+| 278  | `handshake` catch         | `err.message`          | Caught from `sendRequest` rejection — always Error — **low risk**        |
+| 609  | `runFreshnessCheck` catch | `err.message`          | Outer catch can receive anything (kill may throw, etc.) — **HIGH risk**  |
+| 649  | Serialize catch           | `serializeErr.message` | `JSON.stringify` — always Error — **low risk**                           |
+| 661  | `runSingleQuery` catch    | `err.message`          | Outer catch — can catch `undefined` from `client.kill()` — **HIGH risk** |
+| 700  | `runBatchQuery` catch     | `err.message`          | Same as above — **HIGH risk**                                            |
+| 757  | Freshness diag catch      | `diagErr.message`      | Outer catch — **HIGH risk**                                              |
 
 **Override fix:** Replace all with `err?.message ?? String(err)`. Even for low-risk cases, the code review standard mandates defensive access.
 
 **`qa-memtrace.mjs` — lines to fix:**
 
-| Line | Context | Current Code |
-|------|---------|-------------|
-| 175 | Promise race catch | `err.message === 'TIMEOUT'` |
-| 178 | Default error catch | `err.message` |
+| Line | Context             | Current Code                |
+| ---- | ------------------- | --------------------------- |
+| 175  | Promise race catch  | `err.message === 'TIMEOUT'` |
+| 178  | Default error catch | `err.message`               |
 
 Replace both with `err?.message` for safe comparison.
 
@@ -131,15 +138,15 @@ Replace both with `err?.message` for safe comparison.
 
 ```js
 // Direct field access — these MUST match adapter output exactly
-blastData.affected_symbols      // array
-blastData.total_count           // number
-sym.file                        // string
-sym.name                        // string
-sym.depth                       // number
-coverageData.modules            // array
-mod.module                      // string
-mod.coverage                    // string
-mod.symbols_covered             // array
+blastData.affected_symbols; // array
+blastData.total_count; // number
+sym.file; // string
+sym.name; // string
+sym.depth; // number
+coverageData.modules; // array
+mod.module; // string
+mod.coverage; // string
+mod.symbols_covered; // array
 ```
 
 If the adapter changes any of these field names, the QA gate silently breaks (wrong comparison, `undefined` values).
@@ -147,6 +154,7 @@ If the adapter changes any of these field names, the QA gate silently breaks (wr
 **Fix approach — Normalizer layer:**
 
 Add a `normalizer.mjs` (or static functions in `qa-memtrace.mjs`) that:
+
 1. Defines a canonical internal interface (`NormalizedBlastData`, `NormalizedCoverageData`)
 2. Has a single `normalizeBlastData(raw)` function mapping adapter output → internal shape
 3. Has a single `normalizeCoverageData(raw)` function mapping adapter output → internal shape
@@ -162,7 +170,7 @@ function normalizeBlastData(raw) {
 
 function normalizeCoverageData(raw) {
   return {
-    modules: (raw?.modules ?? raw?.coverage?.modules ?? []).map(m => ({
+    modules: (raw?.modules ?? raw?.coverage?.modules ?? []).map((m) => ({
       path: m?.module ?? m?.file ?? m?.path ?? '',
       coverage: m?.coverage ?? m?.status ?? 'None',
       symbolsCovered: m?.symbols_covered ?? m?.covered_symbols ?? m?.covered ?? [],
@@ -187,23 +195,28 @@ Then `compute()` uses `data.symbols[i].file` (from normalized shape) instead of 
 ### What Previous Stories Established
 
 **From 5-5 (Empty Query Plan Bypass):**
+
 - `err?.message ?? String(err)` is the mandatory safe-error-access idiom established in Story 5.5 code review patches.
 - Test patterns: clean mock setup/teardown, spy isolation, verifying code path guards.
 - All existing adapter tests (769 lines) and QA tests (189 lines) must continue passing.
 
 **From 5-4 (Force Tier CLI):**
+
 - Structured JSON output on STDOUT, user-facing messages on STDERR.
 - Timeout token pattern (`TIMEOUT_TOKEN`) for upstream detection.
 - `McpClient` API stability is critical — public method signatures must not change.
 
 **From 5-3 (Init + Auto-Detection):**
+
 - `memtrace-mock.mjs` provides controllable mock MCP server (via env: `MEMTRACE_MOCK_PATH`, `MEMTRACE_MOCK_DEADLINE_MS`, `MEMTRACE_MOCK_FAIL`, `MEMTRACE_MOCK_BAD_JSON`).
 - Integration tests for adapter use `execFile` to spawn adapter as a child process.
 
 **From 5-2 (Memtrace Backend Real):**
+
 - Runtime tool discovery, credential isolation patterns.
 
 **From i-2 (Hermetic MCP Mocking):**
+
 - `memtrace-mock.mjs` zero-dependency mock server, fixture data, deterministic test approach.
 
 ### What Must NOT Break

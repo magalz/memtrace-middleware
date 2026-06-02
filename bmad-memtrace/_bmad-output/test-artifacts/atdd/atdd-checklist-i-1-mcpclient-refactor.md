@@ -1,5 +1,6 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy']
+stepsCompleted:
+  ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy']
 lastStep: 'step-03-test-strategy'
 lastSaved: '2026-05-29T11:07:00.000Z'
 workflowType: 'testarch-atdd'
@@ -66,60 +67,60 @@ Refactor the McpClient class in memtrace-adapter.mjs to handle out-of-order MCP 
 
 #### AC#1: Out-of-order response handling
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 1 | **out-of-order responses are correctly dispatched by id** — mock stdin/stdout, send 3 responses as id=2, id=1, id=3 | RED — `Map<id, {resolve,reject}>` registry not yet implemented; per-request listener still single-stream | 
-| 2 | **notification messages (no id, method: "notifications/...") are silently consumed** — send `{"method":"notifications/updated"}` and verify no promise is resolved/rejected | RED — notification filtering not implemented in stream listener |
-| 3 | **response for cancelled/deleted request is silently ignored** — send response for an id not in the active registry | RED — no guard for unknown id in dispatch |
+| #   | Test                                                                                                                                                                        | Status                                                                                                   | Failure Reason |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------- |
+| 1   | **out-of-order responses are correctly dispatched by id** — mock stdin/stdout, send 3 responses as id=2, id=1, id=3                                                         | RED — `Map<id, {resolve,reject}>` registry not yet implemented; per-request listener still single-stream |
+| 2   | **notification messages (no id, method: "notifications/...") are silently consumed** — send `{"method":"notifications/updated"}` and verify no promise is resolved/rejected | RED — notification filtering not implemented in stream listener                                          |
+| 3   | **response for cancelled/deleted request is silently ignored** — send response for an id not in the active registry                                                         | RED — no guard for unknown id in dispatch                                                                |
 
 #### AC#2: Timeout cancellation
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 4 | **withTimeout rejects with TimeoutError containing phase field** — call with `phase: "query"`, let it fire | RED — `phase` parameter not added to `withTimeout()` |
-| 5 | **timeout in sendRequest removes request from active registry** — verify map size after timeout | RED — timeout cleanup not implemented in `sendRequest` |
-| 6 | **timeout in spawn cleans up child error/exit listeners** — verify no listener leak after spawn timeout | RED — spawn timeout cleanup not implemented |
+| #   | Test                                                                                                       | Status                                                 | Failure Reason |
+| --- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------- |
+| 4   | **withTimeout rejects with TimeoutError containing phase field** — call with `phase: "query"`, let it fire | RED — `phase` parameter not added to `withTimeout()`   |
+| 5   | **timeout in sendRequest removes request from active registry** — verify map size after timeout            | RED — timeout cleanup not implemented in `sendRequest` |
+| 6   | **timeout in spawn cleans up child error/exit listeners** — verify no listener leak after spawn timeout    | RED — spawn timeout cleanup not implemented            |
 
 #### AC#3: Shutdown leak fixes
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 7 | **shutdown() removes stdout and stderr listeners after completion** — verify listener count | RED — listener removal in shutdown not implemented |
-| 8 | **shutdown() on already-dead child resolves immediately** — call shutdown after child exit event | RED — idempotent shutdown not implemented |
-| 9 | **shutdown() on never-spawned client is no-op** — call shutdown without calling spawn first | RED — no guard for null child |
+| #   | Test                                                                                             | Status                                             | Failure Reason |
+| --- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------- | -------------- |
+| 7   | **shutdown() removes stdout and stderr listeners after completion** — verify listener count      | RED — listener removal in shutdown not implemented |
+| 8   | **shutdown() on already-dead child resolves immediately** — call shutdown after child exit event | RED — idempotent shutdown not implemented          |
+| 9   | **shutdown() on never-spawned client is no-op** — call shutdown without calling spawn first      | RED — no guard for null child                      |
 
 #### AC#4: kill() resource cleanup
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 10 | **kill() clears all pending timers and rejects promises** — verify promises reject with "McpClient killed" | RED — timer clearing and promise rejection not implemented |
-| 11 | **kill() called twice is idempotent** — no crash on second call | RED — idempotent kill not implemented |
+| #   | Test                                                                                                       | Status                                                     | Failure Reason |
+| --- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | -------------- |
+| 10  | **kill() clears all pending timers and rejects promises** — verify promises reject with "McpClient killed" | RED — timer clearing and promise rejection not implemented |
+| 11  | **kill() called twice is idempotent** — no crash on second call                                            | RED — idempotent kill not implemented                      |
 
 #### AC#5: JSON parse hardening
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 12 | **malformed JSON line is skipped, valid JSON after it still resolves** — inject garbage line then valid response | RED — try/catch around JSON.parse not in stream listener |
-| 13 | **notification messages (method: "notifications/*", no id) are consumed silently** — overlaps with test #2 but at parser level | RED — notification detection not in stream listener |
+| #   | Test                                                                                                                            | Status                                                   | Failure Reason |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------- |
+| 12  | **malformed JSON line is skipped, valid JSON after it still resolves** — inject garbage line then valid response                | RED — try/catch around JSON.parse not in stream listener |
+| 13  | **notification messages (method: "notifications/\*", no id) are consumed silently** — overlaps with test #2 but at parser level | RED — notification detection not in stream listener      |
 
 #### AC#6: Stderr capture
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 14 | **stderr data is logged with [MCP stderr] prefix** — inject stderr chunk, verify console.error called with prefix | RED — stderr listener not attached in spawn() |
+| #   | Test                                                                                                              | Status                                        | Failure Reason |
+| --- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------- |
+| 14  | **stderr data is logged with [MCP stderr] prefix** — inject stderr chunk, verify console.error called with prefix | RED — stderr listener not attached in spawn() |
 
 #### AC#7: Test regression
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 15 | **Verify all existing tests still pass: RUN `node --test`** | RED — internal refactors may break existing behavior if backward compat not maintained |
+| #   | Test                                                        | Status                                                                                 | Failure Reason |
+| --- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------- |
+| 15  | **Verify all existing tests still pass: RUN `node --test`** | RED — internal refactors may break existing behavior if backward compat not maintained |
 
 #### AC#8: Debug instrumentation
 
-| # | Test | Status | Failure Reason |
-|---|------|--------|----------------|
-| 16 | **MEMTRACE_DEBUG=1 emits [McpClient] lines to stderr** — run with env var, verify structured debug output | RED — debug guards and emit not implemented |
-| 17 | **MEMTRACE_DEBUG=0 (or unset) emits no [McpClient] lines** — verify clean stderr | RED — env var guard not implemented |
+| #   | Test                                                                                                      | Status                                      | Failure Reason |
+| --- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------- |
+| 16  | **MEMTRACE_DEBUG=1 emits [McpClient] lines to stderr** — run with env var, verify structured debug output | RED — debug guards and emit not implemented |
+| 17  | **MEMTRACE_DEBUG=0 (or unset) emits no [McpClient] lines** — verify clean stderr                          | RED — env var guard not implemented         |
 
 ---
 
@@ -147,14 +148,14 @@ No external fixtures needed. The existing test file uses `execFile` integration 
 
 ### Child Process Mock
 
-| Property | Type | Purpose |
-|----------|------|---------|
-| `stdin` | `Writable` stub | Track `.end()` and `.destroy()` calls |
-| `stdout` | `Readable` | Push JSON lines to simulate MCP responses |
-| `stderr` | `Readable` | Push data to simulate stderr output |
-| `on(event, handler)` | Function | Capture listener registration, trigger `exit` |
-| `kill(signal)` | Function | Track kill calls |
-| `pid` | number | Return fake PID |
+| Property             | Type            | Purpose                                       |
+| -------------------- | --------------- | --------------------------------------------- |
+| `stdin`              | `Writable` stub | Track `.end()` and `.destroy()` calls         |
+| `stdout`             | `Readable`      | Push JSON lines to simulate MCP responses     |
+| `stderr`             | `Readable`      | Push data to simulate stderr output           |
+| `on(event, handler)` | Function        | Capture listener registration, trigger `exit` |
+| `kill(signal)`       | Function        | Track kill calls                              |
+| `pid`                | number          | Return fake PID                               |
 
 ---
 
@@ -372,25 +373,25 @@ node --experimental-test-coverage --test _bmad/scripts/memtrace/memtrace-adapter
 
 ## AC-to-Test Traceability Matrix
 
-| AC | Test Scenario | Type | Priority |
-|----|--------------|------|----------|
-| AC#1 | Out-of-order dispatch by id | Unit | P0 |
-| AC#1 | Notifications consumed silently | Unit | P0 |
-| AC#1 | Unknown id ignored | Unit | P1 |
-| AC#2 | TimeoutError with phase field | Unit | P0 |
-| AC#2 | Timeout removes from registry | Unit | P0 |
-| AC#2 | Spawn timeout cleans up listeners | Unit | P1 |
-| AC#3 | Shutdown removes stdout/stderr listeners | Unit | P0 |
-| AC#3 | Shutdown on dead child resolves immediately | Unit | P0 |
-| AC#3 | Shutdown on never-spawned client no-op | Unit | P1 |
-| AC#4 | kill() clears timers, rejects promises | Unit | P0 |
-| AC#4 | kill() called twice idempotent | Unit | P1 |
-| AC#5 | Malformed JSON skipped, next valid resolves | Unit | P0 |
-| AC#5 | Notifications consumed at parser level | Unit | P1 |
-| AC#6 | stderr logged with [MCP stderr] prefix | Unit | P1 |
-| AC#7 | Full existing suite passes | Regression | P0 |
-| AC#8 | Debug output emitted with MEMTRACE_DEBUG=1 | Unit | P1 |
-| AC#8 | No debug output without MEMTRACE_DEBUG=1 | Unit | P1 |
+| AC   | Test Scenario                               | Type       | Priority |
+| ---- | ------------------------------------------- | ---------- | -------- |
+| AC#1 | Out-of-order dispatch by id                 | Unit       | P0       |
+| AC#1 | Notifications consumed silently             | Unit       | P0       |
+| AC#1 | Unknown id ignored                          | Unit       | P1       |
+| AC#2 | TimeoutError with phase field               | Unit       | P0       |
+| AC#2 | Timeout removes from registry               | Unit       | P0       |
+| AC#2 | Spawn timeout cleans up listeners           | Unit       | P1       |
+| AC#3 | Shutdown removes stdout/stderr listeners    | Unit       | P0       |
+| AC#3 | Shutdown on dead child resolves immediately | Unit       | P0       |
+| AC#3 | Shutdown on never-spawned client no-op      | Unit       | P1       |
+| AC#4 | kill() clears timers, rejects promises      | Unit       | P0       |
+| AC#4 | kill() called twice idempotent              | Unit       | P1       |
+| AC#5 | Malformed JSON skipped, next valid resolves | Unit       | P0       |
+| AC#5 | Notifications consumed at parser level      | Unit       | P1       |
+| AC#6 | stderr logged with [MCP stderr] prefix      | Unit       | P1       |
+| AC#7 | Full existing suite passes                  | Regression | P0       |
+| AC#8 | Debug output emitted with MEMTRACE_DEBUG=1  | Unit       | P1       |
+| AC#8 | No debug output without MEMTRACE_DEBUG=1    | Unit       | P1       |
 
 ---
 

@@ -202,6 +202,7 @@ None required for this story. Tests run synchronously with mock snapshots and do
 **Used by:** `tests/unit/cli/status.test.ts`
 
 **Success Snapshot:**
+
 ```json
 {
   "tier": "full",
@@ -216,6 +217,7 @@ None required for this story. Tests run synchronously with mock snapshots and do
 ```
 
 **Failure Snapshot:**
+
 ```json
 {
   "tier": "fail_closed",
@@ -371,6 +373,7 @@ pnpm test -- --coverage
 ## Knowledge Base References Applied
 
 This ATDD workflow consulted:
+
 - **Ring Buffer Pattern** — fixed-capacity circular buffer, O(1) push, head/tail pointers
 - **Property-Based Test Design** — overflow, wrap-around, edge cases (capacity 0, 1), concurrent read safety
 - **Given-When-Then** — one assertion per test, deterministic, isolated

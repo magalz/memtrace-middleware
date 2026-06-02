@@ -25,11 +25,13 @@ lastSaved: 2026-05-29T09:59:00Z
 **Scope:** Story-level test design for Epic 3, Story 3.1 — Degradation State Machine
 
 **Risk Summary:**
+
 - Total risks identified: 7
 - High-priority risks (>=6): 2
 - Critical categories: Reliability, Correctness
 
 **Coverage Summary:**
+
 - P0 scenarios: 11 (7.0 hours)
 - P1 scenarios: 11 (5.5 hours)
 - P2/P3 scenarios: 14 (2.5 hours)
@@ -39,12 +41,12 @@ lastSaved: 2026-05-29T09:59:00Z
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-|------|-----------|------------|
-| **Load/performance testing** | Deferred to Epic 4 (Story 4.1 — k6 threshold validation) | Unit tests verify state machine correctness; integration tests verify dispatch behavior |
-| **Multi-instance degradation** | MVP single-instance only; cluster coordination deferred to Growth | Single-instance isolation tested via unit + integration |
-| **User-manual tier override** | `--force-tier` CLI flag deferred to Growth | Automated degradation handles all scenarios |
-| **Network partition detection** | Beyond MCP timeout — deferred to Epic 5 | MCP timeout triggers probe failure → degradation |
+| Item                            | Reasoning                                                         | Mitigation                                                                              |
+| ------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Load/performance testing**    | Deferred to Epic 4 (Story 4.1 — k6 threshold validation)          | Unit tests verify state machine correctness; integration tests verify dispatch behavior |
+| **Multi-instance degradation**  | MVP single-instance only; cluster coordination deferred to Growth | Single-instance isolation tested via unit + integration                                 |
+| **User-manual tier override**   | `--force-tier` CLI flag deferred to Growth                        | Automated degradation handles all scenarios                                             |
+| **Network partition detection** | Beyond MCP timeout — deferred to Epic 5                           | MCP timeout triggers probe failure → degradation                                        |
 
 ---
 
@@ -52,25 +54,25 @@ lastSaved: 2026-05-29T09:59:00Z
 
 ### High-Priority Risks (Score >=6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|----------|
-| R-001 | REL | **Fail-closed not triggered**: Probe failures fail to transition to FailClosed, allowing queries to proceed silently against an unavailable backend | 2 | 4 | 8 | P0 integration test verifies Full → IntentReduced → Passthrough → FailClosed chain; FailClosed dispatch returns structured error | DEV | Sprint 3 |
-| R-002 | CORR | **Hysteresis gap**: Single transient probe failure triggers unnecessary degradation, causing performance regression and user confusion | 2 | 3 | 6 | P0 test: 1 failure does NOT degrade; 3 consecutive failures required; counter reset on success | DEV | Sprint 3 |
+| Risk ID | Category | Description                                                                                                                                         | Probability | Impact | Score | Mitigation                                                                                                                       | Owner | Timeline |
+| ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | -------------------------------------------------------------------------------------------------------------------------------- | ----- | -------- |
+| R-001   | REL      | **Fail-closed not triggered**: Probe failures fail to transition to FailClosed, allowing queries to proceed silently against an unavailable backend | 2           | 4      | 8     | P0 integration test verifies Full → IntentReduced → Passthrough → FailClosed chain; FailClosed dispatch returns structured error | DEV   | Sprint 3 |
+| R-002   | CORR     | **Hysteresis gap**: Single transient probe failure triggers unnecessary degradation, causing performance regression and user confusion              | 2           | 3      | 6     | P0 test: 1 failure does NOT degrade; 3 consecutive failures required; counter reset on success                                   | DEV   | Sprint 3 |
 
 ### Medium-Priority Risks (Score 3-5)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|
-| R-003 | CORR | **Floor enforcement asymmetry broken**: Floor allows upgrades (silent recovery), breaking the degradation contract | 2 | 2 | 4 | P0 test: floor Passthrough prevents upgrade; P1 integration: floor enforced through config | DEV |
-| R-004 | CORR | **Recovery jumps to Full incorrectly**: After partial recovery, machine jumps to Full when it should only recover to floor-restricted tier | 2 | 2 | 4 | P0 test: recovery jump goes straight to Full; P0 floor test: blocks at floor | DEV |
-| R-005 | REL | **Probe timer leaks**: `setInterval` not cleaned up on `stop()` or process exit, causing dangling timers and process hang | 2 | 2 | 4 | P1 test: `stop()` prevents further probe calls; `shutdownDegradation()` called on SIGINT/SIGTERM | DEV |
+| Risk ID | Category | Description                                                                                                                                | Probability | Impact | Score | Mitigation                                                                                       | Owner |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------------ | ----- |
+| R-003   | CORR     | **Floor enforcement asymmetry broken**: Floor allows upgrades (silent recovery), breaking the degradation contract                         | 2           | 2      | 4     | P0 test: floor Passthrough prevents upgrade; P1 integration: floor enforced through config       | DEV   |
+| R-004   | CORR     | **Recovery jumps to Full incorrectly**: After partial recovery, machine jumps to Full when it should only recover to floor-restricted tier | 2           | 2      | 4     | P0 test: recovery jump goes straight to Full; P0 floor test: blocks at floor                     | DEV   |
+| R-005   | REL      | **Probe timer leaks**: `setInterval` not cleaned up on `stop()` or process exit, causing dangling timers and process hang                  | 2           | 2      | 4     | P1 test: `stop()` prevents further probe calls; `shutdownDegradation()` called on SIGINT/SIGTERM | DEV   |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-|---------|----------|-------------|-------------|--------|-------|--------|
-| R-006 | OPS | **Transition reason metadata missing**: Agent response does not include tier/transition info, reducing observability | 1 | 2 | 2 | P0 test: transition reason recorded; P1 integration: response metadata enriched | DEV |
-| R-007 | OPS | **Concurrent probe calls corrupt state**: Race condition in `recordProbeResult()` causes incorrect counters | 1 | 1 | 1 | P2 concurrent safety test; machine uses synchronous private state (single-threaded Node.js) | DEV |
+| Risk ID | Category | Description                                                                                                          | Probability | Impact | Score | Action                                                                                      |
+| ------- | -------- | -------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------- | --- |
+| R-006   | OPS      | **Transition reason metadata missing**: Agent response does not include tier/transition info, reducing observability | 1           | 2      | 2     | P0 test: transition reason recorded; P1 integration: response metadata enriched             | DEV |
+| R-007   | OPS      | **Concurrent probe calls corrupt state**: Race condition in `recordProbeResult()` causes incorrect counters          | 1           | 1      | 1     | P2 concurrent safety test; machine uses synchronous private state (single-threaded Node.js) | DEV |
 
 ### Risk Category Legend
 
@@ -82,12 +84,12 @@ lastSaved: 2026-05-29T09:59:00Z
 
 ## NFR Planning
 
-| NFR Category | Requirement / Threshold | Risk Link | Planned Validation | Evidence Needed |
-|---|---|---|---|---|
-| Reliability | Fail-closed triggers within 3 probe intervals (45s at 15s default) | R-001 | Integration test: probe failures chain Full → FailClosed | Test output showing tier changes |
-| Reliability | Zero dangling timers after shutdown | R-005 | Unit test: `stop()` clears interval; CI verifies no `setInterval` leaks | ProbeTimer test results |
-| Maintainability | All degrade code uses `createLogger('degrade')` — zero `console.log` | R-006 | ESLint rule `no-console`; code review | Lint pass, code review |
-| Reliability | Probe failure treated as probe failure (exceptions map to false, not crash) | R-001 | Unit test: probe throws → treated as failure | Timer test with throw mock |
+| NFR Category    | Requirement / Threshold                                                     | Risk Link | Planned Validation                                                      | Evidence Needed                  |
+| --------------- | --------------------------------------------------------------------------- | --------- | ----------------------------------------------------------------------- | -------------------------------- |
+| Reliability     | Fail-closed triggers within 3 probe intervals (45s at 15s default)          | R-001     | Integration test: probe failures chain Full → FailClosed                | Test output showing tier changes |
+| Reliability     | Zero dangling timers after shutdown                                         | R-005     | Unit test: `stop()` clears interval; CI verifies no `setInterval` leaks | ProbeTimer test results          |
+| Maintainability | All degrade code uses `createLogger('degrade')` — zero `console.log`        | R-006     | ESLint rule `no-console`; code review                                   | Lint pass, code review           |
+| Reliability     | Probe failure treated as probe failure (exceptions map to false, not crash) | R-001     | Unit test: probe throws → treated as failure                            | Timer test with throw mock       |
 
 **Unknown thresholds:** Adaptive degradation thresholds (hardcoded at 3 in MVP); user-manual override (deferred); multi-instance failover (deferred).
 
@@ -119,14 +121,14 @@ lastSaved: 2026-05-29T09:59:00Z
 
 **Criteria**: Blocks core journey + High risk (>=6) + No workaround
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|---|---|---|---|---|---|
-| Hysteresis: 3 failures trigger degrade, 1 failure does not | Unit | R-002 | 3 | DEV | machine.test.ts: single failure, triple failure, counter reset |
-| Full degrade chain: Full → IR → PT → FC | Unit | R-001 | 3 | DEV | machine.test.ts: 3, 6, 9 consecutive failures |
-| Recovery: 3 successes restore Full (jump) | Unit | R-001 | 1 | DEV | machine.test.ts: Passthrough → Full jump |
-| Floor enforcement: blocks upgrades, allows downgrades | Unit | R-003 | 2 | DEV | machine.test.ts: floor Passthrough and IntentReduced |
-| Initial state: Full tier | Unit | R-001 | 1 | DEV | machine.test.ts: default state |
-| Probe timer: start/stop lifecycle | Unit | R-005 | 1 | DEV | probe-timer.test.ts: timer fires on interval |
+| Requirement                                                | Test Level | Risk Link | Test Count | Owner | Notes                                                          |
+| ---------------------------------------------------------- | ---------- | --------- | ---------- | ----- | -------------------------------------------------------------- |
+| Hysteresis: 3 failures trigger degrade, 1 failure does not | Unit       | R-002     | 3          | DEV   | machine.test.ts: single failure, triple failure, counter reset |
+| Full degrade chain: Full → IR → PT → FC                    | Unit       | R-001     | 3          | DEV   | machine.test.ts: 3, 6, 9 consecutive failures                  |
+| Recovery: 3 successes restore Full (jump)                  | Unit       | R-001     | 1          | DEV   | machine.test.ts: Passthrough → Full jump                       |
+| Floor enforcement: blocks upgrades, allows downgrades      | Unit       | R-003     | 2          | DEV   | machine.test.ts: floor Passthrough and IntentReduced           |
+| Initial state: Full tier                                   | Unit       | R-001     | 1          | DEV   | machine.test.ts: default state                                 |
+| Probe timer: start/stop lifecycle                          | Unit       | R-005     | 1          | DEV   | probe-timer.test.ts: timer fires on interval                   |
 
 **Total P0**: 11 tests, 7.0 hours
 
@@ -134,23 +136,23 @@ lastSaved: 2026-05-29T09:59:00Z
 
 **Criteria**: Important features + Medium risk (3-4) + Common workflows
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|---|---|---|---|---|---|
-| Integration: Full → IntentReduced via probe failures | Integration | R-001 | 1 | DEV | degradation.test.ts: real flow through BaseAdapter |
-| Integration: IntentReduced → Passthrough | Integration | R-001 | 1 | DEV | degradation.test.ts: continued degradation |
-| Integration: Passthrough → FailClosed | Integration | R-001 | 1 | DEV | degradation.test.ts: full chain |
-| Integration: Full recovery | Integration | R-001 | 1 | DEV | degradation.test.ts: probe successes restore Full |
-| Integration: FailClosed dispatch returns structured error | Integration | R-001 | 1 | DEV | degradation.test.ts: error shape verification |
-| Integration: IntentReduced runs sequentially | Integration | R-001 | 1 | DEV | degradation.test.ts: no parallelism |
-| Integration: Passthrough skips classification/fusion | Integration | R-003 | 1 | DEV | degradation.test.ts: raw results with passthrough flag |
-| Transition metadata tracking (reason, history) | Unit | R-006 | 2 | DEV | machine.test.ts: getTransitionReason, tierHistory |
-| Interleaved failures/successes | Unit | R-002 | 1 | DEV | machine.test.ts: mix of results |
-| Probe timer: stop prevents further calls | Unit | R-005 | 1 | DEV | probe-timer.test.ts: cleanup |
-| Probe timer: restart changes interval | Unit | R-005 | 1 | DEV | probe-timer.test.ts: hot-reload |
-| Probe timer: throw treated as failure | Unit | R-005 | 1 | DEV | probe-timer.test.ts: error handling |
-| Integration: response metadata enrichment | Integration | R-006 | 1 | DEV | degradation.test.ts: tier + reason in metadata |
-| Integration: error type preserved end-to-end | Integration | R-006 | 1 | DEV | degradation.test.ts: recoverable flag |
-| Integration: floor enforcement | Integration | R-003 | 1 | DEV | degradation.test.ts: config floor blocks upgrade |
+| Requirement                                               | Test Level  | Risk Link | Test Count | Owner | Notes                                                  |
+| --------------------------------------------------------- | ----------- | --------- | ---------- | ----- | ------------------------------------------------------ |
+| Integration: Full → IntentReduced via probe failures      | Integration | R-001     | 1          | DEV   | degradation.test.ts: real flow through BaseAdapter     |
+| Integration: IntentReduced → Passthrough                  | Integration | R-001     | 1          | DEV   | degradation.test.ts: continued degradation             |
+| Integration: Passthrough → FailClosed                     | Integration | R-001     | 1          | DEV   | degradation.test.ts: full chain                        |
+| Integration: Full recovery                                | Integration | R-001     | 1          | DEV   | degradation.test.ts: probe successes restore Full      |
+| Integration: FailClosed dispatch returns structured error | Integration | R-001     | 1          | DEV   | degradation.test.ts: error shape verification          |
+| Integration: IntentReduced runs sequentially              | Integration | R-001     | 1          | DEV   | degradation.test.ts: no parallelism                    |
+| Integration: Passthrough skips classification/fusion      | Integration | R-003     | 1          | DEV   | degradation.test.ts: raw results with passthrough flag |
+| Transition metadata tracking (reason, history)            | Unit        | R-006     | 2          | DEV   | machine.test.ts: getTransitionReason, tierHistory      |
+| Interleaved failures/successes                            | Unit        | R-002     | 1          | DEV   | machine.test.ts: mix of results                        |
+| Probe timer: stop prevents further calls                  | Unit        | R-005     | 1          | DEV   | probe-timer.test.ts: cleanup                           |
+| Probe timer: restart changes interval                     | Unit        | R-005     | 1          | DEV   | probe-timer.test.ts: hot-reload                        |
+| Probe timer: throw treated as failure                     | Unit        | R-005     | 1          | DEV   | probe-timer.test.ts: error handling                    |
+| Integration: response metadata enrichment                 | Integration | R-006     | 1          | DEV   | degradation.test.ts: tier + reason in metadata         |
+| Integration: error type preserved end-to-end              | Integration | R-006     | 1          | DEV   | degradation.test.ts: recoverable flag                  |
+| Integration: floor enforcement                            | Integration | R-003     | 1          | DEV   | degradation.test.ts: config floor blocks upgrade       |
 
 **Total P1**: 11 tests, 5.5 hours
 
@@ -158,12 +160,12 @@ lastSaved: 2026-05-29T09:59:00Z
 
 **Criteria**: Secondary features + Low risk (1-2) + Edge cases
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|---|---|---|---|---|---|
-| reset() returns to Full, clears history | Unit | - | 1 | DEV | machine.test.ts: test isolation |
-| Concurrent safety simulation | Unit | R-007 | 1 | DEV | machine.test.ts: rapid probe calls |
-| Probe timer: isRunning() state | Unit | - | 1 | DEV | probe-timer.test.ts: status query |
-| Integration: single probe failure no tier change | Integration | R-002 | 1 | DEV | degradation.test.ts: hysteresis at integration level |
+| Requirement                                      | Test Level  | Risk Link | Test Count | Owner | Notes                                                |
+| ------------------------------------------------ | ----------- | --------- | ---------- | ----- | ---------------------------------------------------- |
+| reset() returns to Full, clears history          | Unit        | -         | 1          | DEV   | machine.test.ts: test isolation                      |
+| Concurrent safety simulation                     | Unit        | R-007     | 1          | DEV   | machine.test.ts: rapid probe calls                   |
+| Probe timer: isRunning() state                   | Unit        | -         | 1          | DEV   | probe-timer.test.ts: status query                    |
+| Integration: single probe failure no tier change | Integration | R-002     | 1          | DEV   | degradation.test.ts: hysteresis at integration level |
 
 **Total P2**: 4 tests, 2.5 hours
 
@@ -231,23 +233,26 @@ N/A for this story — all scenarios are covered by P0-P2. No exploratory or ben
 
 ### Test Development Effort
 
-| Priority | Count | Hours/Test | Total Hours | Notes |
-|---|---|---|---|---|
-| P0 | 11 | 2.0 | 22.0 | State machine logic, hysteresis, floor — complex correctness |
-| P1 | 11 | 1.0 | 11.0 | Integration wiring, metadata, timer lifecycle |
-| P2 | 4 | 0.5 | 2.0 | Edge cases, concurrency simulation |
-| **Total** | **26** | **-** | **35.0** | **~4 days** |
+| Priority  | Count  | Hours/Test | Total Hours | Notes                                                        |
+| --------- | ------ | ---------- | ----------- | ------------------------------------------------------------ |
+| P0        | 11     | 2.0        | 22.0        | State machine logic, hysteresis, floor — complex correctness |
+| P1        | 11     | 1.0        | 11.0        | Integration wiring, metadata, timer lifecycle                |
+| P2        | 4      | 0.5        | 2.0         | Edge cases, concurrency simulation                           |
+| **Total** | **26** | **-**      | **35.0**    | **~4 days**                                                  |
 
 ### Prerequisites
 
 **Test Data:**
+
 - `createProbeMockBackend()` factory fixture (`tests/fixtures/degradation-mock.ts`) — mock backend with configurable probe success/failure
 
 **Tooling:**
+
 - `vitest` (already configured in project)
 - `vi.useFakeTimers()` / `vi.advanceTimersByTime()` for deterministic probe timing
 
 **Environment:**
+
 - Node.js >= 20 (already configured)
 - pnpm (already configured)
 - No external service dependencies — all tests use in-process mocks
@@ -351,12 +356,12 @@ N/A for this story — all scenarios are covered by P0-P2. No exploratory or ben
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-|---|---|---|
-| **BaseAdapter.dispatch()** | Modified: degradation checks at entry, sequential execution, passthrough mode, metadata enrichment | Existing isolation.test.ts, fusion-pipeline.test.ts must pass |
-| **CLI index.ts** | Modified: `initializeDegradation()` and `shutdownDegradation()` calls | Existing CLI integration tests must pass |
-| **degrade/index.ts** | Replaced placeholder with full module — same exports preserved | Status display (status.ts) must still consume `getFloorOverride()` |
-| **Telemetry/metrics.ts** | No modification — reads tier from machine via existing pattern | Status display tests must still pass |
+| Service/Component          | Impact                                                                                             | Regression Scope                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **BaseAdapter.dispatch()** | Modified: degradation checks at entry, sequential execution, passthrough mode, metadata enrichment | Existing isolation.test.ts, fusion-pipeline.test.ts must pass      |
+| **CLI index.ts**           | Modified: `initializeDegradation()` and `shutdownDegradation()` calls                              | Existing CLI integration tests must pass                           |
+| **degrade/index.ts**       | Replaced placeholder with full module — same exports preserved                                     | Status display (status.ts) must still consume `getFloorOverride()` |
+| **Telemetry/metrics.ts**   | No modification — reads tier from machine via existing pattern                                     | Status display tests must still pass                               |
 
 ---
 

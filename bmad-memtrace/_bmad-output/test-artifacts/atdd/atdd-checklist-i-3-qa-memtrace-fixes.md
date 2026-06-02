@@ -69,12 +69,15 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { fileURLToPath } from 'url';
 
-const SCRIPT_PATH = join(fileURLToPath(new URL('.', import.meta.url)), '../../_bmad/scripts/memtrace/qa-memtrace.mjs');
+const SCRIPT_PATH = join(
+  fileURLToPath(new URL('.', import.meta.url)),
+  '../../_bmad/scripts/memtrace/qa-memtrace.mjs'
+);
 
 // Test 1: readJsonFile with non-existent file throws "File not found"
 // This test directly verifies that the ENOENT path is caught and
 // the clean error message is produced — testing the TOCTOU fix.
-// 
+//
 // NOTE: True TOCTOU race (delete between existsSync and readFile)
 // is untestable deterministically. We verify the error-handling
 // fallback: readFile on a missing file produces "File not found:".
@@ -127,6 +130,7 @@ No new scaffold needed for AC #2 — the existing test at `qa-memtrace.test.mjs:
 ## Data Factories
 
 No new factories needed. The existing `makeBr()` and `makeTc()` helper functions in `qa-memtrace.test.mjs:35-41` are sufficient for all scaffold tests. Enhancements needed:
+
 - `makeBr()` already accepts `symbols` array and sets `total_count: symbols.length` — correct for AC #3
 - For mismatch test: need a variant where `total_count` differs from `symbols.length` (use raw object, not `makeBr`)
 
@@ -142,10 +146,12 @@ No new factories needed. The existing `makeBr()` and `makeTc()` helper functions
 | `runScript(br, tc, threshold?)` | `qa-memtrace.test.mjs:12` | Writes temp files, executes script, returns parsed result |
 
 **New fixture variant needed for TOCTOU test:**
+
 - No `runScript` needed — test directly calls `readJsonFile` with a path that doesn't exist (or delete after existsSync analogue — but since fix removes existsSync, just path to non-existent file)
 - Use temp dir + `unlinkSync` before read to produce ENOENT
 
 **New fixture variant needed for total_count mismatch:**
+
 - Use raw object `{ target: 'test', risk_level: 'Low', affected_symbols: [...], total_count: 99 }` instead of `makeBr()`
 
 ---
@@ -164,18 +170,18 @@ Not applicable — this is a Node.js CLI tool, not a UI component.
 
 ## Existing Test Inventory (10 tests — regression baseline)
 
-| # | Test Name | File:Line | Status | Covers |
-|---|-----------|-----------|--------|--------|
-| 1 | all nodes covered | `qa-memtrace.test.mjs:53` | PASS | Happy path |
-| 2 | some nodes uncovered | `qa-memtrace.test.mjs:62` | PASS | Partial uncovered |
-| 3 | threshold met (50% with threshold 50) | `qa-memtrace.test.mjs:71` | PASS | Threshold boundary |
-| 4 | coverage below threshold (50% with threshold 80) | `qa-memtrace.test.mjs:80` | PASS | Threshold fail |
-| 5 | empty blast radius | `qa-memtrace.test.mjs:88` | PASS | Edge: empty input |
-| 6 | no test coverage at all | `qa-memtrace.test.mjs:97` | PASS | Zero coverage |
-| 7 | partial coverage handling | `qa-memtrace.test.mjs:106` | PASS | Partial: prefix (cov fix) |
-| 8 | threshold 0 flag-only mode | `qa-memtrace.test.mjs:115` | PASS | Threshold boundary |
-| 9 | threshold 100 strict mode | `qa-memtrace.test.mjs:123` | PASS | Threshold boundary |
-| 10 | missing --test-coverage arg | `qa-memtrace.test.mjs:131` | PASS | Argument validation |
+| #   | Test Name                                        | File:Line                  | Status | Covers                    |
+| --- | ------------------------------------------------ | -------------------------- | ------ | ------------------------- |
+| 1   | all nodes covered                                | `qa-memtrace.test.mjs:53`  | PASS   | Happy path                |
+| 2   | some nodes uncovered                             | `qa-memtrace.test.mjs:62`  | PASS   | Partial uncovered         |
+| 3   | threshold met (50% with threshold 50)            | `qa-memtrace.test.mjs:71`  | PASS   | Threshold boundary        |
+| 4   | coverage below threshold (50% with threshold 80) | `qa-memtrace.test.mjs:80`  | PASS   | Threshold fail            |
+| 5   | empty blast radius                               | `qa-memtrace.test.mjs:88`  | PASS   | Edge: empty input         |
+| 6   | no test coverage at all                          | `qa-memtrace.test.mjs:97`  | PASS   | Zero coverage             |
+| 7   | partial coverage handling                        | `qa-memtrace.test.mjs:106` | PASS   | Partial: prefix (cov fix) |
+| 8   | threshold 0 flag-only mode                       | `qa-memtrace.test.mjs:115` | PASS   | Threshold boundary        |
+| 9   | threshold 100 strict mode                        | `qa-memtrace.test.mjs:123` | PASS   | Threshold boundary        |
+| 10  | missing --test-coverage arg                      | `qa-memtrace.test.mjs:131` | PASS   | Argument validation       |
 
 All 10 must continue to pass after fixes (AC #4).
 
@@ -186,6 +192,7 @@ All 10 must continue to pass after fixes (AC #4).
 ### New Test 1 (AC #1, #5): TOCTOU — readJsonFile with missing file
 
 **Given-When-Then:**
+
 ```
 Given readJsonFile() is called
   And the file path does not exist (deleted or never existed)
@@ -195,12 +202,14 @@ Then it throws Error with message starting with "File not found:"
 ```
 
 **Implementation:** Direct call to `readJsonFile` with a temp-file path that is deleted before the call. Two variants:
+
 1. Path never existed (no file written)
 2. Path existed but was `unlinkSync`'d before read (simulates the race window that existsSync guard was supposed to prevent)
 
 **Expected RED-phase failure:** Script crashes with `ENOENT: no such file or directory` system error instead of clean `"File not found: <path>"` message.
 
 **Test code scaffold:**
+
 ```javascript
 test('readJsonFile throws "File not found" for missing file', () => {
   const missingPath = join(tmpdir(), `nonexistent-${Date.now()}.json`);
@@ -214,6 +223,7 @@ test('readJsonFile throws "File not found" for missing file', () => {
 ```
 
 > **Note:** Since `readJsonFile` is not exported from the module, the test will either need to:
+>
 > - (a) Import the module and extract the function, or
 > - (b) Test indirectly via the full script with a non-existent `--blast-radius` path
 >
@@ -225,6 +235,7 @@ test('readJsonFile throws "File not found" for missing file', () => {
 ### New Test 2 (AC #3, #6): total_count mismatch warning
 
 **Given-When-Then:**
+
 ```
 Given blastData has total_count=99
   And affected_symbols has 1 entry
@@ -237,15 +248,23 @@ Then console.error is called with a warning containing "total_count mismatch"
 **Expected RED-phase failure:** Output JSON does not include `total_count_reported` field; no warning emitted; `blast_radius_total` is currently based on `blastSet.size` which already equals `affected_symbols.length`.
 
 **Test code scaffold:**
+
 ```javascript
 test('total_count mismatch logs warning and output includes field', () => {
   const br = {
     target: 'test',
     risk_level: 'Low',
     affected_symbols: [{ name: 'foo', file: 'src/a.ts', depth: 1 }],
-    total_count: 99  // deliberate mismatch
+    total_count: 99, // deliberate mismatch
   };
-  const tc = makeTc([{ module: 'src/a.ts', test_files: ['test/a.test.ts'], symbols_covered: ['foo'], coverage: 'Yes' }]);
+  const tc = makeTc([
+    {
+      module: 'src/a.ts',
+      test_files: ['test/a.test.ts'],
+      symbols_covered: ['foo'],
+      coverage: 'Yes',
+    },
+  ]);
   const result = runScript(br, tc);
   // After fix:
   assert.equal(result.output.total_count_reported, 99);
@@ -259,6 +278,7 @@ test('total_count mismatch logs warning and output includes field', () => {
 ### New Test 3 (AC #6): total_count matches actual — no warning
 
 **Given-When-Then:**
+
 ```
 Given blastData has total_count=1
   And affected_symbols has 1 entry
@@ -277,6 +297,7 @@ Then no console.error warning is emitted
 ### Test: TOCTOU — readJsonFile throws "File not found"
 
 **Tasks to make this test pass:**
+
 - [ ] Replace `existsSync` guard in `readJsonFile()` with try/catch around `readFile` + `JSON.parse`
 - [ ] Match `err.code === 'ENOENT'` to throw `"File not found: ${resolved}"`
 - [ ] Re-throw any non-ENOENT error with original message
@@ -290,6 +311,7 @@ Then no console.error warning is emitted
 ### Test: total_count mismatch warning and output field
 
 **Tasks to make this test pass:**
+
 - [ ] In `compute()`, add cross-validation: compare `blastData.total_count` against `blastSet.size`
 - [ ] If mismatch, `console.error('WARNING: total_count mismatch: reported=${blastData.total_count}, actual=${blastSet.size}')`
 - [ ] Add `total_count_reported: blastData.total_count` to the return object of `compute()`
@@ -302,6 +324,7 @@ Then no console.error warning is emitted
 ### Test: cov variable consistency (regression only)
 
 **Tasks to make this test pass:**
+
 - [ ] Change line 99: `(mod.coverage || '').startsWith('Partial:')` → `cov.startsWith('Partial:')`
 - [ ] Run existing test suite: `node --test _bmad/scripts/memtrace/qa-memtrace.test.mjs`
 - [ ] Verify test #7 (partial coverage handling) passes with identical output values
@@ -334,6 +357,7 @@ node --test _bmad/scripts/memtrace/qa-memtrace.test.mjs _bmad-output/test-artifa
 ### RED Phase (Complete) ✅
 
 **TEA Agent Responsibilities:**
+
 - ✅ Acceptance criteria analyzed and decomposed into 3 testable units
 - ✅ TOCTOU scaffold defined with expected failure mode
 - ✅ total_count mismatch scaffold defined with expected failure mode
@@ -382,11 +406,13 @@ node --test _bmad/scripts/memtrace/qa-memtrace.test.mjs _bmad-output/test-artifa
 ### Initial Scaffold Review / RED Verification
 
 **Expected state before implementation:**
+
 - 10 existing tests: all PASS (baseline)
 - TOCTOU scaffold: FAIL (red — existsSync still present)
 - total_count mismatch scaffold: FAIL (red — no output field)
 
 **Expected after full implementation:**
+
 - 10 existing tests: all PASS (zero regression)
 - TOCTOU scaffold: PASS (green)
 - total_count mismatch scaffold: PASS (green)

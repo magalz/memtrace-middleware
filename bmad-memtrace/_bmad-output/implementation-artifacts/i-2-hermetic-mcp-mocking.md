@@ -1,6 +1,7 @@
 ---
 baseline_commit: e8072d5351f180c2db11abbc413dca07359e9860
 ---
+
 # Story I.2: Hermetic MCP Mocking — Zero-Dependency Test Fixture
 
 Status: done
@@ -129,10 +130,12 @@ so that CI/CD passes deterministically, tests complete in <10s, and developers n
 ### Codebase Context
 
 **Files to modify:**
+
 - `_bmad/scripts/memtrace/memtrace-adapter.mjs` — Add `MEMTRACE_MOCK_PATH` env var support in `McpClient.spawn()`
 - `_bmad/scripts/memtrace/memtrace-adapter.test.mjs` — Convert 39 integration tests to use mock; remove non-deterministic fallback branches
 
 **Files to create:**
+
 - `_bmad/scripts/memtrace/memtrace-mock.mjs` — Mock MCP server (JSON-RPC 2.0 over stdio, zero deps)
 - `_bmad/scripts/memtrace/memtrace-fixtures.mjs` — Controlled test data for all 6 query types
 
@@ -191,50 +194,100 @@ export const fixtures = {
     risk_level: 'Medium',
     affected_symbols: [
       { name: 'caller1', file: 'src/router/classify.ts', line: 42, depth: 1, complexity_score: 5 },
-      { name: 'caller2', file: 'src/interface/base-adapter.ts', line: 128, depth: 1, complexity_score: 3 },
+      {
+        name: 'caller2',
+        file: 'src/interface/base-adapter.ts',
+        line: 128,
+        depth: 1,
+        complexity_score: 3,
+      },
       { name: 'indirect1', file: 'src/cli/status.ts', line: 56, depth: 2, complexity_score: 7 },
       { name: 'critical1', file: 'src/index.ts', line: 12, depth: 1, complexity_score: 15 },
-      { name: 'caller3', file: 'tests/integration/roundtrip.test.ts', line: 33, depth: 1, complexity_score: 2 }
+      {
+        name: 'caller3',
+        file: 'tests/integration/roundtrip.test.ts',
+        line: 33,
+        depth: 1,
+        complexity_score: 2,
+      },
     ],
     total_count: 5,
     elapsed_ms: 234,
-    risk_level: 'Medium'
+    risk_level: 'Medium',
   }),
 
   find_code: (query) => ({
     results: [
-      { name: 'authenticateUser', file_path: 'src/auth/auth.ts', start_line: 45, kind: 'Function', complexity_score: 8 },
-      { name: 'validateSession', file_path: 'src/auth/session.ts', start_line: 12, kind: 'Function', complexity_score: 4 },
-      { name: 'UserToken', file_path: 'src/types/token.ts', start_line: 3, kind: 'Interface', complexity_score: 1 }
-    ]
+      {
+        name: 'authenticateUser',
+        file_path: 'src/auth/auth.ts',
+        start_line: 45,
+        kind: 'Function',
+        complexity_score: 8,
+      },
+      {
+        name: 'validateSession',
+        file_path: 'src/auth/session.ts',
+        start_line: 12,
+        kind: 'Function',
+        complexity_score: 4,
+      },
+      {
+        name: 'UserToken',
+        file_path: 'src/types/token.ts',
+        start_line: 3,
+        kind: 'Interface',
+        complexity_score: 1,
+      },
+    ],
   }),
 
   find_dead_code: (target) => ({
     symbols: [
-      { name: 'deprecatedHelper', file: 'src/utils/old-helpers.ts', complexity_score: 2, risk_level: 'Low' },
-      { name: 'unusedParser', file: 'src/parser/legacy.ts', complexity_score: 8, risk_level: 'Medium' },
-      { name: 'deadExporter', file: 'src/export/stale.ts', complexity_score: 3, risk_level: 'Low' }
+      {
+        name: 'deprecatedHelper',
+        file: 'src/utils/old-helpers.ts',
+        complexity_score: 2,
+        risk_level: 'Low',
+      },
+      {
+        name: 'unusedParser',
+        file: 'src/parser/legacy.ts',
+        complexity_score: 8,
+        risk_level: 'Medium',
+      },
+      { name: 'deadExporter', file: 'src/export/stale.ts', complexity_score: 3, risk_level: 'Low' },
     ],
     total_count: 3,
     query: 'find_dead_code',
     target,
-    elapsed_ms: 156
+    elapsed_ms: 156,
   }),
 
   list_repos: () => ({
     repositories: [
-      { repo_id: 'bmad-memtrace', node_count: 842, last_indexed: new Date().toISOString(), freshness: { age_minutes: 2, is_fresh: true } },
-      { repo_id: 'old-project',     node_count: 120, last_indexed: new Date(Date.now() - 86400000).toISOString(), freshness: { age_minutes: 1440, is_fresh: false } }
+      {
+        repo_id: 'bmad-memtrace',
+        node_count: 842,
+        last_indexed: new Date().toISOString(),
+        freshness: { age_minutes: 2, is_fresh: true },
+      },
+      {
+        repo_id: 'old-project',
+        node_count: 120,
+        last_indexed: new Date(Date.now() - 86400000).toISOString(),
+        freshness: { age_minutes: 1440, is_fresh: false },
+      },
     ],
     query: 'list_repos',
-    elapsed_ms: 89
+    elapsed_ms: 89,
   }),
 
   memtrace_check_freshness: () => ({
     is_fresh: true,
     age_minutes: 2,
-    last_indexed: new Date().toISOString()
-  })
+    last_indexed: new Date().toISOString(),
+  }),
 };
 ```
 

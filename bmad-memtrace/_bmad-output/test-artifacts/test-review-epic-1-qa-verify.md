@@ -57,26 +57,27 @@ The primary gap is non-functional: inconsistent application of BDD naming and pr
 
 ## Story-by-Story Embedded Test Verification
 
-| Story | AC Ref | Required Test | Implemented In | Status | Notes |
-|-------|--------|---------------|----------------|--------|-------|
-| 1.1 | AC 3 | Placeholder test in `tests/unit/` | `smoke.test.ts` | ✅ Exceeded | 5 tests (was 1 placeholder) |
-| 1.1b | AC 6 | Config precedence: CLI > env > file | `loader.test.ts:4` | ✅ | CLI wins test present |
-| 1.1b | AC 7 | File watcher event emission | `watcher.test.ts` | ✅ | 3 watcher tests |
-| 1.2 | AC 8 | Roundtrip: find_code through mock | `roundtrip.test.ts` | ✅ | 9 passthrough tests |
-| 1.2 | AC 9 | Connection rejection as MiddlewareError | `roundtrip.test.ts:58` | ✅ | Verified cause/recoverable |
-| 1.2 | AC 10 | MemtraceBackend trait contract | `trait.test.ts` | ✅ | 5 contract tests |
-| 1.3a | AC 6 | Classification accuracy >=95% | `classify.test.ts` | ✅ Exceeded | 17 tests (was "accuracy test") |
-| 1.3a | AC 7 | Backward compat after new registration | `classify.test.ts` | ✅ | Plugin contract block |
-| 1.3b | AC 5 | find_code → single query | `plan.test.ts` | ✅ | find_code describe block |
-| 1.3b | AC 6 | get_symbol_context → 2+ queries | `plan.test.ts` | ✅ | 3 queries verified |
-| 1.3b | AC 7 | Timeout → degraded stub via Promise.allSettled | `roundtrip.test.ts` | ✅ | slowTools: 210ms delay |
-| 1.4 | AC 8 | Agent Interface traits compile | `traits.test.ts` | ✅ | 4 contract tests |
-| 1.4 | AC 9 | Zod validation rejects malformed | `validate.test.ts` | ✅ Exceeded | 12 tests, [P0]/[P1] markers |
-| 1.4 | AC 10 | BaseAdapter e2e pipeline | `roundtrip.test.ts` | ✅ | 6 orchestration tests |
+| Story | AC Ref | Required Test                                  | Implemented In         | Status      | Notes                          |
+| ----- | ------ | ---------------------------------------------- | ---------------------- | ----------- | ------------------------------ |
+| 1.1   | AC 3   | Placeholder test in `tests/unit/`              | `smoke.test.ts`        | ✅ Exceeded | 5 tests (was 1 placeholder)    |
+| 1.1b  | AC 6   | Config precedence: CLI > env > file            | `loader.test.ts:4`     | ✅          | CLI wins test present          |
+| 1.1b  | AC 7   | File watcher event emission                    | `watcher.test.ts`      | ✅          | 3 watcher tests                |
+| 1.2   | AC 8   | Roundtrip: find_code through mock              | `roundtrip.test.ts`    | ✅          | 9 passthrough tests            |
+| 1.2   | AC 9   | Connection rejection as MiddlewareError        | `roundtrip.test.ts:58` | ✅          | Verified cause/recoverable     |
+| 1.2   | AC 10  | MemtraceBackend trait contract                 | `trait.test.ts`        | ✅          | 5 contract tests               |
+| 1.3a  | AC 6   | Classification accuracy >=95%                  | `classify.test.ts`     | ✅ Exceeded | 17 tests (was "accuracy test") |
+| 1.3a  | AC 7   | Backward compat after new registration         | `classify.test.ts`     | ✅          | Plugin contract block          |
+| 1.3b  | AC 5   | find_code → single query                       | `plan.test.ts`         | ✅          | find_code describe block       |
+| 1.3b  | AC 6   | get_symbol_context → 2+ queries                | `plan.test.ts`         | ✅          | 3 queries verified             |
+| 1.3b  | AC 7   | Timeout → degraded stub via Promise.allSettled | `roundtrip.test.ts`    | ✅          | slowTools: 210ms delay         |
+| 1.4   | AC 8   | Agent Interface traits compile                 | `traits.test.ts`       | ✅          | 4 contract tests               |
+| 1.4   | AC 9   | Zod validation rejects malformed               | `validate.test.ts`     | ✅ Exceeded | 12 tests, [P0]/[P1] markers    |
+| 1.4   | AC 10  | BaseAdapter e2e pipeline                       | `roundtrip.test.ts`    | ✅          | 6 orchestration tests          |
 
 **AC Coverage: 14/14 (100%)** — all story-specified embedded tests implemented and passing.
 
 **Autonomous additions (beyond story requirements):**
+
 - `plan.pact.test.ts` — 14 pact-style contract tests (regression guards for intent cardinality)
 - `tool-catalog.test.ts` — 7 unit tests (CRUD + null-name guard)
 - `discovery.test.ts` — 11 auto-detection tests (zero-config fulfillment)
@@ -87,21 +88,21 @@ The primary gap is non-functional: inconsistent application of BDD naming and pr
 
 ## Quality Criteria Assessment
 
-| Criterion | Status | Violations | Notes |
-|-----------|--------|------------|-------|
-| BDD Format (Given-When-Then) | ❌ FAIL | 114 | Only validate.test.ts uses narrative format; all others use "should" style |
-| Test IDs | ❌ FAIL | 126 | No systematic test ID scheme (e.g. TC-1.1-01) linking to story ACs |
-| Priority Markers (P0/P1/P2/P3) | ⚠️ WARN | 114 | Only validate.test.ts applies P0/P1 markers; 114 tests unclassified |
-| Hard Waits (sleep, waitForTimeout) | ⚠️ WARN | 3 | watcher.test.ts uses 500ms + 2000ms sleep (inherent to chokidar FS events) |
-| Determinism (no conditionals) | ✅ PASS | 0 | All tests are deterministic; no branching assertions |
-| Isolation (cleanup, no shared state) | ✅ PASS | 0 | beforeEach/afterEach cleanup ubiquitous; singleton reset applied |
-| Fixture Patterns | ✅ PASS | 0 | createMockMemtrace, makeMessage, makeToolMessage — reusable factories |
-| Data Factories | ✅ PASS | 0 | classifyAndPlan, makeMessage helpers with parameterized input |
-| Network-First Pattern | N/A | 0 | Not applicable (no browser/network tests beyond mock MCP) |
-| Explicit Assertions | ✅ PASS | 0 | All assertions use expect with specific matchers; no blanket toBeDefined |
-| Test Length (<=300 lines) | ⚠️ WARN | 1 | roundtrip.test.ts: 397 lines; plan.test.ts: 383 lines; classify.test.ts: ~305 lines |
-| Test Duration (<=1.5 min) | N/A | 0 | Not measured in this review; watcher tests likely slowest (2.5s each) |
-| Flakiness Patterns | ✅ PASS | 0 | No Math.random(), no Date.now() in assertions, no shared mutable state |
+| Criterion                            | Status  | Violations | Notes                                                                               |
+| ------------------------------------ | ------- | ---------- | ----------------------------------------------------------------------------------- |
+| BDD Format (Given-When-Then)         | ❌ FAIL | 114        | Only validate.test.ts uses narrative format; all others use "should" style          |
+| Test IDs                             | ❌ FAIL | 126        | No systematic test ID scheme (e.g. TC-1.1-01) linking to story ACs                  |
+| Priority Markers (P0/P1/P2/P3)       | ⚠️ WARN | 114        | Only validate.test.ts applies P0/P1 markers; 114 tests unclassified                 |
+| Hard Waits (sleep, waitForTimeout)   | ⚠️ WARN | 3          | watcher.test.ts uses 500ms + 2000ms sleep (inherent to chokidar FS events)          |
+| Determinism (no conditionals)        | ✅ PASS | 0          | All tests are deterministic; no branching assertions                                |
+| Isolation (cleanup, no shared state) | ✅ PASS | 0          | beforeEach/afterEach cleanup ubiquitous; singleton reset applied                    |
+| Fixture Patterns                     | ✅ PASS | 0          | createMockMemtrace, makeMessage, makeToolMessage — reusable factories               |
+| Data Factories                       | ✅ PASS | 0          | classifyAndPlan, makeMessage helpers with parameterized input                       |
+| Network-First Pattern                | N/A     | 0          | Not applicable (no browser/network tests beyond mock MCP)                           |
+| Explicit Assertions                  | ✅ PASS | 0          | All assertions use expect with specific matchers; no blanket toBeDefined            |
+| Test Length (<=300 lines)            | ⚠️ WARN | 1          | roundtrip.test.ts: 397 lines; plan.test.ts: 383 lines; classify.test.ts: ~305 lines |
+| Test Duration (<=1.5 min)            | N/A     | 0          | Not measured in this review; watcher tests likely slowest (2.5s each)               |
+| Flakiness Patterns                   | ✅ PASS | 0          | No Math.random(), no Date.now() in assertions, no shared mutable state              |
 
 **Total Violations**: 0 Critical, 4 High, 4 Medium, 3 Low
 
@@ -148,6 +149,7 @@ No critical issues detected.
 Only `validate.test.ts` uses [P0]/[P1] markers in test names. The remaining 114 tests across 11 files lack priority classification, making risk-based test selection and failure triage impossible without reading every test body.
 
 **Current Code**:
+
 ```typescript
 // ❌ No priority classification
 it('should classify find_code intent from natural language query', () => { ... });
@@ -155,6 +157,7 @@ it('should handle concurrent queries', async () => { ... });
 ```
 
 **Recommended Improvement**:
+
 ```typescript
 // ✅ Priority markers enable risk-based triage
 it('[P0] classifies find_code intent from natural language query', () => { ... });
@@ -177,11 +180,15 @@ it('[P1] handles concurrent queries via Promise.allSettled', async () => { ... }
 All test names use "should" style (e.g., "should classify find_code intent"). The `validate.test.ts` file demonstrates the preferred format: descriptive assertions (e.g., "should accept a valid tools/call message"). Full BDD Given-When-Then in test body comments would further improve readability for developers new to the codebase.
 
 **Recommended Improvement**:
+
 ```typescript
 // ✅ BDD narrative in test body
 it('[P0] accepts a valid tools/call message', () => {
   // Given: a well-formed MCP tools/call JSON-RPC message
-  const msg = { method: 'tools/call', params: { name: 'memtrace_find_code', arguments: { query: 'x' } } };
+  const msg = {
+    method: 'tools/call',
+    params: { name: 'memtrace_find_code', arguments: { query: 'x' } },
+  };
   // When: the message passes through the adapter boundary validator
   const result = validateToolCall(msg);
   // Then: it is accepted and the fields are preserved
@@ -205,6 +212,7 @@ it('[P0] accepts a valid tools/call message', () => {
 `roundtrip.test.ts` contains 15 tests across 2 disparate concerns: passthrough transport verification and BaseAdapter orchestration. At 397 lines, it exceeds the 300-line guideline. Splitting would improve discovery and reduce the blast radius of test file changes.
 
 **Recommended Improvement**:
+
 ```
 tests/integration/
   transport-roundtrip.test.ts       # 9 passthrough tests
@@ -225,6 +233,7 @@ tests/integration/
 No mechanism exists to trace a test failure to a specific story acceptance criterion. A simple AC reference comment above each test would close this gap.
 
 **Recommended Improvement**:
+
 ```typescript
 // AC 1.3b-5: find_code → single query
 it('[P0] plans a single memtrace_find_code query', () => { ... });
@@ -247,6 +256,7 @@ it('[P0] rejects message missing method field', () => { ... });
 `makeMessage()` and `mockCapabilities` are duplicated across `classify.test.ts`, `plan.test.ts`, and `roundtrip.test.ts`. A shared `tests/helpers/test-utils.ts` would reduce duplication.
 
 **Recommended Improvement**:
+
 ```typescript
 // tests/helpers/test-utils.ts
 export const mockCapabilities: MemtraceCapabilities = { ... };
@@ -268,6 +278,7 @@ export function makeToolMessage(tool: string): Record<string, unknown> { ... }
 Current coverage thresholds at 50% (branches/functions/lines/statements) are set at the bare-minimum enforcement level. With 126 tests covering the full Epic 1 pipeline, raising to 70% would be an appropriate quality bar for the next sprint.
 
 **Recommended Improvement**:
+
 ```typescript
 coverage: {
   provider: 'v8',
@@ -315,22 +326,23 @@ coverage: {
 
 ## Test File Analysis Summary
 
-| # | File | Lines | Tests | Strengths | Weaknesses |
-|---|------|-------|-------|-----------|------------|
-| 1 | `smoke.test.ts` | 86 | 5 | Core infrastructure verified; concise | No priority markers; placeholder name retained |
-| 2 | `discovery.test.ts` | ~200 | 11 | Auto-detection edge cases thorough | No priority markers |
-| 3 | `loader.test.ts` | 168 | 10 | Precedence chain fully tested; credential redaction verified | Mixed CLI+env+file partial overrides not tested |
-| 4 | `watcher.test.ts` | 90 | 3 | FS event-based testing (no polling) | Hard sleep waits; single-field changes only |
-| 5 | `trait.test.ts` | 144 | 10 | Compile-time contract + runtime boundary | "Reject non-conforming" test is compile-only |
-| 6 | `tool-catalog.test.ts` | ~100 | 7 | CRUD + null-name guard; comprehensive | No priority markers |
-| 7 | `classify.test.ts` | 305 | 17 | Plugin contract + backward compat tested | ~305 lines; no priority markers |
-| 8 | `plan.test.ts` | 383 | 18 | Intent cardinality verified per type | classify+plan conflation in helpers; ~383 lines |
-| 9 | `validate.test.ts` | 160 | 12 | Priority markers; exhaustive edge cases | None — gold standard |
-| 10 | `traits.test.ts` | ~70 | 4 | Type-level contract verification | Lightweight; could add runtime violation tests |
-| 11 | `roundtrip.test.ts` | 397 | 15 | E2E pipeline + concurrency + timeout verified | 397 lines; mixed concerns; largest file |
-| 12 | `plan.pact.test.ts` | ~200 | 14 | Structural regression guards; cardinality contracts | No priority markers |
+| #   | File                   | Lines | Tests | Strengths                                                    | Weaknesses                                      |
+| --- | ---------------------- | ----- | ----- | ------------------------------------------------------------ | ----------------------------------------------- |
+| 1   | `smoke.test.ts`        | 86    | 5     | Core infrastructure verified; concise                        | No priority markers; placeholder name retained  |
+| 2   | `discovery.test.ts`    | ~200  | 11    | Auto-detection edge cases thorough                           | No priority markers                             |
+| 3   | `loader.test.ts`       | 168   | 10    | Precedence chain fully tested; credential redaction verified | Mixed CLI+env+file partial overrides not tested |
+| 4   | `watcher.test.ts`      | 90    | 3     | FS event-based testing (no polling)                          | Hard sleep waits; single-field changes only     |
+| 5   | `trait.test.ts`        | 144   | 10    | Compile-time contract + runtime boundary                     | "Reject non-conforming" test is compile-only    |
+| 6   | `tool-catalog.test.ts` | ~100  | 7     | CRUD + null-name guard; comprehensive                        | No priority markers                             |
+| 7   | `classify.test.ts`     | 305   | 17    | Plugin contract + backward compat tested                     | ~305 lines; no priority markers                 |
+| 8   | `plan.test.ts`         | 383   | 18    | Intent cardinality verified per type                         | classify+plan conflation in helpers; ~383 lines |
+| 9   | `validate.test.ts`     | 160   | 12    | Priority markers; exhaustive edge cases                      | None — gold standard                            |
+| 10  | `traits.test.ts`       | ~70   | 4     | Type-level contract verification                             | Lightweight; could add runtime violation tests  |
+| 11  | `roundtrip.test.ts`    | 397   | 15    | E2E pipeline + concurrency + timeout verified                | 397 lines; mixed concerns; largest file         |
+| 12  | `plan.pact.test.ts`    | ~200  | 14    | Structural regression guards; cardinality contracts          | No priority markers                             |
 
 **Aggregate Metrics**:
+
 - Total test files: 12
 - Total test cases: 126
 - Unit / Integration / Contract split: 97 / 15 / 14
@@ -400,6 +412,7 @@ The Epic 1 test suite achieves 100% embedded-test coverage across all 6 stories,
 The suite is ready to serve as the quality foundation for Epic 2 (Fusion, Visibility & Safety). The P1 recommendations (priority markers, BDD naming) are documentation/classification improvements that should be applied before the suite grows further in Epic 2 — the longer they're deferred, the more expensive the retroactive application becomes.
 
 **For Approve with Comments**:
+
 > Test quality is good with 89/100 score. High-priority recommendations (priority markers, BDD naming) should be addressed in the next maintenance window but do not block Epic 2 development. Critical issues resolved, but classification improvements would enhance maintainability and CI triage efficiency.
 
 ---

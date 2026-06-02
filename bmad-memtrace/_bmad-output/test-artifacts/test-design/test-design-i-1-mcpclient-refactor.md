@@ -37,13 +37,13 @@ lastSaved: '2026-05-29T11:07:30.000Z'
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-|------|-----------|------------|
-| **E2E integration tests against live MCP server** | This is a pure unit-level refactor; integration tests already exist in the suite (30+ tests) | Existing integration tests serve as regression safety net (AC#7) |
-| **Performance/load testing** | Story focuses on correctness and resource cleanup, not throughput | NFR validation deferred to Epic 4 CI/CD gate |
-| **Cross-repo contract testing** | McpClient is the sole client and there is no separate MCP server repo under test | Adapter's JSON protocol is validated by unit tests with mocked MCP server |
-| **Browser/UI testing** | Purely backend Node.js module | N/A |
-| **CI/CD pipeline changes** | No pipeline changes in this story | Existing CI run continues to execute `node --test` |
+| Item                                              | Reasoning                                                                                    | Mitigation                                                                |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **E2E integration tests against live MCP server** | This is a pure unit-level refactor; integration tests already exist in the suite (30+ tests) | Existing integration tests serve as regression safety net (AC#7)          |
+| **Performance/load testing**                      | Story focuses on correctness and resource cleanup, not throughput                            | NFR validation deferred to Epic 4 CI/CD gate                              |
+| **Cross-repo contract testing**                   | McpClient is the sole client and there is no separate MCP server repo under test             | Adapter's JSON protocol is validated by unit tests with mocked MCP server |
+| **Browser/UI testing**                            | Purely backend Node.js module                                                                | N/A                                                                       |
+| **CI/CD pipeline changes**                        | No pipeline changes in this story                                                            | Existing CI run continues to execute `node --test`                        |
 
 ---
 
@@ -51,19 +51,19 @@ lastSaved: '2026-05-29T11:07:30.000Z'
 
 ### High-Priority Risks (Score ≥6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|----------|
-| R-001 | TECH | **Resource leak from unremoved listeners** — stdout/stderr listeners not cleaned up on shutdown/kill, causing process hang or EventEmitter leak warning | 4 | 3 | 12 | Dedicated test for listener removal (test #7, #10, #11); listener count assertions; mandatory cleanup in both shutdown() and kill() code paths | DEV | Pre-DS |
-| R-002 | TECH | **Promise mismatch from out-of-order responses** — response for id=2 resolves promise for id=1, causing silent data corruption in caller | 3 | 4 | 12 | Map-based registry with strict id matching; test with 3 out-of-order responses (test #1); guard for unknown id (test #3) | DEV | Pre-DS |
-| R-003 | TECH | **Regression in existing 30+ tests** — internal refactor breaks backward-compatible API surface or changes behavior of existing methods | 3 | 4 | 12 | Run full suite before and after each milestone; all function signatures must remain identical; verify all existing tests pass before shipping (AC#7) | DEV | Continuous |
+| Risk ID | Category | Description                                                                                                                                             | Probability | Impact | Score | Mitigation                                                                                                                                           | Owner | Timeline   |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------- |
+| R-001   | TECH     | **Resource leak from unremoved listeners** — stdout/stderr listeners not cleaned up on shutdown/kill, causing process hang or EventEmitter leak warning | 4           | 3      | 12    | Dedicated test for listener removal (test #7, #10, #11); listener count assertions; mandatory cleanup in both shutdown() and kill() code paths       | DEV   | Pre-DS     |
+| R-002   | TECH     | **Promise mismatch from out-of-order responses** — response for id=2 resolves promise for id=1, causing silent data corruption in caller                | 3           | 4      | 12    | Map-based registry with strict id matching; test with 3 out-of-order responses (test #1); guard for unknown id (test #3)                             | DEV   | Pre-DS     |
+| R-003   | TECH     | **Regression in existing 30+ tests** — internal refactor breaks backward-compatible API surface or changes behavior of existing methods                 | 3           | 4      | 12    | Run full suite before and after each milestone; all function signatures must remain identical; verify all existing tests pass before shipping (AC#7) | DEV   | Continuous |
 
 ### Medium-Priority Risks (Score 3-4)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|
-| R-004 | TECH | **Timeout fires but stale promise remains in registry** — response arrives after timeout and resolves a dangling promise | 3 | 3 | 9 | On timeout: remove id from registry + destroy stdin (test #5); verify map size after timeout | DEV |
-| R-005 | TECH | **Malformed JSON corrupts stream buffer** — partial line at buffer boundary causes subsequent valid responses to be lost | 2 | 3 | 6 | Line-based buffering + try/catch around parse; test with interleaved garbage and valid lines (test #12) | DEV |
-| R-006 | TECH | **Debug output leaks sensitive information** — MEMTRACE_DEBUG=1 output includes credentials, tokens, or MCP server internals | 1 | 4 | 4 | Verify debug output format in test (#16); review debug strings for param values | DEV |
+| Risk ID | Category | Description                                                                                                                  | Probability | Impact | Score | Mitigation                                                                                              | Owner |
+| ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------------------- | ----- |
+| R-004   | TECH     | **Timeout fires but stale promise remains in registry** — response arrives after timeout and resolves a dangling promise     | 3           | 3      | 9     | On timeout: remove id from registry + destroy stdin (test #5); verify map size after timeout            | DEV   |
+| R-005   | TECH     | **Malformed JSON corrupts stream buffer** — partial line at buffer boundary causes subsequent valid responses to be lost     | 2           | 3      | 6     | Line-based buffering + try/catch around parse; test with interleaved garbage and valid lines (test #12) | DEV   |
+| R-006   | TECH     | **Debug output leaks sensitive information** — MEMTRACE_DEBUG=1 output includes credentials, tokens, or MCP server internals | 1           | 4      | 4     | Verify debug output format in test (#16); review debug strings for param values                         | DEV   |
 
 ### Risk Category Legend
 
@@ -78,13 +78,13 @@ lastSaved: '2026-05-29T11:07:30.000Z'
 
 ## NFR Planning
 
-| NFR Category | Requirement / Threshold | Risk Link | Planned Validation | Evidence Needed |
-|-------------|------------------------|-----------|-------------------|-----------------|
-| Reliability | Zero resource leaks after shutdown/kill | R-001 | Unit test: listener count verification after shutdown/kill | Test report showing zero Listener leak warnings |
-| Reliability | No promise mismatches under any delivery order | R-002 | Unit test: out-of-order delivery of 3+ responses | Test passes consistently |
-| Correctness | Malformed input never corrupts subsequent processing | R-005 | Unit test: garbage line between valid responses | Test passes consistently |
-| Security | Debug output contains no credentials | R-006 | Code review + test verifying no param values in debug output | Review sign-off + passing test |
-| Maintainability | Zero regression in existing test suite | R-003 | Full node --test run before and after | All 30+ tests pass |
+| NFR Category    | Requirement / Threshold                              | Risk Link | Planned Validation                                           | Evidence Needed                                 |
+| --------------- | ---------------------------------------------------- | --------- | ------------------------------------------------------------ | ----------------------------------------------- |
+| Reliability     | Zero resource leaks after shutdown/kill              | R-001     | Unit test: listener count verification after shutdown/kill   | Test report showing zero Listener leak warnings |
+| Reliability     | No promise mismatches under any delivery order       | R-002     | Unit test: out-of-order delivery of 3+ responses             | Test passes consistently                        |
+| Correctness     | Malformed input never corrupts subsequent processing | R-005     | Unit test: garbage line between valid responses              | Test passes consistently                        |
+| Security        | Debug output contains no credentials                 | R-006     | Code review + test verifying no param values in debug output | Review sign-off + passing test                  |
+| Maintainability | Zero regression in existing test suite               | R-003     | Full node --test run before and after                        | All 30+ tests pass                              |
 
 **Unknown thresholds:** N/A (story-level correctness, no performance SLAs)
 
@@ -116,18 +116,18 @@ lastSaved: '2026-05-29T11:07:30.000Z'
 
 **Criteria**: Blocks core functionality + High risk (≥6) + Mandatory for safety
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|-------------|-----------|-----------|------------|-------|-------|
-| Out-of-order response dispatch | Unit | R-002 | 1 | DEV | Map-based registry with id matching |
-| Notifications silently consumed | Unit | R-002 | 1 | DEV | No id + method:"notifications/*" |
-| TimeoutError with phase field | Unit | R-001 | 1 | DEV | Tagged errors for diagnostics |
-| Timeout removes from registry | Unit | R-004 | 1 | DEV | No stale promise after timeout |
-| Shutdown removes listeners | Unit | R-001 | 1 | DEV | stdout/stderr listener cleanup |
-| Shutdown on dead child no-op | Unit | R-001 | 1 | DEV | Idempotent shutdown |
-| kill() clears timers, rejects promises | Unit | R-001 | 1 | DEV | Full resource cleanup |
-| Malformed JSON skipped, next valid resolves | Unit | R-005 | 1 | DEV | Parse error hardening |
-| Full existing suite passes | Regression | R-003 | 1 | DEV | Zero regression mandate |
-| Unknown response id ignored | Unit | R-002 | 1 | DEV | Guard for untracked ids |
+| Requirement                                 | Test Level | Risk Link | Test Count | Owner | Notes                               |
+| ------------------------------------------- | ---------- | --------- | ---------- | ----- | ----------------------------------- |
+| Out-of-order response dispatch              | Unit       | R-002     | 1          | DEV   | Map-based registry with id matching |
+| Notifications silently consumed             | Unit       | R-002     | 1          | DEV   | No id + method:"notifications/\*"   |
+| TimeoutError with phase field               | Unit       | R-001     | 1          | DEV   | Tagged errors for diagnostics       |
+| Timeout removes from registry               | Unit       | R-004     | 1          | DEV   | No stale promise after timeout      |
+| Shutdown removes listeners                  | Unit       | R-001     | 1          | DEV   | stdout/stderr listener cleanup      |
+| Shutdown on dead child no-op                | Unit       | R-001     | 1          | DEV   | Idempotent shutdown                 |
+| kill() clears timers, rejects promises      | Unit       | R-001     | 1          | DEV   | Full resource cleanup               |
+| Malformed JSON skipped, next valid resolves | Unit       | R-005     | 1          | DEV   | Parse error hardening               |
+| Full existing suite passes                  | Regression | R-003     | 1          | DEV   | Zero regression mandate             |
+| Unknown response id ignored                 | Unit       | R-002     | 1          | DEV   | Guard for untracked ids             |
 
 **Total P0**: 10 tests, ~8 hours
 
@@ -135,15 +135,15 @@ lastSaved: '2026-05-29T11:07:30.000Z'
 
 **Criteria**: Important robustness + Medium risk (3-4) + Diagnostic support
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|-------------|-----------|-----------|------------|-------|-------|
-| Spawn timeout cleans up error listener | Unit | R-001 | 1 | DEV | Edge case timeout scenario |
-| Shutdown on never-spawned client no-op | Unit | R-001 | 1 | DEV | Graceful no-spawn path |
-| kill() twice idempotent | Unit | R-001 | 1 | DEV | Double-call safety |
-| Notifications consumed at parser level | Unit | R-002 | 1 | DEV | Duplicate safety |
-| stderr logged with [MCP stderr] prefix | Unit | R-006 | 1 | DEV | Operational visibility |
-| Debug output emitted with MEMTRACE_DEBUG=1 | Unit | R-006 | 1 | DEV | Diagnostic support |
-| No debug output without MEMTRACE_DEBUG=1 | Unit | R-006 | 1 | DEV | Clean output by default |
+| Requirement                                | Test Level | Risk Link | Test Count | Owner | Notes                      |
+| ------------------------------------------ | ---------- | --------- | ---------- | ----- | -------------------------- |
+| Spawn timeout cleans up error listener     | Unit       | R-001     | 1          | DEV   | Edge case timeout scenario |
+| Shutdown on never-spawned client no-op     | Unit       | R-001     | 1          | DEV   | Graceful no-spawn path     |
+| kill() twice idempotent                    | Unit       | R-001     | 1          | DEV   | Double-call safety         |
+| Notifications consumed at parser level     | Unit       | R-002     | 1          | DEV   | Duplicate safety           |
+| stderr logged with [MCP stderr] prefix     | Unit       | R-006     | 1          | DEV   | Operational visibility     |
+| Debug output emitted with MEMTRACE_DEBUG=1 | Unit       | R-006     | 1          | DEV   | Diagnostic support         |
+| No debug output without MEMTRACE_DEBUG=1   | Unit       | R-006     | 1          | DEV   | Clean output by default    |
 
 **Total P1**: 7 tests, ~3.5 hours
 
@@ -190,23 +190,26 @@ lastSaved: '2026-05-29T11:07:30.000Z'
 
 ### Test Development Effort
 
-| Priority | Count | Hours/Test | Total Hours | Notes |
-|----------|-------|-----------|-------------|-------|
-| P0 | 10 | 0.8 | 8.0 | Mock setup, registry pattern |
-| P1 | 7 | 0.5 | 3.5 | Simple edge cases |
-| **Total** | **17** | **-** | **11.5** | **~1.5 days** |
+| Priority  | Count  | Hours/Test | Total Hours | Notes                        |
+| --------- | ------ | ---------- | ----------- | ---------------------------- |
+| P0        | 10     | 0.8        | 8.0         | Mock setup, registry pattern |
+| P1        | 7      | 0.5        | 3.5         | Simple edge cases            |
+| **Total** | **17** | **-**      | **11.5**    | **~1.5 days**                |
 
 ### Prerequisites
 
 **Test Data:**
+
 - Mock ChildProcess factory (stdin Writable stub, stdout/stderr Readable, controlled exit event)
 - Controlled Promise/Promise.race helpers (deterministic timeout testing)
 
 **Tooling:**
+
 - Node.js built-in `node:test` and `node:assert/strict` (already configured)
 - No additional tools required
 
 **Environment:**
+
 - Node.js runtime (any recent LTS)
 - No external services required
 
@@ -304,13 +307,13 @@ lastSaved: '2026-05-29T11:07:30.000Z'
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-|-------------------|--------|-----------------|
-| **McpClient (memtrace-adapter.mjs)** | Internal refactor of all 5 methods + withTimeout | All 30+ existing tests must pass (AC#7) |
-| **runFreshnessCheck()** (line 444) | Caller of McpClient; must see no API change | Existing freshness integration tests |
-| **runSingleQuery()** (line 466) | Caller of McpClient; must see no API change | Existing query integration tests |
-| **runBatchQuery()** (line 513) | Caller of McpClient; must see no API change | Existing batch mode integration tests |
-| **main()** (line 593) | User of McpClient diagnostic; must see no API change | CLI argument handling tests |
+| Service/Component                    | Impact                                               | Regression Scope                        |
+| ------------------------------------ | ---------------------------------------------------- | --------------------------------------- |
+| **McpClient (memtrace-adapter.mjs)** | Internal refactor of all 5 methods + withTimeout     | All 30+ existing tests must pass (AC#7) |
+| **runFreshnessCheck()** (line 444)   | Caller of McpClient; must see no API change          | Existing freshness integration tests    |
+| **runSingleQuery()** (line 466)      | Caller of McpClient; must see no API change          | Existing query integration tests        |
+| **runBatchQuery()** (line 513)       | Caller of McpClient; must see no API change          | Existing batch mode integration tests   |
+| **main()** (line 593)                | User of McpClient diagnostic; must see no API change | CLI argument handling tests             |
 
 ---
 

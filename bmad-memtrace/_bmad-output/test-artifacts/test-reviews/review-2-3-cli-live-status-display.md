@@ -45,21 +45,21 @@ The test suite for Story 2.3 is high-quality and production-ready. Ring buffer t
 
 ## Quality Criteria Assessment
 
-| Criterion | Status | Violations | Notes |
-|---|---|---|---|
-| BDD Format (Given-When-Then) | ⚠️ WARN | 33 | Test names are descriptive (`it('[P0] does X')`) but no explicit GWT comments in bodies. Acceptable for unit tests. |
-| Test IDs | ✅ PASS | 0 | All tests have [P0]/[P1]/[P2] markers. No formal ID prefix (e.g. `2.3-UNIT-001`) but story ACs are testable via describe block structure. |
-| Priority Markers (P0/P1/P2/P3) | ✅ PASS | 0 | All 33 tests tagged. P0=8 (critical), P1=15 (high), P2=10 (medium). |
-| Hard Waits (sleep, waitForTimeout) | ✅ PASS | 0 | No waits — all synchronous. |
-| Determinism (no conditionals) | ✅ PASS | 0 | Pure data transformations only. |
-| Isolation (cleanup, no shared state) | ⚠️ WARN | 2 | `startStatusDisplay()` tests create real `setInterval` and register signal handlers. `stop()` cleans up, but test-fail mid-test leaks the interval. |
-| Fixture Patterns | ✅ PASS | 0 | Not applicable — no fixtures needed for these unit tests. |
-| Data Factories | ✅ PASS | 0 | Not applicable — hardcoded mock snapshots used (correct pattern). |
-| Network-First Pattern | ✅ PASS | 0 | Not applicable — no network in telemetry/CLI tests. |
-| Explicit Assertions | ✅ PASS | 0 | Clear `toEqual`, `toContain`, `toBe`, `toThrow`, `isNaN/isFinite` assertions. |
-| Test Length (≤300 lines) | ✅ PASS | 156, 208 | ring-buffer.test.ts (156), status.test.ts (208). Well under limit. |
-| Test Duration (≤1.5 min) | ✅ PASS | ~2s | All synchronous — sub-second execution. |
-| Flakiness Patterns | ✅ PASS | 0 | No race conditions, no async timing, no environment dependencies. |
+| Criterion                            | Status  | Violations | Notes                                                                                                                                               |
+| ------------------------------------ | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BDD Format (Given-When-Then)         | ⚠️ WARN | 33         | Test names are descriptive (`it('[P0] does X')`) but no explicit GWT comments in bodies. Acceptable for unit tests.                                 |
+| Test IDs                             | ✅ PASS | 0          | All tests have [P0]/[P1]/[P2] markers. No formal ID prefix (e.g. `2.3-UNIT-001`) but story ACs are testable via describe block structure.           |
+| Priority Markers (P0/P1/P2/P3)       | ✅ PASS | 0          | All 33 tests tagged. P0=8 (critical), P1=15 (high), P2=10 (medium).                                                                                 |
+| Hard Waits (sleep, waitForTimeout)   | ✅ PASS | 0          | No waits — all synchronous.                                                                                                                         |
+| Determinism (no conditionals)        | ✅ PASS | 0          | Pure data transformations only.                                                                                                                     |
+| Isolation (cleanup, no shared state) | ⚠️ WARN | 2          | `startStatusDisplay()` tests create real `setInterval` and register signal handlers. `stop()` cleans up, but test-fail mid-test leaks the interval. |
+| Fixture Patterns                     | ✅ PASS | 0          | Not applicable — no fixtures needed for these unit tests.                                                                                           |
+| Data Factories                       | ✅ PASS | 0          | Not applicable — hardcoded mock snapshots used (correct pattern).                                                                                   |
+| Network-First Pattern                | ✅ PASS | 0          | Not applicable — no network in telemetry/CLI tests.                                                                                                 |
+| Explicit Assertions                  | ✅ PASS | 0          | Clear `toEqual`, `toContain`, `toBe`, `toThrow`, `isNaN/isFinite` assertions.                                                                       |
+| Test Length (≤300 lines)             | ✅ PASS | 156, 208   | ring-buffer.test.ts (156), status.test.ts (208). Well under limit.                                                                                  |
+| Test Duration (≤1.5 min)             | ✅ PASS | ~2s        | All synchronous — sub-second execution.                                                                                                             |
+| Flakiness Patterns                   | ✅ PASS | 0          | No race conditions, no async timing, no environment dependencies.                                                                                   |
 
 **Total Violations**: 0 Critical, 0 High, 2 Medium, 2 Low
 
@@ -105,12 +105,14 @@ No critical issues detected.
 The `metrics` singleton is the central aggregation point between dispatch execution and the CLI status display. It has no dedicated unit test. `recordDispatch()`, `getSnapshot()`, `computePercentile()`, and `reset()` are only tested indirectly through integration tests.
 
 **Current Code**:
+
 ```
 // metrics.ts -- 80 lines, zero direct tests
 ```
 
 **Recommended Improvement**:
 Create `tests/unit/telemetry/metrics.test.ts` covering:
+
 - `recordDispatch(true/false, intent, confidence, elapsed)` increments correct counters
 - `getSnapshot()` returns `StatusSnapshot` with correct tier, counts, percentiles
 - Confidence percentiles (p50/p95) computed correctly for known values
@@ -119,6 +121,7 @@ Create `tests/unit/telemetry/metrics.test.ts` covering:
 - Concurrent recordDispatch calls produce consistent snapshot
 
 **Benefits**:
+
 - Ensures the aggregation pipeline works end-to-end without needing a full dispatch
 - Catches regressions in percentile computation or state management
 - Provides a fast, isolated test for the metrics contract
@@ -138,10 +141,12 @@ P2 — metrics is tested indirectly via integration tests. Direct unit test impr
 `emitter.ts` (emit function) and `uptime.ts` (getUptimeSeconds) have no dedicated tests. Both are thin wrappers around standard Node.js APIs.
 
 **Recommended Improvement**:
+
 - `tests/unit/telemetry/emitter.test.ts`: spy on `process.stderr.write`, call `emit()`, verify NDJSON output
 - `tests/unit/telemetry/uptime.test.ts`: call `getUptimeSeconds()`, verify returned value is a non-negative integer
 
 **Benefits**:
+
 - Completeness — every module has at least a basic unit test
 - Prevents regressions if these functions are enhanced later
 
@@ -160,12 +165,13 @@ P3 — low risk due to trivial implementations. Address if time permits.
 Tests for `startStatusDisplay()` create real `setInterval` and register real `SIGINT`/`SIGTERM` handlers. While `stop()` cleans up, a test failure before the `stop()` call would leak resources.
 
 **Current Code**:
+
 ```typescript
 it('[P1] startStatusDisplay returns a StatusController', () => {
-    const controller = startStatusDisplay();
-    expect(controller).toBeDefined();
-    // ... assertions ...
-    controller.stop();  // cleanup only runs on test success
+  const controller = startStatusDisplay();
+  expect(controller).toBeDefined();
+  // ... assertions ...
+  controller.stop(); // cleanup only runs on test success
 });
 ```
 
@@ -174,15 +180,19 @@ Wrap in try/finally or use a `beforeEach`/`afterEach` pattern to guarantee clean
 
 ```typescript
 let controller: StatusController | null = null;
-afterEach(() => { controller?.stop(); controller = null; });
+afterEach(() => {
+  controller?.stop();
+  controller = null;
+});
 
 it('[P1] ...', () => {
-    controller = startStatusDisplay();
-    expect(controller).toBeDefined();
+  controller = startStatusDisplay();
+  expect(controller).toBeDefined();
 });
 ```
 
 **Benefits**:
+
 - Guarantees cleanup even on test assertion failure
 - Prevents test pollution across the suite
 
@@ -224,39 +234,39 @@ The test modifies the returned array (`snapshot[0] = 999`) then asserts `buf.toA
 
 ### File Metadata
 
-| Metric | ring-buffer.test.ts | status.test.ts |
-|---|---|---|
-| **File Path** | `tests/unit/telemetry/ring-buffer.test.ts` | `tests/unit/cli/status.test.ts` |
-| **File Size** | 156 lines, ~4 KB | 208 lines, ~6 KB |
-| **Test Framework** | Vitest | Vitest |
-| **Language** | TypeScript | TypeScript |
+| Metric             | ring-buffer.test.ts                        | status.test.ts                  |
+| ------------------ | ------------------------------------------ | ------------------------------- |
+| **File Path**      | `tests/unit/telemetry/ring-buffer.test.ts` | `tests/unit/cli/status.test.ts` |
+| **File Size**      | 156 lines, ~4 KB                           | 208 lines, ~6 KB                |
+| **Test Framework** | Vitest                                     | Vitest                          |
+| **Language**       | TypeScript                                 | TypeScript                      |
 
 ### Test Structure
 
-| Metric | ring-buffer.test.ts | status.test.ts |
-|---|---|---|
-| **Describe Blocks** | 1 | 3 |
-| **Test Cases (it)** | 17 | 16 |
-| **Avg Test Length** | ~8 lines | ~12 lines |
-| **Fixtures Used** | 0 | 0 |
-| **Data Factories** | 0 | 0 |
+| Metric              | ring-buffer.test.ts | status.test.ts |
+| ------------------- | ------------------- | -------------- |
+| **Describe Blocks** | 1                   | 3              |
+| **Test Cases (it)** | 17                  | 16             |
+| **Avg Test Length** | ~8 lines            | ~12 lines      |
+| **Fixtures Used**   | 0                   | 0              |
+| **Data Factories**  | 0                   | 0              |
 
 ### Priority Distribution
 
-| Priority | ring-buffer.test.ts | status.test.ts | Total |
-|---|---|---|---|
-| P0 (Critical) | 5 | 3 | **8** |
-| P1 (High) | 5 | 10 | **15** |
-| P2 (Medium) | 7 | 3 | **10** |
-| Total | 17 | 16 | **33** |
+| Priority      | ring-buffer.test.ts | status.test.ts | Total  |
+| ------------- | ------------------- | -------------- | ------ |
+| P0 (Critical) | 5                   | 3              | **8**  |
+| P1 (High)     | 5                   | 10             | **15** |
+| P2 (Medium)   | 7                   | 3              | **10** |
+| Total         | 17                  | 16             | **33** |
 
 ### Assertions Analysis
 
-| Metric | Value |
-|---|---|
-| **Total Assertions** | ~72 |
-| **Assertions per Test** | ~2.2 (avg) |
-| **Assertion Types** | `toEqual`, `toBe`, `toContain`, `toThrow`, `isNaN`, `isFinite`, `Array.isArray`, `Number.isInteger` |
+| Metric                  | Value                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------- |
+| **Total Assertions**    | ~72                                                                                                 |
+| **Assertions per Test** | ~2.2 (avg)                                                                                          |
+| **Assertion Types**     | `toEqual`, `toBe`, `toContain`, `toThrow`, `isNaN`, `isFinite`, `Array.isArray`, `Number.isInteger` |
 
 ---
 
@@ -305,20 +315,20 @@ Test quality is excellent with 97/100 score. Both test files follow priority tag
 
 ### Violation Summary by Location
 
-| Line | Severity | Criterion | Issue | Fix |
-|---|---|---|---|---|
-| status.test.ts:187-207 | P3 | Isolation | `startStatusDisplay` tests may leak interval on failure | Use `afterEach` cleanup |
-| metrics.ts (no test) | P2 | Coverage | No direct unit test for metrics singleton | Add metrics.test.ts |
-| emitter.ts (no test) | P3 | Coverage | No test for emit() | Add emitter.test.ts |
-| uptime.ts (no test) | P3 | Coverage | No test for getUptimeSeconds | Add uptime.test.ts |
+| Line                   | Severity | Criterion | Issue                                                   | Fix                     |
+| ---------------------- | -------- | --------- | ------------------------------------------------------- | ----------------------- |
+| status.test.ts:187-207 | P3       | Isolation | `startStatusDisplay` tests may leak interval on failure | Use `afterEach` cleanup |
+| metrics.ts (no test)   | P2       | Coverage  | No direct unit test for metrics singleton               | Add metrics.test.ts     |
+| emitter.ts (no test)   | P3       | Coverage  | No test for emit()                                      | Add emitter.test.ts     |
+| uptime.ts (no test)    | P3       | Coverage  | No test for getUptimeSeconds                            | Add uptime.test.ts      |
 
 ### Suite Summary
 
-| File | Score | Grade | Critical | Status |
-|---|---|---|---|---|
-| ring-buffer.test.ts | 98/100 | A+ | 0 | Approved |
-| status.test.ts | 96/100 | A | 0 | Approved |
-| **Suite Average** | **97/100** | **A** | **0** | **Approved** |
+| File                | Score      | Grade | Critical | Status       |
+| ------------------- | ---------- | ----- | -------- | ------------ |
+| ring-buffer.test.ts | 98/100     | A+    | 0        | Approved     |
+| status.test.ts      | 96/100     | A     | 0        | Approved     |
+| **Suite Average**   | **97/100** | **A** | **0**    | **Approved** |
 
 ---
 

@@ -219,13 +219,13 @@ The fusion engine receives multiple parallel Memtrace query results, fuses them 
 
 ## Test Level Strategy
 
-| Level | File | Tests | Covers ACs |
-|-------|------|-------|-----------|
-| Unit (engine) | `tests/unit/fusion/engine.test.ts` | 13 | AC 1, 2, 5, 7, 9 |
-| Unit (validate) | `tests/unit/fusion/validate.test.ts` | 10 | AC 4, 8 |
-| Contract | `tests/contract/engine.pact.test.ts` | 5 | AC 6, 10 |
-| Integration | `tests/integration/fusion-pipeline.test.ts` | 4 | AC 1, 2, 3, 5, 6 |
-| **Total** | | **32** | **10/10 ACs** |
+| Level           | File                                        | Tests  | Covers ACs       |
+| --------------- | ------------------------------------------- | ------ | ---------------- |
+| Unit (engine)   | `tests/unit/fusion/engine.test.ts`          | 13     | AC 1, 2, 5, 7, 9 |
+| Unit (validate) | `tests/unit/fusion/validate.test.ts`        | 10     | AC 4, 8          |
+| Contract        | `tests/contract/engine.pact.test.ts`        | 5      | AC 6, 10         |
+| Integration     | `tests/integration/fusion-pipeline.test.ts` | 4      | AC 1, 2, 3, 5, 6 |
+| **Total**       |                                             | **32** | **10/10 ACs**    |
 
 ---
 
@@ -329,6 +329,7 @@ Success and failure responses are already defined in the mock for `memtrace_find
 - ✅ Implementation checklist created
 
 **Verification:**
+
 - Run `pnpm test` — engine/validate/contract/integration tests will fail until implementation
 - All generated tests assert expected behavior
 
@@ -370,18 +371,18 @@ pnpm test -- tests/integration/fusion-pipeline.test.ts
 
 ## Acceptance Criteria Coverage Matrix
 
-| AC | Description | Test Level | Test File(s) | Priority |
-|-----|-------------|-----------|-------------|----------|
-| 1 | Dedup, rank, annotate | Unit + Integration | engine.test.ts, fusion-pipeline.test.ts | P0 |
-| 2 | Provenance annotation | Unit + Integration | engine.test.ts (3 tests), fusion-pipeline.test.ts | P0 |
-| 3 | Injection before LLM | Integration | fusion-pipeline.test.ts | P0 |
-| 4 | Schema validation | Unit | validate.test.ts (7 tests) | P0 |
-| 5 | Partial results | Unit + Integration | engine.test.ts (2 tests), fusion-pipeline.test.ts | P1 |
-| 6 | DI compliance | Contract + Integration | engine.pact.test.ts, fusion-pipeline.test.ts | P0 |
-| 7 | Embedded engine tests | Unit | engine.test.ts (all) | P0 |
-| 8 | Embedded validation tests | Unit | validate.test.ts (all) | P0 |
-| 9 | Partial results embedded | Unit | engine.test.ts (2 tests) | P1 |
-| 10 | Contract test | Contract | engine.pact.test.ts | P0 |
+| AC  | Description               | Test Level             | Test File(s)                                      | Priority |
+| --- | ------------------------- | ---------------------- | ------------------------------------------------- | -------- |
+| 1   | Dedup, rank, annotate     | Unit + Integration     | engine.test.ts, fusion-pipeline.test.ts           | P0       |
+| 2   | Provenance annotation     | Unit + Integration     | engine.test.ts (3 tests), fusion-pipeline.test.ts | P0       |
+| 3   | Injection before LLM      | Integration            | fusion-pipeline.test.ts                           | P0       |
+| 4   | Schema validation         | Unit                   | validate.test.ts (7 tests)                        | P0       |
+| 5   | Partial results           | Unit + Integration     | engine.test.ts (2 tests), fusion-pipeline.test.ts | P1       |
+| 6   | DI compliance             | Contract + Integration | engine.pact.test.ts, fusion-pipeline.test.ts      | P0       |
+| 7   | Embedded engine tests     | Unit                   | engine.test.ts (all)                              | P0       |
+| 8   | Embedded validation tests | Unit                   | validate.test.ts (all)                            | P0       |
+| 9   | Partial results embedded  | Unit                   | engine.test.ts (2 tests)                          | P1       |
+| 10  | Contract test             | Contract               | engine.pact.test.ts                               | P0       |
 
 ---
 

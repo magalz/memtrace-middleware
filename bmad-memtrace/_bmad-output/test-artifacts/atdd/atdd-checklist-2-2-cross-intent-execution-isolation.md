@@ -163,11 +163,11 @@ Formalize per-dispatch context isolation in the Memtrace middleware adapter so t
 
 ## Test Level Strategy
 
-| Level | File | Tests | Covers ACs |
-|-------|------|-------|-----------|
-| Unit (DispatchContext) | `tests/unit/interface/dispatch-context.test.ts` | 14 | AC 1, 4 |
-| Integration (isolation) | `tests/integration/isolation.test.ts` | 7 | AC 2, 3, 5, 6 |
-| **Total** | | **21** | **6/6 ACs** |
+| Level                   | File                                            | Tests  | Covers ACs    |
+| ----------------------- | ----------------------------------------------- | ------ | ------------- |
+| Unit (DispatchContext)  | `tests/unit/interface/dispatch-context.test.ts` | 14     | AC 1, 4       |
+| Integration (isolation) | `tests/integration/isolation.test.ts`           | 7      | AC 2, 3, 5, 6 |
+| **Total**               |                                                 | **21** | **6/6 ACs**   |
 
 ---
 
@@ -190,6 +190,7 @@ None required — existing `tests/fixtures/memtrace-mock.ts` provides `createMoc
 **File:** `tests/fixtures/memtrace-mock.ts`
 
 Provides `createMockMemtrace({ failureMode, delayMs, slowTools })` — used by integration tests to simulate:
+
 - **Timeout scenario** (`failureMode: 'timeout'` or `slowTools: ['listTools']` with short dispatch timeout) — triggers dispatch A timeout
 - **Normal scenario** (default) — dispatch B returns valid results
 - **Error scenario** (`failureMode: 'error'`) — triggers `classification_failed` error for error contamination test
@@ -245,6 +246,7 @@ Provides `createMockMemtrace({ failureMode, delayMs, slowTools })` — used by i
 - ✅ Implementation checklist created
 
 **Verification:**
+
 - Run `pnpm test` — dispatch-context/isolation tests will fail until implementation
 - All generated tests assert expected behavior
 
@@ -284,14 +286,14 @@ pnpm test -- tests/integration/isolation.test.ts
 
 ## Acceptance Criteria Coverage Matrix
 
-| AC | Description | Test Level | Test File(s) | Priority |
-|----|-------------|-----------|-------------|----------|
-| 1 | Fresh DispatchContext per dispatch | Unit | dispatch-context.test.ts (8 tests) | P0 |
-| 2 | Sequential isolation — timeout does not contaminate B | Integration | isolation.test.ts (3 tests) | P0 |
-| 3 | Concurrent isolation — no shared state | Integration | isolation.test.ts (3 tests) | P0 |
-| 4 | Cleanup: timers cleared, controllers aborted, context not persisted | Unit | dispatch-context.test.ts (6 tests) | P0 |
-| 5 | Embedded sequential isolation test | Integration | isolation.test.ts (sequential tests) | P0 |
-| 6 | Embedded concurrent isolation test | Integration | isolation.test.ts (concurrent tests) | P0 |
+| AC  | Description                                                         | Test Level  | Test File(s)                         | Priority |
+| --- | ------------------------------------------------------------------- | ----------- | ------------------------------------ | -------- |
+| 1   | Fresh DispatchContext per dispatch                                  | Unit        | dispatch-context.test.ts (8 tests)   | P0       |
+| 2   | Sequential isolation — timeout does not contaminate B               | Integration | isolation.test.ts (3 tests)          | P0       |
+| 3   | Concurrent isolation — no shared state                              | Integration | isolation.test.ts (3 tests)          | P0       |
+| 4   | Cleanup: timers cleared, controllers aborted, context not persisted | Unit        | dispatch-context.test.ts (6 tests)   | P0       |
+| 5   | Embedded sequential isolation test                                  | Integration | isolation.test.ts (sequential tests) | P0       |
+| 6   | Embedded concurrent isolation test                                  | Integration | isolation.test.ts (concurrent tests) | P0       |
 
 ---
 

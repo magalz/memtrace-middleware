@@ -126,6 +126,7 @@ The adapter layer (`_bmad/scripts/memtrace/`) has three hardening deficiencies: 
 **Already exists in test suite** — `makeMockChild()` at `memtrace-adapter.test.mjs:476-494`
 
 **Exports:**
+
 - `makeMockChild()` — returns an EventEmitter with `.stdout` and `.stderr` as `PassThrough` streams
 - Used by AC1 tests to simulate child process error events and verify listener cleanup
 
@@ -164,6 +165,7 @@ None — this story has no UI components. Tests use only in-process mocks (`Even
 **Already exists** — `_bmad/scripts/memtrace/memtrace-mock.mjs` (zero-dependency mock MCP server)
 
 **Environment variables that must continue working after changes:**
+
 - `MEMTRACE_MOCK_PATH` — path to mock server script
 - `MEMTRACE_MOCK_FAIL` — simulate server failure
 - `MEMTRACE_MOCK_BAD_JSON` — simulate malformed JSON response
@@ -186,6 +188,7 @@ N/A — no UI in this story. The adapter is a CLI tool (ESM `.mjs`).
 **File:** `_bmad/scripts/memtrace/memtrace-adapter.test.mjs`
 
 **Tasks to make this test pass:**
+
 - [ ] Add `stdout.removeListener('data', this._onStdoutData)` to `cleanup()` closure in `spawn()` (line ~220)
 - [ ] Add `stderr.removeListener('data', this._onStderrData)` to same `cleanup()` closure
 - [ ] Wrap removes in `try/catch` matching `shutdown()`/`kill()` pattern
@@ -201,6 +204,7 @@ N/A — no UI in this story. The adapter is a CLI tool (ESM `.mjs`).
 **File:** `_bmad/scripts/memtrace/memtrace-adapter.test.mjs`
 
 **Tasks to make this test pass:**
+
 - [ ] Same fix as above — this test validates the `cleanup()` closure handles mid-request state correctly
 - [ ] Run test: `node --test _bmad/scripts/memtrace/memtrace-adapter.test.mjs --test-name-pattern="mid-request"`
 - [ ] Test passes (green phase)
@@ -214,6 +218,7 @@ N/A — no UI in this story. The adapter is a CLI tool (ESM `.mjs`).
 **File:** `_bmad/scripts/memtrace/memtrace-adapter.test.mjs`
 
 **Tasks to make this test pass:**
+
 - [ ] Replace all `err.message` with `err?.message ?? String(err)` at lines: 150, 188, 203, 278, 609, 649, 661, 700, 757
 - [ ] Replace `err.message` with `err?.message` at lines 175, 178 in `qa-memtrace.mjs`
 - [ ] Run adapter tests: `node --test _bmad/scripts/memtrace/memtrace-adapter.test.mjs`
@@ -228,6 +233,7 @@ N/A — no UI in this story. The adapter is a CLI tool (ESM `.mjs`).
 **File:** `_bmad/scripts/memtrace/qa-memtrace.test.mjs`
 
 **Tasks to make this test pass:**
+
 - [ ] Create `normalizeBlastData(raw)` function in `qa-memtrace.mjs`
 - [ ] Create `normalizeCoverageData(raw)` function in `qa-memtrace.mjs`
 - [ ] Refactor `compute()` to consume normalized shapes instead of raw adapter fields
@@ -243,6 +249,7 @@ N/A — no UI in this story. The adapter is a CLI tool (ESM `.mjs`).
 **File:** `_bmad/scripts/memtrace/memtrace-adapter.test.mjs` + `qa-memtrace.test.mjs`
 
 **Tasks:**
+
 - [ ] Run all adapter tests: `node --test _bmad/scripts/memtrace/memtrace-adapter.test.mjs` — zero failures
 - [ ] Run all QA tests: `node _bmad/scripts/memtrace/qa-memtrace.test.mjs` — zero failures
 - [ ] E2E smoke: `node _bmad/scripts/memtrace/memtrace-adapter.mjs --query list_repos` — exit 0, valid JSON
@@ -286,6 +293,7 @@ node _bmad/scripts/memtrace/memtrace-adapter.mjs --query list_repos
 ## Knowledge Base References Applied
 
 This ATDD workflow was informed by:
+
 - Story 5.6 Dev Notes — detailed line-level analysis of all fixes
 - Story 5.5 (Empty Query Plan Bypass) — `err?.message ?? String(err)` idiom origin
 - Story i-2 (Hermetic MCP Mocking) — mock MCP server patterns

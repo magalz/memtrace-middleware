@@ -10,6 +10,7 @@
 The integration tests for Story 2.2 provide solid coverage of the 6 acceptance criteria at the integration level. All 6 tests pass, follow BDD naming conventions with priority markers, and are well-structured. However, **14 planned unit tests for `DispatchContext`** (as specified in the ATDD checklist) were **not implemented**, leaving the `DispatchContext` interface, `createDispatchContext()`, and `cleanupContext()` without direct unit-level verification.
 
 ### Strengths
+
 - All 6 tests pass — zero failures
 - BDD-style naming with priority markers ([P0]/[P1]/[P2])
 - Each test is self-contained with no shared mutable state between cases
@@ -19,30 +20,31 @@ The integration tests for Story 2.2 provide solid coverage of the 6 acceptance c
 - Edge case coverage: timeout, concurrent, error contamination, memory leakage
 
 ### Weaknesses
+
 - **14 unit tests for DispatchContext not implemented** (planned in ATDD at `tests/unit/interface/dispatch-context.test.ts`)
 - AbortController leakage test (50 dispatches) does not actually measure GC/memory growth
 - No explicit assertion that `dedupCache` entries are disjoint across concurrent dispatches
 
 ## Quality Criteria Assessment
 
-| Criterion | Status | Notes |
-|-----------|--------|-------|
-| BDD structure | PASS | Clear Given-When-Then implied, priority labels present |
-| Priority markers | PASS | [P0]/[P1]/[P2] correctly assigned |
-| Determinism | PASS | No conditionals, random values, or try/catch abuse |
-| Isolation | PASS | No shared state between tests |
-| Fixture patterns | PASS | `createMockBackend` pattern reused from existing suite |
-| Assertions | PASS | Explicit assertions with `expect`, no implicit waits |
-| Test length | PASS | 275 lines — under 300 threshold |
-| Test duration | PASS | ~595ms for all 6 isolation tests |
+| Criterion        | Status | Notes                                                  |
+| ---------------- | ------ | ------------------------------------------------------ |
+| BDD structure    | PASS   | Clear Given-When-Then implied, priority labels present |
+| Priority markers | PASS   | [P0]/[P1]/[P2] correctly assigned                      |
+| Determinism      | PASS   | No conditionals, random values, or try/catch abuse     |
+| Isolation        | PASS   | No shared state between tests                          |
+| Fixture patterns | PASS   | `createMockBackend` pattern reused from existing suite |
+| Assertions       | PASS   | Explicit assertions with `expect`, no implicit waits   |
+| Test length      | PASS   | 275 lines — under 300 threshold                        |
+| Test duration    | PASS   | ~595ms for all 6 isolation tests                       |
 
 ## Violations
 
-| Severity | Count | Details |
-|----------|-------|---------|
-| P1 (High) | 1 | 14 planned unit tests for DispatchContext not implemented |
-| P2 (Medium) | 1 | AbortController leakage test doesn't verify actual GC/memory |
-| P3 (Low) | 1 | No explicit dedupCache disjointness assertion |
+| Severity    | Count | Details                                                      |
+| ----------- | ----- | ------------------------------------------------------------ |
+| P1 (High)   | 1     | 14 planned unit tests for DispatchContext not implemented    |
+| P2 (Medium) | 1     | AbortController leakage test doesn't verify actual GC/memory |
+| P3 (Low)    | 1     | No explicit dedupCache disjointness assertion                |
 
 ## Score Breakdown
 

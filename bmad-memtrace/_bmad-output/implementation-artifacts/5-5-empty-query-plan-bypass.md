@@ -76,6 +76,7 @@ if (queries.length === 0) {
 ```
 
 The orchestrator already:
+
 - **Skips execution** — never enters the `Promise.allSettled` loop or sequential fallback
 - **Skips fusion** — never calls `fuse()` or `validateContext()`
 - **Returns `partial: true`** — on the FusedContext blocks
@@ -92,13 +93,14 @@ The orchestrator already:
 for (const tool of intentDef.tools) {
   if (!availableTools.has(tool)) {
     logger.warn('tool_not_in_capabilities', { tool, intent: intent.intent_type });
-    continue;  // skip → no query added
+    continue; // skip → no query added
   }
   // ... push query
 }
 ```
 
 Scenarios that trigger empty plans:
+
 1. Memtrace server (v0.4.x) doesn't support a newer intent's tools (e.g., `find_ast_review_issues` absent)
 2. Capabilities fetch returns empty `tools: []` due to server error / misconfiguration
 3. Intent definition has `tools: []` (registered with empty tool list intentionally or by bug)
@@ -130,7 +132,7 @@ Existing tests use a `createMockBackend()` factory + dynamic `import('../../src/
 ```typescript
 it('[P1] handles empty query plan gracefully — skips execution and fusion', async () => {
   const mockBackend = createMockBackend({
-    listTools: async () => [],  // empty capabilities trigger empty plan
+    listTools: async () => [], // empty capabilities trigger empty plan
     execute: async () => {
       throw new Error('execute should never be called');
     },
@@ -160,7 +162,7 @@ it('[P2] returns empty array when intent definition has no tools', () => {
   getRegistry().register({
     type: 'empty_tools_intent' as IntentType,
     patterns: [],
-    tools: [],  // empty!
+    tools: [], // empty!
   });
   const intent: ClassifiedIntent = {
     intent_type: 'empty_tools_intent',
@@ -205,6 +207,7 @@ it('[P2] does not throw when original_message has no params property', () => {
 ### What Previous Stories Established
 
 **From 5-4 (Force Tier CLI):**
+
 - Integration test pattern: `createMockBackend(overrides)` → `await import(...)` → `new BaseAdapter(mockBackend, config?)` → `adapter.dispatch(msg)`
 - `MiddleWareError` toShape() for JSON error comparison in tests
 - `metrics.recordDispatch()` signature: `(success: boolean, intentType: string, confidence: number, elapsed: number, startupType: 'cold' | 'warm')`
@@ -213,19 +216,23 @@ it('[P2] does not throw when original_message has no params property', () => {
 - `degradationMachine.getCurrentTier()` for tier checks
 
 **From 5-3 (Init + Auto-Detection):**
+
 - Test helpers: `mockCapabilities`, `makeMessage`, `buildIntent` from `tests/helpers/test-utils.ts`
 - Tests use `vi.spyOn` for output assertions, `vi.mock('node:os', ...)` for path mocking
 
 **From 5-2 (Memtrace Backend Real):**
+
 - `createLogger('module-name')` for structured NDJSON logging
 - Barrel `index.ts` per module — all public exports through barrel
 - `MemtraceBackend` interface with `execute()`, `probe()`, `listTools()`
 
 **From 5-1 (MCP Server Mode):**
+
 - Stdio transport is the sole MCP transport
 - Stderr for user output: `process.stderr.write()` for user-facing messages
 
 **From 1-4 (Agent Interface & CLI Adapter):**
+
 - Orchestrator pattern: classify → plan → execute → fuse → validate
 - `BaseAdapter.runDispatch()` is the main pipeline
 - `DispatchContext` for cleanup: `createDispatchContext(traceId)`, `cleanupContext(ctx)`

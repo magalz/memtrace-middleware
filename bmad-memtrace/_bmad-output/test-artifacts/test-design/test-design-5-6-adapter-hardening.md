@@ -36,12 +36,12 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-| ---- | --------- | ---------- |
-| **E2E browser tests** | Adapter is CLI tool, no UI | N/A |
-| **Performance/load testing** | Adapter is a thin proxy; latency is Memtrace backend responsibility | Monitored via CI regression |
-| **New mock server features** | `memtrace-mock.mjs` is feature-complete for current needs | Existing mock covers all scenarios |
-| **Middleware (`bmad-memtrace/`)** | This story targets the v1 adapter (`_bmad/scripts/memtrace/`), not the middleware | Separate epic |
+| Item                              | Reasoning                                                                         | Mitigation                         |
+| --------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------- |
+| **E2E browser tests**             | Adapter is CLI tool, no UI                                                        | N/A                                |
+| **Performance/load testing**      | Adapter is a thin proxy; latency is Memtrace backend responsibility               | Monitored via CI regression        |
+| **New mock server features**      | `memtrace-mock.mjs` is feature-complete for current needs                         | Existing mock covers all scenarios |
+| **Middleware (`bmad-memtrace/`)** | This story targets the v1 adapter (`_bmad/scripts/memtrace/`), not the middleware | Separate epic                      |
 
 ---
 
@@ -49,23 +49,23 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 ### High-Priority Risks (Score >=6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- | -------- |
-| R-001 | TECH | Child process listener leak in `McpClient.spawn()` causes memory accumulation over long-running processes (CI, agent loops) | 3 | 3 | **9** | Add stdout/stderr `removeListener` to `cleanup()` closure + regression test | Dev | Story 5.6 |
-| R-002 | DATA | Unsafe `.message` access on non-Error caught values produces `TypeError` or silent `undefined`, masking root cause in error logs | 2 | 3 | **6** | Replace all 11 occurrences with `err?.message ?? String(err)` + defensive test | Dev | Story 5.6 |
+| Risk ID | Category | Description                                                                                                                      | Probability | Impact | Score | Mitigation                                                                     | Owner | Timeline  |
+| ------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------ | ----- | --------- |
+| R-001   | TECH     | Child process listener leak in `McpClient.spawn()` causes memory accumulation over long-running processes (CI, agent loops)      | 3           | 3      | **9** | Add stdout/stderr `removeListener` to `cleanup()` closure + regression test    | Dev   | Story 5.6 |
+| R-002   | DATA     | Unsafe `.message` access on non-Error caught values produces `TypeError` or silent `undefined`, masking root cause in error logs | 2           | 3      | **6** | Replace all 11 occurrences with `err?.message ?? String(err)` + defensive test | Dev   | Story 5.6 |
 
 ### Medium-Priority Risks (Score 3-4)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- |
-| R-003 | TECH | QA gate breaks silently when adapter renames output fields — gate passes/fails incorrectly with stale field names | 2 | 2 | **4** | Normalizer layer in `qa-memtrace.mjs` decouples `compute()` from raw adapter field names | Dev |
-| R-004 | TECH | `sendRequest` error path (line 249 catch) does not clean up queued request from `_activeRequests` | 1 | 2 | **2** | Accepted risk — cleanup handled at lifecycle boundaries (`kill()`/`shutdown()`); documented in Dev Notes | Dev |
+| Risk ID | Category | Description                                                                                                       | Probability | Impact | Score | Mitigation                                                                                               | Owner |
+| ------- | -------- | ----------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | -------------------------------------------------------------------------------------------------------- | ----- |
+| R-003   | TECH     | QA gate breaks silently when adapter renames output fields — gate passes/fails incorrectly with stale field names | 2           | 2      | **4** | Normalizer layer in `qa-memtrace.mjs` decouples `compute()` from raw adapter field names                 | Dev   |
+| R-004   | TECH     | `sendRequest` error path (line 249 catch) does not clean up queued request from `_activeRequests`                 | 1           | 2      | **2** | Accepted risk — cleanup handled at lifecycle boundaries (`kill()`/`shutdown()`); documented in Dev Notes | Dev   |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ------ |
-| R-005 | OPS | Existing mock tests (`memtrace-mock.mjs`) break due to `McpClient` internal refactoring | 1 | 2 | **2** | All 44 existing adapter tests + 14 QA tests are regression gate |
+| Risk ID | Category | Description                                                                             | Probability | Impact | Score | Action                                                          |
+| ------- | -------- | --------------------------------------------------------------------------------------- | ----------- | ------ | ----- | --------------------------------------------------------------- |
+| R-005   | OPS      | Existing mock tests (`memtrace-mock.mjs`) break due to `McpClient` internal refactoring | 1           | 2      | **2** | All 44 existing adapter tests + 14 QA tests are regression gate |
 
 ### Risk Category Legend
 
@@ -82,11 +82,11 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 **Purpose:** Capture story-specific NFR thresholds.
 
-| NFR Category | Requirement / Threshold | Risk Link | Planned Validation | Evidence Needed |
-| ------------ | ----------------------- | --------- | ------------------ | --------------- |
-| Reliability | Zero memory leaks from McpClient lifecycle | R-001 | Unit test: listener count == 0 after error/exit/spawn failure | Test pass + `listenerCount()` assertion |
-| Maintainability | Safe error access everywhere — no bare `.message` | R-002 | Grep audit for bare `.message` on catch variables + unit test with non-Error values | Zero grep hits + test pass |
-| Maintainability | QA gate survives adapter field renames | R-003 | Normalizer unit test with current and evolved adapter formats | Test pass on both formats |
+| NFR Category    | Requirement / Threshold                           | Risk Link | Planned Validation                                                                  | Evidence Needed                         |
+| --------------- | ------------------------------------------------- | --------- | ----------------------------------------------------------------------------------- | --------------------------------------- |
+| Reliability     | Zero memory leaks from McpClient lifecycle        | R-001     | Unit test: listener count == 0 after error/exit/spawn failure                       | Test pass + `listenerCount()` assertion |
+| Maintainability | Safe error access everywhere — no bare `.message` | R-002     | Grep audit for bare `.message` on catch variables + unit test with non-Error values | Zero grep hits + test pass              |
+| Maintainability | QA gate survives adapter field renames            | R-003     | Normalizer unit test with current and evolved adapter formats                       | Test pass on both formats               |
 
 **Unknown thresholds:** None — all thresholds are verifiable at the unit test level.
 
@@ -116,11 +116,11 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 **Criteria:** Blocks core function + High risk (>=6) + No workaround
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| Child process listener cleanup on spawn error | Unit | R-001 | 2 | Dev | `McpClient` spawn ENOENT + mid-request error cleanup |
-| Safe `.message` access on non-Error values | Unit | R-002 | 3 | Dev | null, string, undefined error values |
-| Regression: all existing tests pass | Unit | R-005 | 1 | Dev | Run full suite — 44 adapter + 14 QA tests |
+| Requirement                                   | Test Level | Risk Link | Test Count | Owner | Notes                                                |
+| --------------------------------------------- | ---------- | --------- | ---------- | ----- | ---------------------------------------------------- |
+| Child process listener cleanup on spawn error | Unit       | R-001     | 2          | Dev   | `McpClient` spawn ENOENT + mid-request error cleanup |
+| Safe `.message` access on non-Error values    | Unit       | R-002     | 3          | Dev   | null, string, undefined error values                 |
+| Regression: all existing tests pass           | Unit       | R-005     | 1          | Dev   | Run full suite — 44 adapter + 14 QA tests            |
 
 **Total P0**: 6 tests, 1.5 hours
 
@@ -128,13 +128,13 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 **Criteria:** Important features + Medium risk (3-4) + Common workflows
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| QA normalizer maps `affected_symbols` → symbols | Unit | R-003 | 1 | Dev | Normalizer function test |
-| QA normalizer handles missing fields (graceful degradation) | Unit | R-003 | 1 | Dev | Empty/malformed adapter output |
-| QA normalizer maps `module` → path | Unit | R-003 | 1 | Dev | Coverage data normalization |
-| QA `compute()` uses normalized shapes | Unit | R-003 | 2 | Dev | End-to-end: current + evolved formats |
-| Adapter E2E smoke (real/mock Memtrace) | Integration | R-005 | 1 | Dev | `--query list_repos`, `--batch`, `--help` |
+| Requirement                                                 | Test Level  | Risk Link | Test Count | Owner | Notes                                     |
+| ----------------------------------------------------------- | ----------- | --------- | ---------- | ----- | ----------------------------------------- |
+| QA normalizer maps `affected_symbols` → symbols             | Unit        | R-003     | 1          | Dev   | Normalizer function test                  |
+| QA normalizer handles missing fields (graceful degradation) | Unit        | R-003     | 1          | Dev   | Empty/malformed adapter output            |
+| QA normalizer maps `module` → path                          | Unit        | R-003     | 1          | Dev   | Coverage data normalization               |
+| QA `compute()` uses normalized shapes                       | Unit        | R-003     | 2          | Dev   | End-to-end: current + evolved formats     |
+| Adapter E2E smoke (real/mock Memtrace)                      | Integration | R-005     | 1          | Dev   | `--query list_repos`, `--batch`, `--help` |
 
 **Total P1**: 6 tests, 1.0 hours
 
@@ -142,12 +142,12 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 **Criteria:** Secondary features + Low risk (1-2) + Edge cases
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| `sendRequest` error path behavior (no listener leak documented) | Unit | R-004 | 1 | Dev | Verify _activeRequests cleared at lifecycle |
-| `shutdown()`/`kill()` listener cleanup verified (existing pattern) | Unit | - | 1 | Dev | Regression test for already-correct paths |
-| `err?.code` safe access on process errors | Unit | R-002 | 1 | Dev | `err?.code === 'ENOENT'` etc. |
-| Grep audit: zero bare `.message` on catch variables | Static | R-002 | 1 | Dev | `rg 'err\.message'` on adapter + QA files |
+| Requirement                                                        | Test Level | Risk Link | Test Count | Owner | Notes                                        |
+| ------------------------------------------------------------------ | ---------- | --------- | ---------- | ----- | -------------------------------------------- |
+| `sendRequest` error path behavior (no listener leak documented)    | Unit       | R-004     | 1          | Dev   | Verify \_activeRequests cleared at lifecycle |
+| `shutdown()`/`kill()` listener cleanup verified (existing pattern) | Unit       | -         | 1          | Dev   | Regression test for already-correct paths    |
+| `err?.code` safe access on process errors                          | Unit       | R-002     | 1          | Dev   | `err?.code === 'ENOENT'` etc.                |
+| Grep audit: zero bare `.message` on catch variables                | Static     | R-002     | 1          | Dev   | `rg 'err\.message'` on adapter + QA files    |
 
 **Total P2**: 4 tests, 0.5 hours
 
@@ -194,26 +194,29 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 ### Test Development Effort
 
-| Priority | Count | Hours/Test | Total Hours | Notes |
-| -------- | ----- | ---------- | ----------- | ----- |
-| P0 | 6 | 0.25 | 1.5 | Critical fixes — small count, high value |
-| P1 | 6 | 0.17 | 1.0 | Normalizer + integration smoke |
-| P2 | 4 | 0.13 | 0.5 | Edge cases + static audit |
-| **Total** | **16** | **-** | **3.0** | **~0.5 days** |
+| Priority  | Count  | Hours/Test | Total Hours | Notes                                    |
+| --------- | ------ | ---------- | ----------- | ---------------------------------------- |
+| P0        | 6      | 0.25       | 1.5         | Critical fixes — small count, high value |
+| P1        | 6      | 0.17       | 1.0         | Normalizer + integration smoke           |
+| P2        | 4      | 0.13       | 0.5         | Edge cases + static audit                |
+| **Total** | **16** | **-**      | **3.0**     | **~0.5 days**                            |
 
 ### Prerequisites
 
 **Test Data:**
+
 - `makeMockChild()` factory — already exists in test suite
 - `makeBlastData()` / `makeEvolvedBlastData()` — inline helper in new tests
 - No external data factories needed
 
 **Tooling:**
+
 - Node.js >= 20 (`node:test` native runner)
 - `node:assert/strict` for assertions
 - `rg` (ripgrep) for bare `.message` grep audit
 
 **Environment:**
+
 - Local Node.js installation (no containers, no CI required)
 - `MEMTRACE_MOCK_PATH` env var for adapter tests (or real Memtrace instance)
 
@@ -289,12 +292,12 @@ lastSaved: '2026-06-02T14:10:00Z'
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-| ----------------- | ------ | ---------------- |
-| **`memtrace-adapter.mjs`** | `McpClient.spawn()`, error catch paths modified | All 44 existing adapter tests |
-| **`qa-memtrace.mjs`** | `compute()` refactored with normalizer, error catch fixed | All 14 existing QA tests |
-| **`memtrace-mock.mjs`** | No changes | Mock must still serve all test scenarios |
-| **CLI adapter** | No public API change | `--help`, `--query`, `--batch`, timeout token |
+| Service/Component          | Impact                                                    | Regression Scope                              |
+| -------------------------- | --------------------------------------------------------- | --------------------------------------------- |
+| **`memtrace-adapter.mjs`** | `McpClient.spawn()`, error catch paths modified           | All 44 existing adapter tests                 |
+| **`qa-memtrace.mjs`**      | `compute()` refactored with normalizer, error catch fixed | All 14 existing QA tests                      |
+| **`memtrace-mock.mjs`**    | No changes                                                | Mock must still serve all test scenarios      |
+| **CLI adapter**            | No public API change                                      | `--help`, `--query`, `--batch`, timeout token |
 
 ---
 

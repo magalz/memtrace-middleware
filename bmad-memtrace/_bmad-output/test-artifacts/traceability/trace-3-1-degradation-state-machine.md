@@ -41,12 +41,12 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage Summary
 
-| Priority  | Total Criteria | FULL Coverage | Coverage % | Status       |
-| --------- | -------------- | ------------- | ---------- | ------------ |
-| P0        | 8              | 6             | 75%        | ❌ FAIL       |
-| P1        | 3              | 0             | 0%         | ❌ FAIL       |
-| P2        | 3              | 3             | 100%       | ✅ PASS      |
-| **Total** | **14**         | **9**         | **64%**    | ❌ FAIL       |
+| Priority  | Total Criteria | FULL Coverage | Coverage % | Status  |
+| --------- | -------------- | ------------- | ---------- | ------- |
+| P0        | 8              | 6             | 75%        | ❌ FAIL |
+| P1        | 3              | 0             | 0%         | ❌ FAIL |
+| P2        | 3              | 3             | 100%       | ✅ PASS |
+| **Total** | **14**         | **9**         | **64%**    | ❌ FAIL |
 
 **Legend:**
 
@@ -436,12 +436,12 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage by Test Level
 
-| Test Level | Tests | Criteria Covered | Coverage % |
-| ---------- | ----- | ---------------- | ---------- |
-| Unit (machine.test.ts) | 15 | AC-1, AC-3, AC-6, AC-12, AC-13 | 36% (5/14) |
-| Unit (probe-timer.test.ts) | 7 | AC-3 (partial) | 7% (1/14) |
-| Integration | 8 | AC-3, AC-8, AC-9, AC-10, AC-11, AC-12, AC-14 (partial) | 50% (7/14) |
-| **Total** | **30** | **9 FULL + 2 PARTIAL** | **64% FULL, 79% FULL+PARTIAL** |
+| Test Level                 | Tests  | Criteria Covered                                       | Coverage %                     |
+| -------------------------- | ------ | ------------------------------------------------------ | ------------------------------ |
+| Unit (machine.test.ts)     | 15     | AC-1, AC-3, AC-6, AC-12, AC-13                         | 36% (5/14)                     |
+| Unit (probe-timer.test.ts) | 7      | AC-3 (partial)                                         | 7% (1/14)                      |
+| Integration                | 8      | AC-3, AC-8, AC-9, AC-10, AC-11, AC-12, AC-14 (partial) | 50% (7/14)                     |
+| **Total**                  | **30** | **9 FULL + 2 PARTIAL**                                 | **64% FULL, 79% FULL+PARTIAL** |
 
 ---
 
@@ -516,13 +516,13 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### P0 Criteria (Must ALL Pass)
 
-| Criterion             | Threshold | Actual     | Status   |
-| --------------------- | --------- | ---------- | -------- |
-| P0 Coverage           | 100%      | 75%        | ❌ FAIL  |
-| P0 Test Pass Rate     | 100%      | 100%       | ✅ PASS  |
-| Security Issues       | 0         | 0          | ✅ PASS  |
-| Critical NFR Failures | 0         | 0          | ✅ PASS  |
-| Flaky Tests           | 0         | 0          | ✅ PASS  |
+| Criterion             | Threshold | Actual | Status  |
+| --------------------- | --------- | ------ | ------- |
+| P0 Coverage           | 100%      | 75%    | ❌ FAIL |
+| P0 Test Pass Rate     | 100%      | 100%   | ✅ PASS |
+| Security Issues       | 0         | 0      | ✅ PASS |
+| Critical NFR Failures | 0         | 0      | ✅ PASS |
+| Flaky Tests           | 0         | 0      | ✅ PASS |
 
 **P0 Evaluation**: ❌ ONE OR MORE FAILED
 
@@ -530,12 +530,12 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### P1 Criteria (Required for PASS, May Accept for CONCERNS)
 
-| Criterion              | Threshold | Actual  | Status   |
-| ---------------------- | --------- | ------- | -------- |
-| P1 Coverage            | ≥90%      | 0%      | ❌ FAIL  |
-| P1 Test Pass Rate      | ≥95%      | 100%    | ✅ PASS  |
-| Overall Test Pass Rate | ≥95%      | 100%    | ✅ PASS  |
-| Overall Coverage       | ≥80%      | 64%     | ❌ FAIL  |
+| Criterion              | Threshold | Actual | Status  |
+| ---------------------- | --------- | ------ | ------- |
+| P1 Coverage            | ≥90%      | 0%     | ❌ FAIL |
+| P1 Test Pass Rate      | ≥95%      | 100%   | ✅ PASS |
+| Overall Test Pass Rate | ≥95%      | 100%   | ✅ PASS |
+| Overall Coverage       | ≥80%      | 64%    | ❌ FAIL |
 
 **P1 Evaluation**: ❌ FAILED
 
@@ -543,9 +543,9 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### P2/P3 Criteria (Informational, Don't Block)
 
-| Criterion         | Actual      | Notes                                               |
-| ----------------- | ----------- | --------------------------------------------------- |
-| P2 Test Pass Rate | 100%        | Tracked, doesn't block                              |
+| Criterion         | Actual | Notes                  |
+| ----------------- | ------ | ---------------------- |
+| P2 Test Pass Rate | 100%   | Tracked, doesn't block |
 
 ---
 
@@ -624,10 +624,10 @@ The state machine and probe timer are well-tested (15 + 7 unit tests). The integ
 
 After fixing AC-4, AC-5, AC-7, AC-14:
 
-| Risk                | Priority | Probability | Impact | Risk Score | Mitigation           |
-| ------------------- | -------- | ----------- | ------ | ---------- | -------------------- |
-| Logging not tested  | P3       | Low         | Low    | 1          | Manual log review    |
-| No formal test IDs  | P3       | Low         | Low    | 1          | Naming convention    |
+| Risk               | Priority | Probability | Impact | Risk Score | Mitigation        |
+| ------------------ | -------- | ----------- | ------ | ---------- | ----------------- |
+| Logging not tested | P3       | Low         | Low    | 1          | Manual log review |
+| No formal test IDs | P3       | Low         | Low    | 1          | Naming convention |
 
 **Overall Residual Risk**: LOW
 

@@ -27,13 +27,13 @@
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-| ---- | --------- | ---------- |
-| **E2E / Browser tests** | Backend-only TypeScript library — no UI | All coverage at Unit + Integration levels |
-| **Performance benchmarks** | Dispatch isolation is a structural guarantee, not a performance feature | Timer cleanup tests verify no lingering references; GC test is P2 optional |
-| **Process-level isolation** | Single-process by design per architecture | Session tracking on BaseAdapter is per-instance and correct — not in scope |
-| **Session-level isolation across restarts** | Architecture explicitly out of scope for this story | Noted in story file — Story 2.2 is dispatch-level only |
-| **DEDUP_CACHE_TTL_MS enforcement** | Reserved for future per-dispatch LRU cache | Noted in story as Not Covered |
+| Item                                        | Reasoning                                                               | Mitigation                                                                 |
+| ------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **E2E / Browser tests**                     | Backend-only TypeScript library — no UI                                 | All coverage at Unit + Integration levels                                  |
+| **Performance benchmarks**                  | Dispatch isolation is a structural guarantee, not a performance feature | Timer cleanup tests verify no lingering references; GC test is P2 optional |
+| **Process-level isolation**                 | Single-process by design per architecture                               | Session tracking on BaseAdapter is per-instance and correct — not in scope |
+| **Session-level isolation across restarts** | Architecture explicitly out of scope for this story                     | Noted in story file — Story 2.2 is dispatch-level only                     |
+| **DEDUP_CACHE_TTL_MS enforcement**          | Reserved for future per-dispatch LRU cache                              | Noted in story as Not Covered                                              |
 
 ---
 
@@ -41,23 +41,23 @@
 
 ### High-Priority Risks (Score ≥6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- | -------- |
-| R-001 | DATA | **State contamination**: dispatch A's error flags, partial cache entries, or degraded state persist and affect dispatch B's results — violates FR22 isolation guarantee | 2 | 3 | 6 | `DispatchContext` as per-dispatch bag with `cleanupContext()` in `finally` block; unit tests verify fresh state per call; integration tests verify sequential + concurrent isolation | DEV | Pre-DS |
-| R-002 | PERF | **Timer/controller leak**: `setTimeout` callbacks or `AbortController` references survive dispatch completion, causing dangling timers that fire on stale controllers — memory leak and potential side effects on subsequent dispatches | 2 | 3 | 6 | Centralized timer tracking in `DispatchContext.activeTimers`; `cleanupContext()` clears all timers and aborts all controllers; unit tests verify cleanup is exhaustive | DEV | Pre-DS |
+| Risk ID | Category | Description                                                                                                                                                                                                                             | Probability | Impact | Score | Mitigation                                                                                                                                                                           | Owner | Timeline |
+| ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | -------- |
+| R-001   | DATA     | **State contamination**: dispatch A's error flags, partial cache entries, or degraded state persist and affect dispatch B's results — violates FR22 isolation guarantee                                                                 | 2           | 3      | 6     | `DispatchContext` as per-dispatch bag with `cleanupContext()` in `finally` block; unit tests verify fresh state per call; integration tests verify sequential + concurrent isolation | DEV   | Pre-DS   |
+| R-002   | PERF     | **Timer/controller leak**: `setTimeout` callbacks or `AbortController` references survive dispatch completion, causing dangling timers that fire on stale controllers — memory leak and potential side effects on subsequent dispatches | 2           | 3      | 6     | Centralized timer tracking in `DispatchContext.activeTimers`; `cleanupContext()` clears all timers and aborts all controllers; unit tests verify cleanup is exhaustive               | DEV   | Pre-DS   |
 
 ### Medium-Priority Risks (Score 3-4)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- |
-| R-003 | DATA | **Concurrent race condition**: two dispatches running simultaneously on the same adapter instance share a mutable reference (module-level state) causing corrupted results or cross-dispatch errors | 2 | 2 | 4 | `runDispatch()` receives `DispatchContext` as parameter (not stored on `this`); no module-level mutable state allowed; integration tests with `Promise.all` verify isolation | DEV |
-| R-004 | TECH | **Partial cleanup on exception**: a thrown error during dispatch skips the cleanup block, leaving dangling timers/controllers that leak until GC or cause side effects on next dispatch | 2 | 2 | 4 | Cleanup in `finally` block (not `catch`) guarantees execution regardless of success or failure; unit tests verify cleanup after simulated errors | DEV |
+| Risk ID | Category | Description                                                                                                                                                                                         | Probability | Impact | Score | Mitigation                                                                                                                                                                   | Owner |
+| ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| R-003   | DATA     | **Concurrent race condition**: two dispatches running simultaneously on the same adapter instance share a mutable reference (module-level state) causing corrupted results or cross-dispatch errors | 2           | 2      | 4     | `runDispatch()` receives `DispatchContext` as parameter (not stored on `this`); no module-level mutable state allowed; integration tests with `Promise.all` verify isolation | DEV   |
+| R-004   | TECH     | **Partial cleanup on exception**: a thrown error during dispatch skips the cleanup block, leaving dangling timers/controllers that leak until GC or cause side effects on next dispatch             | 2           | 2      | 4     | Cleanup in `finally` block (not `catch`) guarantees execution regardless of success or failure; unit tests verify cleanup after simulated errors                             | DEV   |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ------ |
-| R-005 | DATA | **trace_id collision**: two dispatches on the same adapter generate identical trace IDs, breaking observability and dedup tracking | 1 | 2 | 2 | Unit test verifies unique trace_id per `createDispatchContext()` call; integration tests verify different trace_ids between sequential A and B |
+| Risk ID | Category | Description                                                                                                                        | Probability | Impact | Score | Action                                                                                                                                         |
+| ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-005   | DATA     | **trace_id collision**: two dispatches on the same adapter generate identical trace IDs, breaking observability and dedup tracking | 1           | 2      | 2     | Unit test verifies unique trace_id per `createDispatchContext()` call; integration tests verify different trace_ids between sequential A and B |
 
 ### Risk Category Legend
 
@@ -75,12 +75,12 @@
 
 **Purpose:** Capture story-specific NFR thresholds and planned validation for later `nfr-assess`.
 
-| NFR Category | Requirement / Threshold | Risk Link | Planned Validation | Evidence Needed |
-| ------------ | ----------------------- | --------- | ------------------ | --------------- |
-| Reliability | FR22 isolation: no shared mutable state between dispatches — A's timeout/error never affects B | R-001, R-003 | Integration tests: sequential timeout + sequential error + concurrent dispatches all verify isolation | Test report with all isolation tests passing |
-| Resource Safety | All `setTimeout` IDs cleared and `AbortController` references released after each dispatch | R-002, R-004 | Unit tests: `cleanupContext()` clears timers and aborts controllers; `finally` block execution verified | Test report with cleanup coverage |
-| Reliability | `finally` block guaranteed execution — cleanup runs on success, error, and timeout | R-004 | Unit tests: simulated success, error, and timeout all trigger cleanup | Test report with finally-block coverage |
-| Observability | Each dispatch has unique traceId | R-005 | Unit test: unique traceId per call; integration test: different traceIds between A and B | Test report with traceId uniqueness verified |
+| NFR Category    | Requirement / Threshold                                                                        | Risk Link    | Planned Validation                                                                                      | Evidence Needed                              |
+| --------------- | ---------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Reliability     | FR22 isolation: no shared mutable state between dispatches — A's timeout/error never affects B | R-001, R-003 | Integration tests: sequential timeout + sequential error + concurrent dispatches all verify isolation   | Test report with all isolation tests passing |
+| Resource Safety | All `setTimeout` IDs cleared and `AbortController` references released after each dispatch     | R-002, R-004 | Unit tests: `cleanupContext()` clears timers and aborts controllers; `finally` block execution verified | Test report with cleanup coverage            |
+| Reliability     | `finally` block guaranteed execution — cleanup runs on success, error, and timeout             | R-004        | Unit tests: simulated success, error, and timeout all trigger cleanup                                   | Test report with finally-block coverage      |
+| Observability   | Each dispatch has unique traceId                                                               | R-005        | Unit test: unique traceId per call; integration test: different traceIds between A and B                | Test report with traceId uniqueness verified |
 
 **Unknown thresholds:** None — all story-level NFRs are structural isolation guarantees, not performance thresholds. No latency/throughput NFRs are in scope for this defensive hardening story.
 
@@ -110,21 +110,21 @@
 
 **Criteria:** Blocks core journey + High risk (≥6) + No workaround
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| AC 1 — createDispatchContext returns all required fields | Unit | R-001 | 1 | DEV | traceId, dispatchStart, activeTimers, activeControllers, errors, hasDegraded, dedupCache |
-| AC 1 — Unique traceId per call | Unit | R-005 | 1 | DEV | Two consecutive calls produce different traceId |
-| AC 1 — Empty timers/controllers on creation | Unit | R-001 | 1 | DEV | activeTimers and activeControllers are empty Sets |
-| AC 1 — Clean error state on creation | Unit | R-001 | 1 | DEV | errors empty, hasDegraded false |
-| AC 4 — cleanupContext clears all timers | Unit | R-002 | 1 | DEV | Timer cleared, activeTimers empty |
-| AC 4 — cleanupContext aborts all controllers | Unit | R-002 | 1 | DEV | Controller aborted, activeControllers empty |
-| AC 4 — cleanupContext is idempotent | Unit | R-004 | 1 | DEV | Double cleanup does not throw |
-| AC 4 — cleanupContext on empty context safe | Unit | R-004 | 1 | DEV | Cleanup on fresh context does not throw |
-| AC 2,5 — Sequential timeout isolation | Integration | R-001 | 1 | DEV | A times out → B returns valid result, no contamination |
-| AC 3,6 — Concurrent isolation | Integration | R-003 | 1 | DEV | Promise.all(find_code, get_symbol_context) → independent results |
-| AC 2,5 — Sequential error contamination | Integration | R-001 | 1 | DEV | A returns error → B returns valid result |
-| AC 3 — Concurrent valid AgentResponse shape | Integration | R-003 | 1 | DEV | Both dispatches return well-formed AgentResponse |
-| AC 2 — trace_id differs between A and B | Integration | R-005 | 1 | DEV | Sequential A and B have different trace_ids |
+| Requirement                                              | Test Level  | Risk Link | Test Count | Owner | Notes                                                                                    |
+| -------------------------------------------------------- | ----------- | --------- | ---------- | ----- | ---------------------------------------------------------------------------------------- |
+| AC 1 — createDispatchContext returns all required fields | Unit        | R-001     | 1          | DEV   | traceId, dispatchStart, activeTimers, activeControllers, errors, hasDegraded, dedupCache |
+| AC 1 — Unique traceId per call                           | Unit        | R-005     | 1          | DEV   | Two consecutive calls produce different traceId                                          |
+| AC 1 — Empty timers/controllers on creation              | Unit        | R-001     | 1          | DEV   | activeTimers and activeControllers are empty Sets                                        |
+| AC 1 — Clean error state on creation                     | Unit        | R-001     | 1          | DEV   | errors empty, hasDegraded false                                                          |
+| AC 4 — cleanupContext clears all timers                  | Unit        | R-002     | 1          | DEV   | Timer cleared, activeTimers empty                                                        |
+| AC 4 — cleanupContext aborts all controllers             | Unit        | R-002     | 1          | DEV   | Controller aborted, activeControllers empty                                              |
+| AC 4 — cleanupContext is idempotent                      | Unit        | R-004     | 1          | DEV   | Double cleanup does not throw                                                            |
+| AC 4 — cleanupContext on empty context safe              | Unit        | R-004     | 1          | DEV   | Cleanup on fresh context does not throw                                                  |
+| AC 2,5 — Sequential timeout isolation                    | Integration | R-001     | 1          | DEV   | A times out → B returns valid result, no contamination                                   |
+| AC 3,6 — Concurrent isolation                            | Integration | R-003     | 1          | DEV   | Promise.all(find_code, get_symbol_context) → independent results                         |
+| AC 2,5 — Sequential error contamination                  | Integration | R-001     | 1          | DEV   | A returns error → B returns valid result                                                 |
+| AC 3 — Concurrent valid AgentResponse shape              | Integration | R-003     | 1          | DEV   | Both dispatches return well-formed AgentResponse                                         |
+| AC 2 — trace_id differs between A and B                  | Integration | R-005     | 1          | DEV   | Sequential A and B have different trace_ids                                              |
 
 **Total P0**: 13 tests, ~4-6 hours
 
@@ -132,13 +132,13 @@
 
 **Criteria:** Important features + Medium risk (3-4) + Common workflows
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| AC 1 — Timer registration and auto-removal | Unit | R-002 | 1 | DEV | Register timer → resolve → removed from activeTimers |
-| AC 1 — Controller registration and auto-removal | Unit | R-002 | 1 | DEV | Register controller → resolve → removed from activeControllers |
-| AC 2 — B's metadata clean after A's timeout | Integration | R-001 | 1 | DEV | No error flags or degraded state in B's response |
-| AC 6 — Both concurrent returns valid shape | Integration | R-003 | 1 | DEV | Both results have valid AgentResponse shape |
-| AC 2 — Sequential isolation scenario | Integration | R-001 | 1 | DEV | Full sequential test: A timeout → B valid |
+| Requirement                                     | Test Level  | Risk Link | Test Count | Owner | Notes                                                          |
+| ----------------------------------------------- | ----------- | --------- | ---------- | ----- | -------------------------------------------------------------- |
+| AC 1 — Timer registration and auto-removal      | Unit        | R-002     | 1          | DEV   | Register timer → resolve → removed from activeTimers           |
+| AC 1 — Controller registration and auto-removal | Unit        | R-002     | 1          | DEV   | Register controller → resolve → removed from activeControllers |
+| AC 2 — B's metadata clean after A's timeout     | Integration | R-001     | 1          | DEV   | No error flags or degraded state in B's response               |
+| AC 6 — Both concurrent returns valid shape      | Integration | R-003     | 1          | DEV   | Both results have valid AgentResponse shape                    |
+| AC 2 — Sequential isolation scenario            | Integration | R-001     | 1          | DEV   | Full sequential test: A timeout → B valid                      |
 
 **Total P1**: 5 tests, ~2-3 hours
 
@@ -146,13 +146,13 @@
 
 **Criteria:** Secondary features + Low risk (1-2) + Edge cases
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| AC 1 — Custom traceId support | Unit | R-005 | 1 | DEV | Optional traceId parameter accepted |
-| AC 1 — dedupCache is fresh Map per context | Unit | R-001 | 1 | DEV | Two contexts have independent dedupCaches |
-| AC 1 — Errors array appends correctly | Unit | R-001 | 1 | DEV | ctx.errors accumulates; isolation verified |
-| AC 1 — hasDegraded toggles per context | Unit | R-001 | 1 | DEV | Setting on ctx A does not affect ctx B |
-| AC 4 — AbortController leakage (optional) | Integration | R-002 | 1 | DEV | 50 sequential dispatches; no memory growth |
+| Requirement                                | Test Level  | Risk Link | Test Count | Owner | Notes                                      |
+| ------------------------------------------ | ----------- | --------- | ---------- | ----- | ------------------------------------------ |
+| AC 1 — Custom traceId support              | Unit        | R-005     | 1          | DEV   | Optional traceId parameter accepted        |
+| AC 1 — dedupCache is fresh Map per context | Unit        | R-001     | 1          | DEV   | Two contexts have independent dedupCaches  |
+| AC 1 — Errors array appends correctly      | Unit        | R-001     | 1          | DEV   | ctx.errors accumulates; isolation verified |
+| AC 1 — hasDegraded toggles per context     | Unit        | R-001     | 1          | DEV   | Setting on ctx A does not affect ctx B     |
+| AC 4 — AbortController leakage (optional)  | Integration | R-002     | 1          | DEV   | 50 sequential dispatches; no memory growth |
 
 **Total P2**: 5 tests, ~1-2 hours
 
@@ -205,25 +205,28 @@
 
 ### Test Development Effort
 
-| Priority | Count | Hours/Test | Total Hours | Notes |
-| -------- | ----- | ---------- | ----------- | ----- |
-| P0 | 13 | — | ~4-6h | DispatchContext creation + cleanup + integration isolation scenarios |
-| P1 | 5 | — | ~2-3h | Auto-removal wiring, metadata isolation |
-| P2 | 5 | — | ~1-2h | Edge cases, dedupCache, optional memory test |
-| **Total** | **21** | **—** | **~7-11h** | **~1-2 days** |
+| Priority  | Count  | Hours/Test | Total Hours | Notes                                                                |
+| --------- | ------ | ---------- | ----------- | -------------------------------------------------------------------- |
+| P0        | 13     | —          | ~4-6h       | DispatchContext creation + cleanup + integration isolation scenarios |
+| P1        | 5      | —          | ~2-3h       | Auto-removal wiring, metadata isolation                              |
+| P2        | 5      | —          | ~1-2h       | Edge cases, dedupCache, optional memory test                         |
+| **Total** | **21** | **—**      | **~7-11h**  | **~1-2 days**                                                        |
 
 ### Prerequisites
 
 **Test Data:**
+
 - `createDispatchContext()` and `cleanupContext()` factory functions — defined in source code under test
 - `buildIntent()` from `tests/helpers/test-utils.ts` — reusable fixture for integration tests
 - `createMockMemtrace({ failureMode, delayMs, slowTools })` from `tests/fixtures/memtrace-mock.ts` — timeout/error simulation
 
 **Tooling:**
+
 - `vitest` for all test execution — pre-configured in `vitest.config.ts`
 - Node.js `AbortController` and `setTimeout`/`clearTimeout` — native runtime, no dependencies
 
 **Environment:**
+
 - Node.js >= 20 (project requirement)
 - Standard dev environment (no special setup needed)
 
@@ -329,12 +332,12 @@
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-| ----------------- | ------ | ---------------- |
-| **BaseAdapter** (`src/interface/base-adapter.ts`) | `runDispatch()` refactored to accept `DispatchContext` parameter; `dispatch()` gets `try/finally` with `cleanupContext()` | Existing `base-adapter-orchestration.test.ts` — all 6 tests must still pass |
-| **Fusion engine** (`src/fusion/engine.ts`) | No change — pure function, already safe | No regression scope |
-| **Integration tests** (`transport-roundtrip.test.ts`) | New `isolation.test.ts` added | All existing integration tests continue unchanged |
-| **Barrel exports** (`src/index.ts`) | May export `DispatchContext` type if made public | New type export reviewed for public API stability |
+| Service/Component                                     | Impact                                                                                                                    | Regression Scope                                                            |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **BaseAdapter** (`src/interface/base-adapter.ts`)     | `runDispatch()` refactored to accept `DispatchContext` parameter; `dispatch()` gets `try/finally` with `cleanupContext()` | Existing `base-adapter-orchestration.test.ts` — all 6 tests must still pass |
+| **Fusion engine** (`src/fusion/engine.ts`)            | No change — pure function, already safe                                                                                   | No regression scope                                                         |
+| **Integration tests** (`transport-roundtrip.test.ts`) | New `isolation.test.ts` added                                                                                             | All existing integration tests continue unchanged                           |
+| **Barrel exports** (`src/index.ts`)                   | May export `DispatchContext` type if made public                                                                          | New type export reviewed for public API stability                           |
 
 ---
 

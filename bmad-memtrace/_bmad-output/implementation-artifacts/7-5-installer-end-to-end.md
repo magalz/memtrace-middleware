@@ -75,33 +75,35 @@ The `install-bmad-memtrace.sh` script was built in Epic 1 (commit `58f073eb`). I
 
 Two test files already exist and are fully functional. They are NOT wired into npm scripts — this story wires them in (same pattern as story 7.4).
 
-| Test File | Tests | Runner | npm script key proposed |
-|-----------|-------|--------|------------------------|
+| Test File                        | Tests        | Runner            | npm script key proposed     |
+| -------------------------------- | ------------ | ----------------- | --------------------------- |
 | `test/test-inject-mcp-config.js` | 6 assertions | Custom `assert()` | `test:installer:inject-mcp` |
-| `test/verify-installer.js` | 7 assertions | Custom `assert()` | `test:installer:verify` |
+| `test/verify-installer.js`       | 7 assertions | Custom `assert()` | `test:installer:verify`     |
 
 **CRITICAL**: Both test files use a custom `assert()` function (NOT `node:test`). They must be run as `node <file>` (not `node --test <file>`). They exit with code 1 on failure.
 
 **`verify-installer.js` requirements**:
+
 - Requires `bash` executable (Git Bash on Windows: `C:\Program Files\Git\bin\bash.exe`)
 - Creates temp directory, initializes git repo, copies installer + injector, runs installer, asserts results
 - Tests all 7 assertions: anchor file created, legacy files deleted, `.git` removed, staging removed, `_bmad/` preserved, Claude config injected, OpenCode config injected
 - Cleans up temp directory after execution regardless of pass/fail
 
 **`test-inject-mcp-config.js` requirements**:
+
 - Tests 3 scenarios for each mode (Claude/OpenCode): file doesn't exist, file exists with other servers, file exists with memtrace already configured
 - Uses temp directory, runs `node _bmad/scripts/memtrace/inject-mcp-config.mjs --mode {claude|opencode}` with `TEST_*_CONFIG_PATH` env overrides
 - 6 total assertions (3 Claude + 3 OpenCode)
 
 ### Existing Installer Script Location
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `package.json` | **MODIFY** | Add 2 npm scripts (`test:installer:inject-mcp`, `test:installer:verify`) |
-| `install-bmad-memtrace.sh` | READ ONLY | The installer under validation — review completeness |
-| `_bmad/scripts/memtrace/inject-mcp-config.mjs` | READ ONLY | MCP config injector invoked by installer |
-| `test/verify-installer.js` | READ ONLY | 7 assertion test, unwired |
-| `test/test-inject-mcp-config.js` | READ ONLY | 6 assertion test, unwired |
+| File                                           | Action     | Purpose                                                                  |
+| ---------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
+| `package.json`                                 | **MODIFY** | Add 2 npm scripts (`test:installer:inject-mcp`, `test:installer:verify`) |
+| `install-bmad-memtrace.sh`                     | READ ONLY  | The installer under validation — review completeness                     |
+| `_bmad/scripts/memtrace/inject-mcp-config.mjs` | READ ONLY  | MCP config injector invoked by installer                                 |
+| `test/verify-installer.js`                     | READ ONLY  | 7 assertion test, unwired                                                |
+| `test/test-inject-mcp-config.js`               | READ ONLY  | 6 assertion test, unwired                                                |
 
 ### Package.json Script Additions
 
@@ -113,6 +115,7 @@ Add these scripts in **alphabetical order** within the scripts block:
 ```
 
 Current alphabetical position: between `test:install` and `test:memtrace:adapter`:
+
 ```
 "test:install": "node test/test-installation-components.js",
 "test:installer:inject-mcp": "node test/test-inject-mcp-config.js",   ← NEW
@@ -133,6 +136,7 @@ Current alphabetical position: between `test:install` and `test:memtrace:adapter
 ### Previous Story Intelligence (Story 7.4)
 
 From `7-4-adapter-scripts-smoke-test.md`:
+
 - **Pattern for wiring tests**: Add npm scripts between `test:install` and `test:memtrace:adapter` in alphabetical order. Wire with `node <file>` for custom runner tests.
 - **Quality pipeline**: `npm run quality` runs 10 sub-checks. Pre-existing 93 prettier formatting issues in unrelated files documented.
 - **ESM/CJS conventions**: `_bmad/scripts/memtrace/` uses ESM (`.mjs`). `test/` uses CJS (`.js` with `require`). Keep existing conventions.
@@ -140,18 +144,22 @@ From `7-4-adapter-scripts-smoke-test.md`:
 - **Inner repo rule**: All paths resolve inside `D:\Repos\bmad-memtrace\bmad-memtrace`.
 
 From Story 7.3:
+
 - **Quality pipeline additions**: `validate:skills`, `validate:tool-refs`, `validate:boundaries` were added to quality chain. Installer tests should NOT be added to quality chain.
 - **CRLF bug pattern**: Watch for CRLF issues if editing files on Windows.
 
 From Story 7.2:
+
 - New validators in `tools/` use ESM `.mjs`. Test files in `test/` use CJS `.js`. Maintain existing conventions.
 
 From Story 7.1:
+
 - File boundary validator checks inner repo vs outer workspace. Installer is in inner repo root — correct location.
 
 ### Git Intelligence
 
 Recent commits:
+
 ```
 d03623ea feat(story-7.4): wire memtrace test suites into npm scripts and add smoke test
 01aaced7 feat(story-7.3): fix CRLF parser bug in validate-skills.js and resolve 2 LOW findings
@@ -163,20 +171,21 @@ Pattern: Each story wires existing tests/suite into npm scripts. The installer t
 
 ### Installer Coverage vs. Manual Test Scope
 
-| AC from Epics 1.1-1.3 | Automated by verify-installer.js | Requires Manual Test |
-|------------------------|----------------------------------|---------------------|
-| Legacy clone cleanup (`.git/` removed) | Yes | Yes (fresh clone) |
-| Tracked files deleted | Yes (README.md) | Yes (real repo files) |
-| Core files preserved (`_bmad/`, `.agents/`, `package.json`) | Yes | Yes |
-| `.memtrace-workspace` created | Yes | Yes |
-| `claude_desktop_config.json` injected | Yes (via TEST_*_CONFIG_PATH) | Yes (real config) |
-| `opencode.json` injected | Yes (via TEST_*_CONFIG_PATH) | Yes (real config) |
-| Interactive mode prompt (Memtrace/Vanilla) | **No** (tests only Memtrace path) | **Yes (critical)** |
-| Vanilla mode abort + redirect message | **No** | **Yes** |
-| MCP server connects after install | **No** | **Yes** |
-| Dev Agent can query Memtrace via adapter | **No** | **Yes** |
+| AC from Epics 1.1-1.3                                       | Automated by verify-installer.js  | Requires Manual Test  |
+| ----------------------------------------------------------- | --------------------------------- | --------------------- |
+| Legacy clone cleanup (`.git/` removed)                      | Yes                               | Yes (fresh clone)     |
+| Tracked files deleted                                       | Yes (README.md)                   | Yes (real repo files) |
+| Core files preserved (`_bmad/`, `.agents/`, `package.json`) | Yes                               | Yes                   |
+| `.memtrace-workspace` created                               | Yes                               | Yes                   |
+| `claude_desktop_config.json` injected                       | Yes (via TEST\_\*\_CONFIG_PATH)   | Yes (real config)     |
+| `opencode.json` injected                                    | Yes (via TEST\_\*\_CONFIG_PATH)   | Yes (real config)     |
+| Interactive mode prompt (Memtrace/Vanilla)                  | **No** (tests only Memtrace path) | **Yes (critical)**    |
+| Vanilla mode abort + redirect message                       | **No**                            | **Yes**               |
+| MCP server connects after install                           | **No**                            | **Yes**               |
+| Dev Agent can query Memtrace via adapter                    | **No**                            | **Yes**               |
 
 The automated tests cover 6 of 10 verification points. The remaining 4 require manual testing by Magal:
+
 1. Interactive mode prompt acceptance
 2. Vanilla mode abort behavior
 3. MCP server connectivity
@@ -216,7 +225,7 @@ FRESH CLONE TEST PROCEDURE:
 
 7. Verify MCP server connectivity:
    memtrace mcp  → should start without errors
-   
+
 8. Verify adapter query:
    node _bmad/scripts/memtrace/memtrace-adapter.mjs --query list_repos
    → should return valid JSON with repositories array
@@ -319,7 +328,7 @@ Modifications made to `install-bmad-memtrace.sh` after user manual test feedback
 - **Bugfix**: `cp -a "$INSTALL_DIR"/* .` → `cp -a "$INSTALL_DIR"/. .` — glob `*` in bash does NOT match dotfiles, so `.agents/` was never restored after staging. This caused ALL BMAD skills to be missing from the installed environment.
 - **Bugfix**: Added whitespace trimming (`sed 's/^[[:space:]]*//;s/[[:space:]]*$//'`) — first "vanilla" attempt failed because input contained a leading space.
 - **UX**: Mode selection changed from typing "Memtrace"/"Vanilla" to numeric "1/2". Backwards-compatible: "memtrace"/"vanilla" text input still accepted.
-- **Architecture**: Script now runs the standard BMad Node.js installer (`node tools/installer/bmad-cli.js install --directory .`) as Step 1, BEFORE the Memtrace cleanup (Step 2). This ensures the installed directory structure matches the original `bmad-method` exactly (config.toml, config.user.toml, _bmad/core/, _bmad/bmm/, _bmad-output/, IDE-specific skill directories).
+- **Architecture**: Script now runs the standard BMad Node.js installer (`node tools/installer/bmad-cli.js install --directory .`) as Step 1, BEFORE the Memtrace cleanup (Step 2). This ensures the installed directory structure matches the original `bmad-method` exactly (config.toml, config.user.toml, \_bmad/core/, \_bmad/bmm/, \_bmad-output/, IDE-specific skill directories).
 - **Memtrace preservation**: `_bmad/scripts/memtrace/` is backed up before the Node.js installer runs (which overwrites `_bmad/scripts/`) and restored immediately after.
 - **Dependency management**: If Node.js deps are missing, `npm ci --omit=dev` runs automatically before the installer.
 - **Cleanup**: `node_modules/` is removed at the end (deps only needed during installation).
@@ -334,29 +343,29 @@ Modifications made to `install-bmad-memtrace.sh` after user manual test feedback
 
 User tested fresh clone against `bmad-method-vanilla`. Results:
 
-| Item | Vanilla | Memtrace | Veredito |
-|------|---------|----------|----------|
-| `_bmad-output/` | `implementation-artifacts/` + `planning-artifacts/` | idêntico | ✅ |
-| `_bmad/` | `_config/`, `bmm/`, `core/`, `custom/`, `scripts/`, `config.toml`, `config.user.toml` | idêntico + `scripts/memtrace/` | ✅ |
-| `.agent/` | 44 skills | mesmas 44 | ✅ |
-| `.agents/` | 44 skills | 44 + 7 memtrace | ✅ |
-| `.opencode/` | 44 commands | mesmos 44 | ✅ |
-| `docs/` | vazio (módulo não selecionado) | 12 entradas | ✅ |
-| `.memtrace-workspace` | ❌ | ✅ | Esperado |
-| `opencode.json` | ❌ | ✅ | Esperado (MCP config) |
-| `package.json` | ❌ | ✅ | Esperado (npm scripts) |
-| Installers (`.sh`/`.bat`) | ❌ | ❌ limpos | ✅ |
-| Leftovers (`.augment/`, `.vscode/`, `src/`, etc.) | ❌ | ❌ limpos | ✅ |
+| Item                                              | Vanilla                                                                               | Memtrace                       | Veredito               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------ | ---------------------- |
+| `_bmad-output/`                                   | `implementation-artifacts/` + `planning-artifacts/`                                   | idêntico                       | ✅                     |
+| `_bmad/`                                          | `_config/`, `bmm/`, `core/`, `custom/`, `scripts/`, `config.toml`, `config.user.toml` | idêntico + `scripts/memtrace/` | ✅                     |
+| `.agent/`                                         | 44 skills                                                                             | mesmas 44                      | ✅                     |
+| `.agents/`                                        | 44 skills                                                                             | 44 + 7 memtrace                | ✅                     |
+| `.opencode/`                                      | 44 commands                                                                           | mesmos 44                      | ✅                     |
+| `docs/`                                           | vazio (módulo não selecionado)                                                        | 12 entradas                    | ✅                     |
+| `.memtrace-workspace`                             | ❌                                                                                    | ✅                             | Esperado               |
+| `opencode.json`                                   | ❌                                                                                    | ✅                             | Esperado (MCP config)  |
+| `package.json`                                    | ❌                                                                                    | ✅                             | Esperado (npm scripts) |
+| Installers (`.sh`/`.bat`)                         | ❌                                                                                    | ❌ limpos                      | ✅                     |
+| Leftovers (`.augment/`, `.vscode/`, `src/`, etc.) | ❌                                                                                    | ❌ limpos                      | ✅                     |
 
 Estrutura idêntica ao vanilla + adições intencionais do Memtrace. Instalador removido ao final. Sem lixo residual.
 
 ### File List
 
-| File | Status | Purpose |
-|------|--------|---------|
-| `package.json` | MODIFIED | Added 2 npm scripts for installer tests |
-| `install-bmad-memtrace.sh` | MODIFIED | Step 1 (standard BMad installer) + Step 2 (destructive cleanup + restore from staging) |
-| `install-memtrace.bat` | ADDED | Windows batch wrapper — double-clickable, auto-finds Git Bash |
-| `_bmad/scripts/memtrace/inject-mcp-config.mjs` | READ ONLY | MCP config injector |
-| `test/test-inject-mcp-config.js` | READ ONLY | 12-assertion MCP injector test |
-| `test/verify-installer.js` | READ ONLY | 7-assertion installer verification test |
+| File                                           | Status    | Purpose                                                                                |
+| ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------- |
+| `package.json`                                 | MODIFIED  | Added 2 npm scripts for installer tests                                                |
+| `install-bmad-memtrace.sh`                     | MODIFIED  | Step 1 (standard BMad installer) + Step 2 (destructive cleanup + restore from staging) |
+| `install-memtrace.bat`                         | ADDED     | Windows batch wrapper — double-clickable, auto-finds Git Bash                          |
+| `_bmad/scripts/memtrace/inject-mcp-config.mjs` | READ ONLY | MCP config injector                                                                    |
+| `test/test-inject-mcp-config.js`               | READ ONLY | 12-assertion MCP injector test                                                         |
+| `test/verify-installer.js`                     | READ ONLY | 7-assertion installer verification test                                                |

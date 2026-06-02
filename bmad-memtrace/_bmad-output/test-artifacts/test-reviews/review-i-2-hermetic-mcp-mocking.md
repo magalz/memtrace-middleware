@@ -1,5 +1,11 @@
 ---
-stepsCompleted: ['step-01-load-context', 'step-02-quality-evaluation', 'step-03-aggregate-scores', 'step-04-generate-report']
+stepsCompleted:
+  [
+    'step-01-load-context',
+    'step-02-quality-evaluation',
+    'step-03-aggregate-scores',
+    'step-04-generate-report',
+  ]
 lastStep: 'step-04-generate-report'
 lastSaved: '2026-05-29'
 workflowType: 'testarch-test-review'
@@ -61,23 +67,23 @@ This story delivers a well-architected zero-dependency mock MCP server that make
 
 ## Quality Criteria Assessment
 
-| Criterion                            | Status                          | Violations | Notes        |
-| ------------------------------------ | ------------------------------- | ---------- | ------------ |
-| BDD Format (Given-When-Then)         | ⚠️ WARN                         | 0          | Descriptive naming, not formal GWT |
-| Test IDs                             | ❌ FAIL                         | 0          | No unique test IDs (carried from i-1) |
-| Priority Markers (P0/P1/P2/P3)       | ❌ FAIL                         | 0          | No inline priority annotations |
-| Hard Waits (sleep, waitForTimeout)   | ✅ PASS                         | 0          | No hard waits; mock uses controlled setTimeout for delay |
-| Determinism (no conditionals)        | ✅ PASS                         | 0          | All fallback branches removed |
-| Isolation (cleanup, no shared state) | ✅ PASS                         | 0          | Fresh instances per test; `try/finally` env var restoration |
-| Fixture Patterns                     | ✅ PASS                         | 0          | `makeMockChild()` and `memtrace-fixtures.mjs` are clean patterns |
-| Data Factories                       | ✅ PASS                         | 0          | `makeMockChild()` is an effective factory |
-| Protocol Compliance Verification     | ❌ FAIL                         | 2          | `notifications/initialized` and shutdown notification untested |
-| Failure-Mode Coverage                | ⚠️ WARN                         | 3          | Only timeout path tested; 3 failure modes untested |
-| Fixture Completeness                 | ⚠️ WARN                         | 3          | 3 fixture types not called from integration tests |
-| Explicit Assertions                  | ✅ PASS                         | 0          | All assertions visible via `assert.strict` |
-| Test Length (≤300 lines)             | ✅ PASS                         | 0          | Well under limit |
-| Test Duration (≤1.5 min)             | ✅ PASS                         | 0          | ~12.5s Windows; ~7s estimated Linux |
-| Flakiness Patterns                   | ✅ PASS                         | 0          | No flakiness detected |
+| Criterion                            | Status  | Violations | Notes                                                            |
+| ------------------------------------ | ------- | ---------- | ---------------------------------------------------------------- |
+| BDD Format (Given-When-Then)         | ⚠️ WARN | 0          | Descriptive naming, not formal GWT                               |
+| Test IDs                             | ❌ FAIL | 0          | No unique test IDs (carried from i-1)                            |
+| Priority Markers (P0/P1/P2/P3)       | ❌ FAIL | 0          | No inline priority annotations                                   |
+| Hard Waits (sleep, waitForTimeout)   | ✅ PASS | 0          | No hard waits; mock uses controlled setTimeout for delay         |
+| Determinism (no conditionals)        | ✅ PASS | 0          | All fallback branches removed                                    |
+| Isolation (cleanup, no shared state) | ✅ PASS | 0          | Fresh instances per test; `try/finally` env var restoration      |
+| Fixture Patterns                     | ✅ PASS | 0          | `makeMockChild()` and `memtrace-fixtures.mjs` are clean patterns |
+| Data Factories                       | ✅ PASS | 0          | `makeMockChild()` is an effective factory                        |
+| Protocol Compliance Verification     | ❌ FAIL | 2          | `notifications/initialized` and shutdown notification untested   |
+| Failure-Mode Coverage                | ⚠️ WARN | 3          | Only timeout path tested; 3 failure modes untested               |
+| Fixture Completeness                 | ⚠️ WARN | 3          | 3 fixture types not called from integration tests                |
+| Explicit Assertions                  | ✅ PASS | 0          | All assertions visible via `assert.strict`                       |
+| Test Length (≤300 lines)             | ✅ PASS | 0          | Well under limit                                                 |
+| Test Duration (≤1.5 min)             | ✅ PASS | 0          | ~12.5s Windows; ~7s estimated Linux                              |
+| Flakiness Patterns                   | ✅ PASS | 0          | No flakiness detected                                            |
 
 **Total Violations**: 0 Critical, 5 High, 3 Medium, 0 Low
 
@@ -109,91 +115,99 @@ Grade:                   B+
 
 ### Dimension Scores (Parallel Evaluation)
 
-| Dimension          | Score | Grade | Key Findings |
-|-------------------|-------|-------|-------------|
-| Determinism       | 100   | A+    | All tests deterministic. Conditional branches removed. Fallback paths eliminated. |
-| Isolation         | 95    | A     | Fresh McpClient instances per test. Console.error restored. Env vars restored via try/finally. |
-| Maintainability   | 80    | B     | Clean mock/fixture separation. Missing test IDs and priority markers. Story doc fixture schema out of sync. |
-| Completeness      | 72    | C+    | Only 3/6 query types integration-tested. Only 1/4 failure modes tested. Protocol handshake unverified. |
-| Performance       | 90    | A-    | ~12.5s on Windows. Mock overhead is negligible. Would be <10s on Linux. |
+| Dimension       | Score | Grade | Key Findings                                                                                                |
+| --------------- | ----- | ----- | ----------------------------------------------------------------------------------------------------------- |
+| Determinism     | 100   | A+    | All tests deterministic. Conditional branches removed. Fallback paths eliminated.                           |
+| Isolation       | 95    | A     | Fresh McpClient instances per test. Console.error restored. Env vars restored via try/finally.              |
+| Maintainability | 80    | B     | Clean mock/fixture separation. Missing test IDs and priority markers. Story doc fixture schema out of sync. |
+| Completeness    | 72    | C+    | Only 3/6 query types integration-tested. Only 1/4 failure modes tested. Protocol handshake unverified.      |
+| Performance     | 90    | A-    | ~12.5s on Windows. Mock overhead is negligible. Would be <10s on Linux.                                     |
 
 **Weighted dimensions**: Determinism 0.25, Isolation 0.2, Maintainability 0.2, Completeness 0.25, Performance 0.1
 **Weighted score**: (100×0.25) + (95×0.2) + (80×0.2) + (72×0.25) + (90×0.1) = 25 + 19 + 16 + 18 + 9 = **87**
 
-*Note: The discrepancy between the raw (84) and weighted (87) score reflects the weighted model assigning lower impact to unused-fixture gaps (the core determinism win is weighted more heavily). The raw score represents the stricter audit perspective.*
+_Note: The discrepancy between the raw (84) and weighted (87) score reflects the weighted model assigning lower impact to unused-fixture gaps (the core determinism win is weighted more heavily). The raw score represents the stricter audit perspective._
 
 ---
 
 ## 1. Test Completeness — Acceptance Criteria Coverage
 
 ### AC #1: Mock server over stdio, zero deps
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ Mock exists at `memtrace-mock.mjs` | File present, 193 lines | — |
-| ✅ Zero external dependencies | Only `readline` from Node.js | — |
-| ✅ JSON-RPC 2.0 over stdio | `readline` on stdin, `process.stdout.write` + `\n` | — |
-| ✅ Responds to `initialize`, `tools/list`, `tools/call`, `shutdown` | All handlers implemented | — |
-| ⚠️ Protocol compliance verified | No test verifies the wire format (id field, jsonrpc field, notification shape) | **No explicit protocol-compliance assertion** |
+
+| Coverage                                                            | Evidence                                                                       | Gap                                           |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------- |
+| ✅ Mock exists at `memtrace-mock.mjs`                               | File present, 193 lines                                                        | —                                             |
+| ✅ Zero external dependencies                                       | Only `readline` from Node.js                                                   | —                                             |
+| ✅ JSON-RPC 2.0 over stdio                                          | `readline` on stdin, `process.stdout.write` + `\n`                             | —                                             |
+| ✅ Responds to `initialize`, `tools/list`, `tools/call`, `shutdown` | All handlers implemented                                                       | —                                             |
+| ⚠️ Protocol compliance verified                                     | No test verifies the wire format (id field, jsonrpc field, notification shape) | **No explicit protocol-compliance assertion** |
 
 ### AC #2: tools/call with 6 query types
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ `get_impact` fixture returns correct shape | Tested via adapter integration tests | — |
-| ✅ `find_dead_code` fixture returns correct shape | Tested via adapter integration tests | — |
-| ✅ `list_repos` fixture returns correct shape | Tested via adapter integration tests | — |
-| ❌ `find_code` fixture not integration-tested | Fixture exists but never called through adapter | **No coverage** |
-| ❌ `get_symbol_context` fixture not integration-tested | Fixture exists but never called through adapter | **No coverage** |
-| ❌ `memtrace_check_freshness` fixture not integration-tested | Tool handler exists in mock but adapter never calls it; uses `list_indexed_repositories` instead | **Unused fixture** |
-| ✅ `request.id` matching | Unit tests verify id-based dispatch | — |
-| ❌ `notifications/initialized` after initialize | Mock sends it but no test asserts it appears on stderr/stdout | **No verification** |
+
+| Coverage                                                     | Evidence                                                                                         | Gap                 |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ------------------- |
+| ✅ `get_impact` fixture returns correct shape                | Tested via adapter integration tests                                                             | —                   |
+| ✅ `find_dead_code` fixture returns correct shape            | Tested via adapter integration tests                                                             | —                   |
+| ✅ `list_repos` fixture returns correct shape                | Tested via adapter integration tests                                                             | —                   |
+| ❌ `find_code` fixture not integration-tested                | Fixture exists but never called through adapter                                                  | **No coverage**     |
+| ❌ `get_symbol_context` fixture not integration-tested       | Fixture exists but never called through adapter                                                  | **No coverage**     |
+| ❌ `memtrace_check_freshness` fixture not integration-tested | Tool handler exists in mock but adapter never calls it; uses `list_indexed_repositories` instead | **Unused fixture**  |
+| ✅ `request.id` matching                                     | Unit tests verify id-based dispatch                                                              | —                   |
+| ❌ `notifications/initialized` after initialize              | Mock sends it but no test asserts it appears on stderr/stdout                                    | **No verification** |
 
 ### AC #3: MEMTRACE_MOCK_PATH env var injection
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ Mock path injected via spawn() | `memtrace-adapter.mjs:168-179` | — |
-| ✅ All integration tests use mock | `process.env.MEMTRACE_MOCK_PATH = MOCK_PATH` at line 13 | — |
+
+| Coverage                                          | Evidence                                                    | Gap                |
+| ------------------------------------------------- | ----------------------------------------------------------- | ------------------ |
+| ✅ Mock path injected via spawn()                 | `memtrace-adapter.mjs:168-179`                              | —                  |
+| ✅ All integration tests use mock                 | `process.env.MEMTRACE_MOCK_PATH = MOCK_PATH` at line 13     | —                  |
 | ⚠️ Backward compatibility (unset = real memtrace) | Stated but cannot be tested without real memtrace installed | **Acceptable gap** |
 
 ### AC #4: Fixture data field shapes
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ `get_impact` has `target`, `risk_level`, `affected_symbols`, `total_count` | Verified in integration test (lines 296-310) | — |
-| ✅ `find_dead_code` has `symbols[]` with `name`, `file` | Verified in integration test (lines 312-331) | — |
-| ✅ `list_repos` has `repositories[]` with `freshness` | Verified in integration test (lines 276-294) | — |
-| ❌ `get_symbol_context` fields not verified | No test exercises this query | **Gap** |
-| ❌ `find_code` fields not verified | No test exercises this query | **Gap** |
-| ⚠️ Fixture field name mismatch | Story doc says `risk_level`, fixture has `risk`. Story doc says `total_count` in schema, fixture has `total_affected`. | **Doc/impl drift** |
+
+| Coverage                                                                      | Evidence                                                                                                               | Gap                |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| ✅ `get_impact` has `target`, `risk_level`, `affected_symbols`, `total_count` | Verified in integration test (lines 296-310)                                                                           | —                  |
+| ✅ `find_dead_code` has `symbols[]` with `name`, `file`                       | Verified in integration test (lines 312-331)                                                                           | —                  |
+| ✅ `list_repos` has `repositories[]` with `freshness`                         | Verified in integration test (lines 276-294)                                                                           | —                  |
+| ❌ `get_symbol_context` fields not verified                                   | No test exercises this query                                                                                           | **Gap**            |
+| ❌ `find_code` fields not verified                                            | No test exercises this query                                                                                           | **Gap**            |
+| ⚠️ Fixture field name mismatch                                                | Story doc says `risk_level`, fixture has `risk`. Story doc says `total_count` in schema, fixture has `total_affected`. | **Doc/impl drift** |
 
 ### AC #5: Failure-mode simulation
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ `memtrace_deadline` timeout | Tested via env var `MEMTRACE_MOCK_DEADLINE_MS=5000` (lines 346-360, 408-423) | — |
-| ❌ `memtrace_fail: true` | Mock supports it, no test exercises it | **Gap** |
-| ❌ `memtrace_bad_json: true` | Mock supports it, no test exercises it | **Gap** |
+
+| Coverage                              | Evidence                                                                                                    | Gap     |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------- |
+| ✅ `memtrace_deadline` timeout        | Tested via env var `MEMTRACE_MOCK_DEADLINE_MS=5000` (lines 346-360, 408-423)                                | —       |
+| ❌ `memtrace_fail: true`              | Mock supports it, no test exercises it                                                                      | **Gap** |
+| ❌ `memtrace_bad_json: true`          | Mock supports it, no test exercises it                                                                      | **Gap** |
 | ❌ `memtrace_order` (via mock server) | Mock supports it; only `makeMockChild()` unit test tests out-of-order (in-process, not through mock server) | **Gap** |
 
 ### AC #6: All 60 tests pass deterministically
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ 60 tests pass | Stated as complete | — |
-| ✅ All conditional branches removed | Verified in test file — no `if (r.code === 0)` patterns | — |
-| ✅ Timeout detection via `MEMTRACE_MCP_ERROR_TIMEOUT` | Tested in dedicated describe block (lines 365-423) | — |
-| ⚠️ <10 second completion | ~12.5s on Windows. Would be ~7s on Linux (mock overhead negligible). | **Windows slightly over** |
+
+| Coverage                                              | Evidence                                                             | Gap                       |
+| ----------------------------------------------------- | -------------------------------------------------------------------- | ------------------------- |
+| ✅ 60 tests pass                                      | Stated as complete                                                   | —                         |
+| ✅ All conditional branches removed                   | Verified in test file — no `if (r.code === 0)` patterns              | —                         |
+| ✅ Timeout detection via `MEMTRACE_MCP_ERROR_TIMEOUT` | Tested in dedicated describe block (lines 365-423)                   | —                         |
+| ⚠️ <10 second completion                              | ~12.5s on Windows. Would be ~7s on Linux (mock overhead negligible). | **Windows slightly over** |
 
 ### AC #7: Shutdown/kill cleanup
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ Shutdown no-op on null/exited child | Unit tests (lines 590-603) | — |
-| ✅ Kill rejects pending requests, clears timers | Unit tests (lines 606-652) | — |
-| ✅ Kill idempotent | Unit test (line 635-646) | — |
+
+| Coverage                                        | Evidence                   | Gap |
+| ----------------------------------------------- | -------------------------- | --- |
+| ✅ Shutdown no-op on null/exited child          | Unit tests (lines 590-603) | —   |
+| ✅ Kill rejects pending requests, clears timers | Unit tests (lines 606-652) | —   |
+| ✅ Kill idempotent                              | Unit test (line 635-646)   | —   |
 
 ### AC #8: MEMTRACE_DEBUG=1 instrumentation
-| Coverage | Evidence | Gap |
-|----------|----------|-----|
-| ✅ debugLog no-ops when MEMTRACE_DEBUG unset | Unit test (line 690-694) | — |
-| ✅ Adapter runs without crash with MEMTRACE_DEBUG=1 | Integration test (line 696-709) | — |
-| ❌ [MemtraceMock] lines verified on stderr | Mock emits them when DEBUG=1 but no test asserts they appear | **Gap** |
-| ❌ MEMTRACE_MOCK_PATH not leaked to stdout | Stated but not explicitly tested | **Low risk gap** |
+
+| Coverage                                            | Evidence                                                     | Gap              |
+| --------------------------------------------------- | ------------------------------------------------------------ | ---------------- |
+| ✅ debugLog no-ops when MEMTRACE_DEBUG unset        | Unit test (line 690-694)                                     | —                |
+| ✅ Adapter runs without crash with MEMTRACE_DEBUG=1 | Integration test (line 696-709)                              | —                |
+| ❌ [MemtraceMock] lines verified on stderr          | Mock emits them when DEBUG=1 but no test asserts they appear | **Gap**          |
+| ❌ MEMTRACE_MOCK_PATH not leaked to stdout          | Stated but not explicitly tested                             | **Low risk gap** |
 
 ---
 
@@ -201,26 +215,26 @@ Grade:                   B+
 
 ### JSON-RPC 2.0 Compliance
 
-| Requirement | Status | Evidence |
-|-------------|--------|----------|
-| Valid `jsonrpc: "2.0"` field | ✅ | All `sendResponse`, `sendError`, `sendNotification` include it |
-| `id` field in requests | ✅ | Echoes request `id` |
-| `id` field absent in notifications | ✅ | `sendNotification()` omits `id` |
-| Newline-delimited framing | ✅ | Every write appends `\n` |
-| Error object format | ✅ | `{code, message}` per spec |
-| Unknown method → error code -32601 | ✅ | Default case in switch |
-| Response `result` is valid JSON | ✅ | All fixtures produce serializable objects |
+| Requirement                        | Status | Evidence                                                       |
+| ---------------------------------- | ------ | -------------------------------------------------------------- |
+| Valid `jsonrpc: "2.0"` field       | ✅     | All `sendResponse`, `sendError`, `sendNotification` include it |
+| `id` field in requests             | ✅     | Echoes request `id`                                            |
+| `id` field absent in notifications | ✅     | `sendNotification()` omits `id`                                |
+| Newline-delimited framing          | ✅     | Every write appends `\n`                                       |
+| Error object format                | ✅     | `{code, message}` per spec                                     |
+| Unknown method → error code -32601 | ✅     | Default case in switch                                         |
+| Response `result` is valid JSON    | ✅     | All fixtures produce serializable objects                      |
 
 ### MCP-specific Compliance
 
-| Requirement | Status | Evidence |
-|-------------|--------|----------|
-| Initialize response with `capabilities` | ✅ | `sendResponse(id, { capabilities: { tools: {} }, protocolVersion, serverInfo })` |
-| `notifications/initialized` after initialize | ✅ | Sent immediately after initialize response |
-| `tools/list` returns `{tools: [...]}` | ✅ | Wraps TOOL_SCHEMAS in `{tools: TOOL_SCHEMAS}` |
-| `tools/call` dispatches by `params.name` | ✅ | Switch on `name` |
-| `shutdown` response | ✅ | Returns `{}` |
-| `notifications/exited` on shutdown | ✅ | Sent before shutdown response |
+| Requirement                                  | Status | Evidence                                                                         |
+| -------------------------------------------- | ------ | -------------------------------------------------------------------------------- |
+| Initialize response with `capabilities`      | ✅     | `sendResponse(id, { capabilities: { tools: {} }, protocolVersion, serverInfo })` |
+| `notifications/initialized` after initialize | ✅     | Sent immediately after initialize response                                       |
+| `tools/list` returns `{tools: [...]}`        | ✅     | Wraps TOOL_SCHEMAS in `{tools: TOOL_SCHEMAS}`                                    |
+| `tools/call` dispatches by `params.name`     | ✅     | Switch on `name`                                                                 |
+| `shutdown` response                          | ✅     | Returns `{}`                                                                     |
+| `notifications/exited` on shutdown           | ✅     | Sent before shutdown response                                                    |
 
 ### Gaps
 
@@ -236,14 +250,14 @@ Grade:                   B+
 
 ### Fixture Structure Audit
 
-| Fixture | Fields | Matching Adapter Consumption | Issues |
-|---------|--------|-----------------------------|--------|
-| `get_impact` | `target`, `risk: 'Medium'`, `affected_symbols[5]` with `{name, file, line, depth, complexity_score}`, `affected_files[5]`, `total_affected: 5` | ✅ `result.risk`, `result.affected_symbols`, `result.total_affected`, `result.affected_files` | `line` values are strings (`'42'`, `'128'`) not numbers. Adapter uses `s.depth || 1` which is fine. |
-| `find_code` | `results[3]` with `{name, file_path, start_line, kind, complexity_score}` | ❌ Never called through adapter | Unused in integration tests |
-| `find_dead_code` | `symbols[3]` with `{name, kind, file, line, complexity_score, risk_level}` | ✅ `result.symbols`, `s.name`, `s.file`, `s.line` | `line` values are numbers (correct). No `complexity_score` mapping in adapter output. |
-| `get_symbol_context` | `callers[3]`, `callees[3]`, `communities[2]`, `processes[1]` | ❌ Never called through adapter | Unused in integration tests |
-| `list_repos` | `repos[2]` with `{repo_id, last_indexed_at, total_nodes}` | ✅ `result.repos`, `r.repo_id`, `r.last_indexed_at`, `r.total_nodes` | No `freshness` sub-object in fixture (adapter computes it). Good. |
-| `memtrace_check_freshness` | `{is_fresh, age_minutes, last_indexed}` | ⚠️ Adapter uses `list_indexed_repositories` with freshness computation instead | **Fixture exists but adapter doesn't call it** |
+| Fixture                    | Fields                                                                                                                                         | Matching Adapter Consumption                                                                  | Issues                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --- | ----------------- |
+| `get_impact`               | `target`, `risk: 'Medium'`, `affected_symbols[5]` with `{name, file, line, depth, complexity_score}`, `affected_files[5]`, `total_affected: 5` | ✅ `result.risk`, `result.affected_symbols`, `result.total_affected`, `result.affected_files` | `line` values are strings (`'42'`, `'128'`) not numbers. Adapter uses `s.depth        |     | 1` which is fine. |
+| `find_code`                | `results[3]` with `{name, file_path, start_line, kind, complexity_score}`                                                                      | ❌ Never called through adapter                                                               | Unused in integration tests                                                           |
+| `find_dead_code`           | `symbols[3]` with `{name, kind, file, line, complexity_score, risk_level}`                                                                     | ✅ `result.symbols`, `s.name`, `s.file`, `s.line`                                             | `line` values are numbers (correct). No `complexity_score` mapping in adapter output. |
+| `get_symbol_context`       | `callers[3]`, `callees[3]`, `communities[2]`, `processes[1]`                                                                                   | ❌ Never called through adapter                                                               | Unused in integration tests                                                           |
+| `list_repos`               | `repos[2]` with `{repo_id, last_indexed_at, total_nodes}`                                                                                      | ✅ `result.repos`, `r.repo_id`, `r.last_indexed_at`, `r.total_nodes`                          | No `freshness` sub-object in fixture (adapter computes it). Good.                     |
+| `memtrace_check_freshness` | `{is_fresh, age_minutes, last_indexed}`                                                                                                        | ⚠️ Adapter uses `list_indexed_repositories` with freshness computation instead                | **Fixture exists but adapter doesn't call it**                                        |
 
 ### Field Type Consistency Issues
 
@@ -267,12 +281,12 @@ Grade:                   B+
 
 ### Implemented vs Tested
 
-| Failure Mode | Mock Support | Test Coverage | Risk |
-|-------------|-------------|---------------|------|
-| `memtrace_deadline` (timeout) | Via param or env var `MEMTRACE_MOCK_DEADLINE_MS` | ✅ 2 tests (env var path) | Low |
-| `memtrace_fail` (error response) | Via param `memtrace_fail: true` or env var `MEMTRACE_MOCK_FAIL=true` | ❌ 0 tests | **Medium** — the mock error path is never exercised end-to-end |
-| `memtrace_bad_json` (malformed output) | Via param or env var `MEMTRACE_MOCK_BAD_JSON=true` | ❌ 0 tests | **Medium** — the mock's bad JSON emission path is untested |
-| `memtrace_order` (out-of-order) | Via param `memtrace_order: [3,1,2]` | ❌ 0 tests through mock server | **High** — the `memtrace_order` mock handler logic is completely untested. Out-of-order IS tested via `makeMockChild()` in-process but NOT through the mock server/stdio transport. |
+| Failure Mode                           | Mock Support                                                         | Test Coverage                  | Risk                                                                                                                                                                                |
+| -------------------------------------- | -------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `memtrace_deadline` (timeout)          | Via param or env var `MEMTRACE_MOCK_DEADLINE_MS`                     | ✅ 2 tests (env var path)      | Low                                                                                                                                                                                 |
+| `memtrace_fail` (error response)       | Via param `memtrace_fail: true` or env var `MEMTRACE_MOCK_FAIL=true` | ❌ 0 tests                     | **Medium** — the mock error path is never exercised end-to-end                                                                                                                      |
+| `memtrace_bad_json` (malformed output) | Via param or env var `MEMTRACE_MOCK_BAD_JSON=true`                   | ❌ 0 tests                     | **Medium** — the mock's bad JSON emission path is untested                                                                                                                          |
+| `memtrace_order` (out-of-order)        | Via param `memtrace_order: [3,1,2]`                                  | ❌ 0 tests through mock server | **High** — the `memtrace_order` mock handler logic is completely untested. Out-of-order IS tested via `makeMockChild()` in-process but NOT through the mock server/stdio transport. |
 
 ### Risk Analysis
 
@@ -288,13 +302,13 @@ Grade:                   B+
 
 ### Remaining Risks
 
-| Risk | Severity | Likelihood | Impact | Description |
-|------|----------|------------|--------|-------------|
-| R-001 | **High** | Medium | High | **`memtrace_order` is declared but not implemented.** The mock extracts the `order` magic param but never uses it. Out-of-order response tests through the mock server will silently pass in request order instead of the configured order. If a future PR adds out-of-order tests through the mock, they'll get false passes. |
-| R-002 | **Medium** | Low | High | **Unused fixture data may drift.** `find_code`, `get_symbol_context`, and `memtrace_check_freshness` fixtures exist but are untested. If the adapter is later extended to support these queries and the fixture shapes changed in the meantime, integration tests wouldn't catch the mismatch. |
-| R-003 | **Medium** | Low | Medium | **Windows timing edge cases.** ~12.5s exceeds the AC #6 <10s target on Windows. The shell:false change for mock spawn (vs shell:true for real memtrace on win32) could affect path resolution on some Windows configurations. |
-| R-004 | **Low** | Low | Medium | **No negative test for non-mock path.** Stated as backward-compatible but not tested. A regression in the real memtrace spawn path would only be caught when running without the env var. Acceptable — this is an integration test concern for CI. |
-| R-005 | **Low** | Medium | Low | **Fixture `line` field type inconsistency.** `get_impact` fixture uses string line numbers; `find_dead_code` uses numbers. If a future assertion compares types strictly, it could fail on one fixture and pass on another. |
+| Risk  | Severity   | Likelihood | Impact | Description                                                                                                                                                                                                                                                                                                                    |
+| ----- | ---------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R-001 | **High**   | Medium     | High   | **`memtrace_order` is declared but not implemented.** The mock extracts the `order` magic param but never uses it. Out-of-order response tests through the mock server will silently pass in request order instead of the configured order. If a future PR adds out-of-order tests through the mock, they'll get false passes. |
+| R-002 | **Medium** | Low        | High   | **Unused fixture data may drift.** `find_code`, `get_symbol_context`, and `memtrace_check_freshness` fixtures exist but are untested. If the adapter is later extended to support these queries and the fixture shapes changed in the meantime, integration tests wouldn't catch the mismatch.                                 |
+| R-003 | **Medium** | Low        | Medium | **Windows timing edge cases.** ~12.5s exceeds the AC #6 <10s target on Windows. The shell:false change for mock spawn (vs shell:true for real memtrace on win32) could affect path resolution on some Windows configurations.                                                                                                  |
+| R-004 | **Low**    | Low        | Medium | **No negative test for non-mock path.** Stated as backward-compatible but not tested. A regression in the real memtrace spawn path would only be caught when running without the env var. Acceptable — this is an integration test concern for CI.                                                                             |
+| R-005 | **Low**    | Medium     | Low    | **Fixture `line` field type inconsistency.** `get_impact` fixture uses string line numbers; `find_dead_code` uses numbers. If a future assertion compares types strictly, it could fail on one fixture and pass on another.                                                                                                    |
 
 ### Critical Bug Found
 
@@ -429,7 +443,7 @@ it('mock should handle find_code tool call', async () => {
 **Recommended**: Add assertion:
 
 ```javascript
-const oldProject = parsed.repositories.find(r => r.repo_id === 'old-project');
+const oldProject = parsed.repositories.find((r) => r.repo_id === 'old-project');
 assert.ok(oldProject, 'old-project should be in repos');
 assert.equal(oldProject.freshness.is_fresh, false, 'old-project should be stale');
 assert.ok(oldProject.freshness.age_minutes >= 1440);
@@ -466,6 +480,7 @@ assert.ok(oldProject.freshness.age_minutes >= 1440);
 **Pattern**: Separation of concerns
 
 **Why This Is Good**: The mock server handles JSON-RPC 2.0 transport, and fixture data lives in a separate module. This means:
+
 - Fixture data can evolve independently (new query types, richer scenarios) without modifying transport logic
 - Fixture data can be imported and tested independently
 - The mock server logic (stdin/out framing, handshake, dispatch) is ~120 lines; fixture data is ~73 lines. Both are focused and testable.
@@ -476,6 +491,7 @@ assert.ok(oldProject.freshness.age_minutes >= 1440);
 **Pattern**: Dual-path configuration (env var + per-call param)
 
 **Why This Is Good**: `extractMagicParams()` reads both the per-request `args` and the environment variables (`MEMTRACE_MOCK_FAIL`, `MEMTRACE_MOCK_DEADLINE_MS`, `MEMTRACE_MOCK_BAD_JSON`). The per-request param takes precedence over the env var. This means:
+
 - Global test setup can set a failure mode for the entire suite
 - Individual tests can override for specific scenarios
 - The params are stripped from `args` before routing, so they never pollute the actual tool call payload
@@ -487,6 +503,7 @@ assert.ok(oldProject.freshness.age_minutes >= 1440);
 **Pattern**: Deterministic env var management
 
 **Why This Is Good**: The timeout tests save the previous env var value before overriding, then restore it in the `finally` block. This ensures:
+
 - Cross-test pollution is impossible
 - If a test times out or throws, the env is still restored
 - The pattern is duplicated but consistent — easy to extract a helper
@@ -529,45 +546,45 @@ assert.ok(oldProject.freshness.age_minutes >= 1440);
 
 ### memtrace-mock.mjs (193 lines)
 
-| Criterion | Status | Notes |
-|-----------|--------|-------|
-| Zero external deps | ✅ | Only `readline` |
-| JSON-RPC 2.0 compliance | ✅ | Correct framing, id handling, error codes |
-| Magic param stripping | ✅ | Cleanly extracts and deletes magic params |
-| Debug logging | ✅ | Stderr-only, guarded by env var |
-| Process lifecycle | ✅ | Handles shutdown, SIGTERM, SIGINT, rl.close() |
-| `memtrace_order` bug | ❌ | Extracted but never applied. AC #5 requirement unmet. |
+| Criterion               | Status | Notes                                                 |
+| ----------------------- | ------ | ----------------------------------------------------- |
+| Zero external deps      | ✅     | Only `readline`                                       |
+| JSON-RPC 2.0 compliance | ✅     | Correct framing, id handling, error codes             |
+| Magic param stripping   | ✅     | Cleanly extracts and deletes magic params             |
+| Debug logging           | ✅     | Stderr-only, guarded by env var                       |
+| Process lifecycle       | ✅     | Handles shutdown, SIGTERM, SIGINT, rl.close()         |
+| `memtrace_order` bug    | ❌     | Extracted but never applied. AC #5 requirement unmet. |
 
 ### memtrace-fixtures.mjs (73 lines)
 
-| Criterion | Status | Notes |
-|-----------|--------|-------|
-| Field shape matches adapter | ✅ | All consumed fields present and correctly named |
-| Type consistency | ⚠️ | `line` is string in get_impact, number in find_dead_code |
-| Coverage of all 6 types | ⚠️ | 3 of 6 unused by integration tests |
-| Empty/edge results | ❌ | No empty-array variant for any fixture |
-| Realistic data | ✅ | Symbol names, file paths, and complexity scores look realistic |
+| Criterion                   | Status | Notes                                                          |
+| --------------------------- | ------ | -------------------------------------------------------------- |
+| Field shape matches adapter | ✅     | All consumed fields present and correctly named                |
+| Type consistency            | ⚠️     | `line` is string in get_impact, number in find_dead_code       |
+| Coverage of all 6 types     | ⚠️     | 3 of 6 unused by integration tests                             |
+| Empty/edge results          | ❌     | No empty-array variant for any fixture                         |
+| Realistic data              | ✅     | Symbol names, file paths, and complexity scores look realistic |
 
 ### memtrace-adapter.mjs (786 lines) — Mock injection
 
-| Criterion | Status | Notes |
-|-----------|--------|-------|
-| `MEMTRACE_MOCK_PATH` guard | ✅ | Read at module load, checked in `spawn()` |
-| `useMock` spawn path | ✅ | `spawn(process.execPath, [mockPath], { shell: false })` |
-| Real memtrace spawn preserved | ✅ | Unchanged in `else` branch |
-| Cross-platform | ⚠️ | Mock spawn uses `shell: false` (unlike real memtrace which uses `shell: process.platform === 'win32'`). This difference could cause issues on Windows if the mock path requires shell processing (spaces in path). |
-| Debug logging for mock | ✅ | `debugLog('[McpClient] spawn mock', MEMTRACE_MOCK_PATH)` |
+| Criterion                     | Status | Notes                                                                                                                                                                                                              |
+| ----------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MEMTRACE_MOCK_PATH` guard    | ✅     | Read at module load, checked in `spawn()`                                                                                                                                                                          |
+| `useMock` spawn path          | ✅     | `spawn(process.execPath, [mockPath], { shell: false })`                                                                                                                                                            |
+| Real memtrace spawn preserved | ✅     | Unchanged in `else` branch                                                                                                                                                                                         |
+| Cross-platform                | ⚠️     | Mock spawn uses `shell: false` (unlike real memtrace which uses `shell: process.platform === 'win32'`). This difference could cause issues on Windows if the mock path requires shell processing (spaces in path). |
+| Debug logging for mock        | ✅     | `debugLog('[McpClient] spawn mock', MEMTRACE_MOCK_PATH)`                                                                                                                                                           |
 
 ### memtrace-adapter.test.mjs (730 lines) — Test suite
 
-| Criterion | Status | Notes |
-|-----------|--------|-------|
-| 60 tests pass | ✅ | Stated as complete |
-| Deterministic | ✅ | No conditional fallback branches |
-| Env var management | ✅ | `try/finally` restoration |
-| Failure tests | ⚠️ | Only timeout path tested |
-| Protocol compliance | ❌ | No handshake verification |
-| 3/6 query types tested | ⚠️ | Missing find_code, get_symbol_context, memtrace_check_freshness |
+| Criterion              | Status | Notes                                                           |
+| ---------------------- | ------ | --------------------------------------------------------------- |
+| 60 tests pass          | ✅     | Stated as complete                                              |
+| Deterministic          | ✅     | No conditional fallback branches                                |
+| Env var management     | ✅     | `try/finally` restoration                                       |
+| Failure tests          | ⚠️     | Only timeout path tested                                        |
+| Protocol compliance    | ❌     | No handshake verification                                       |
+| 3/6 query types tested | ⚠️     | Missing find_code, get_symbol_context, memtrace_check_freshness |
 
 ---
 
@@ -662,32 +679,33 @@ Score: 84/100 (B+). This exceeds the >= 70 QA gate but has actionable gaps that 
 
 ### Violation Summary by Location
 
-| File | Severity | Criterion | Issue | Fix |
-|------|----------|-----------|-------|-----|
-| `memtrace-mock.mjs:63-79` | P0 (Critical) | Declared feature not implemented | `memtrace_order` extracted but never used in response ordering | Implement ordering or remove from AC #5 |
-| `memtrace-adapter.test.mjs` | P1 (High) | Failure-mode coverage | No test for `memtrace_fail` or `memtrace_bad_json` | Add env-var-based integration tests |
-| `memtrace-adapter.test.mjs` | P1 (High) | Protocol compliance | `notifications/initialized` never verified | Add assertion on mock output or stderr debug |
-| `memtrace-adapter.test.mjs` | P1 (High) | Fixture completeness | 3 of 6 fixture types never integration-tested | Add mock-direct unit test for `find_code`, `get_symbol_context`, `memtrace_check_freshness` |
-| `memtrace-fixtures.mjs` | P2 (Medium) | Type consistency | `line` is string in `get_impact`, number in `find_dead_code` | Normalize to number |
-| `memtrace-fixtures.mjs` | P2 (Medium) | Edge cases | No empty-result variant for any fixture | Add `empty_` fixture variants |
-| `memtrace-adapter.test.mjs` | P3 (Low) | Test IDs | Missing unique test IDs | Add `TC-MOCK-*` prefixes |
-| `memtrace-adapter.test.mjs` | P3 (Low) | Priority markers | Missing P0/P1 annotations | Add `[P0]`/`[P1]` prefixes |
+| File                        | Severity      | Criterion                        | Issue                                                          | Fix                                                                                         |
+| --------------------------- | ------------- | -------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `memtrace-mock.mjs:63-79`   | P0 (Critical) | Declared feature not implemented | `memtrace_order` extracted but never used in response ordering | Implement ordering or remove from AC #5                                                     |
+| `memtrace-adapter.test.mjs` | P1 (High)     | Failure-mode coverage            | No test for `memtrace_fail` or `memtrace_bad_json`             | Add env-var-based integration tests                                                         |
+| `memtrace-adapter.test.mjs` | P1 (High)     | Protocol compliance              | `notifications/initialized` never verified                     | Add assertion on mock output or stderr debug                                                |
+| `memtrace-adapter.test.mjs` | P1 (High)     | Fixture completeness             | 3 of 6 fixture types never integration-tested                  | Add mock-direct unit test for `find_code`, `get_symbol_context`, `memtrace_check_freshness` |
+| `memtrace-fixtures.mjs`     | P2 (Medium)   | Type consistency                 | `line` is string in `get_impact`, number in `find_dead_code`   | Normalize to number                                                                         |
+| `memtrace-fixtures.mjs`     | P2 (Medium)   | Edge cases                       | No empty-result variant for any fixture                        | Add `empty_` fixture variants                                                               |
+| `memtrace-adapter.test.mjs` | P3 (Low)      | Test IDs                         | Missing unique test IDs                                        | Add `TC-MOCK-*` prefixes                                                                    |
+| `memtrace-adapter.test.mjs` | P3 (Low)      | Priority markers                 | Missing P0/P1 annotations                                      | Add `[P0]`/`[P1]` prefixes                                                                  |
 
 ### Quality Trends
 
-| Review Date | Score | Grade | Critical Issues | Trend |
-|-------------|-------|-------|-----------------|-------|
-| 2026-05-29 (i-2) | 84/100 | B+ | 1 (memtrace_order unimplemented) | ➡️ Baseline for hermetic mock |
-| 2026-05-29 (i-1) | 93/100 | A | 0 | ↩️ i-2 is lower due to implementation gap |
+| Review Date      | Score  | Grade | Critical Issues                  | Trend                                     |
+| ---------------- | ------ | ----- | -------------------------------- | ----------------------------------------- |
+| 2026-05-29 (i-2) | 84/100 | B+    | 1 (memtrace_order unimplemented) | ➡️ Baseline for hermetic mock             |
+| 2026-05-29 (i-1) | 93/100 | A     | 0                                | ↩️ i-2 is lower due to implementation gap |
 
 ### Related Reviews
 
-| File | Score | Grade | Critical | Status |
-|------|-------|-------|----------|--------|
-| `memtrace-adapter.test.mjs` (i-2) | 84/100 | B+ | 1 | ⚠️ Conditional Approve |
-| `memtrace-adapter.test.mjs` (i-1) | 93/100 | A | 0 | ✅ Approved |
+| File                              | Score  | Grade | Critical | Status                 |
+| --------------------------------- | ------ | ----- | -------- | ---------------------- |
+| `memtrace-adapter.test.mjs` (i-2) | 84/100 | B+    | 1        | ⚠️ Conditional Approve |
+| `memtrace-adapter.test.mjs` (i-1) | 93/100 | A     | 0        | ✅ Approved            |
 
 **Variance**: -9 pts. The i-2 score is lower because:
+
 1. The `memtrace_order` bug is a P0 issue (declared feature not implemented)
 2. Failure-mode coverage is thinner (1/4 modes tested vs all failure paths in i-1)
 3. Protocol compliance is unverified (new concern unique to i-2)

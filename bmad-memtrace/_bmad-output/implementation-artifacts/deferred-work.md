@@ -31,13 +31,12 @@
 - **AC6 accuracy test is qualitative** — tests verify exact intent_type matches from known inputs, not quantitative >=95% across a corpus. Adequate for MVP; corpus-based testing deferred. [tests/unit/router/classify.test.ts]
 
 ---
+
 ## Deferred from: code review of 1-1-project-scaffold-and-build-pipeline (2026-05-27)
 
 - Missing JSDoc for public APIs in `src/index.ts` — Barrel file re-exports types, constants, and errors without documentation comments. Deferred, documentation task for later story.
 
 ---
-
-
 
 ## Deferred from: implementation of story 7-5-installer-end-to-end (2026-05-22)
 
@@ -93,4 +92,3 @@
 ## Deferred from: code review of 3-1-degradation-state-machine (2026-05-29)
 
 - [Defer] AC2 partial: transition logs missing "affected intents" field in tier_transition log entries [src/degrade/machine.ts:149] � In MVP all 3 intents are core so this has no practical impact. Deferred to future stories when non-core intents are introduced.
-

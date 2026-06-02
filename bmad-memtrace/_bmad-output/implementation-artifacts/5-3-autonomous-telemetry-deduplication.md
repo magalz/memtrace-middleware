@@ -89,6 +89,7 @@ The story has ONE deliverable:
 This implements **FR27** (Agents can deduce if feedback already exists and apply an autonomous `+1` upvote increment to avoid duplicate reports). It is the final link in the Epic 5 chain: telemetry report generation (5.1) → friction severity scoring (5.2) → **autonomous deduplication (5.3)**.
 
 **Epic 5 chain context:**
+
 - Story 5.1 established the telemetry template with a 3-column Feature Requests table and the "future stories" deduplication placeholder
 - Story 5.2 added severity scoring to Friction Points (not Feature Requests) and intentionally preserved the deduplication placeholder for 5.3
 - Story 5.3 replaces the placeholder, adds Upvotes column, and implements the full deduplication protocol
@@ -119,6 +120,7 @@ This implements **FR27** (Agents can deduce if feedback already exists and apply
 **Location:** `D:\Repos\bmad-memtrace\bmad-memtrace\.agents\skills\bmad-memtrace-telemetry\SKILL.md`
 
 **Current state (283 lines, after 5.2 changes):**
+
 - YAML frontmatter with `name: bmad-memtrace-telemetry` and description under 200 chars
 - Activation triggers, introspection protocol (7 steps with severity assessment in Step 5), embedded template, output conventions, confinement rules
 - Feature Requests template table: 4 columns (`ID | Request | Priority (H/M/L) | Context`)
@@ -131,23 +133,26 @@ This implements **FR27** (Agents can deduce if feedback already exists and apply
 
 1. **Feature Requests template table** — Add Upvotes column:
    Old (lines ~185-193):
+
    ```
    ## Feature Requests & Feedback
-   
+
    {Actionable feature requests or improvement suggestions for the Memtrace maintainers.
     Note: future stories will add autonomous +1 upvote deduplication.}
-   
+
    | ID | Request | Priority (H/M/L) | Context |
    |----|---------|-------------------|---------|
    | FR-{n} | {description} | {priority} | {situation that prompted this} |
    ```
+
    New:
+
    ```
    ## Feature Requests & Feedback
-   
+
    {Cumulative feature requests across ALL sprints. Carry forward all prior requests with accumulated
     upvote counts. New requests start at 1 upvote. The latest report is the canonical Feature Request ledger.}
-   
+
    | ID | Request | Priority (H/M/L) | Upvotes | Context |
    |----|---------|-------------------|---------|---------|
    | FR-{n} | {description} | {priority} | {count} | {situation that prompted this} |
@@ -155,6 +160,7 @@ This implements **FR27** (Agents can deduce if feedback already exists and apply
 
 2. **Introspection Protocol Step 7** — Replace brief guidance with full deduplication protocol:
    Old (lines ~86-91):
+
    ```
    ### Step 7: Formulate Feature Requests
    Based on the friction points identified, draft actionable feature requests for maintainers. Each request should include:
@@ -162,39 +168,41 @@ This implements **FR27** (Agents can deduce if feedback already exists and apply
    - Priority (High / Medium / Low) — should reflect the highest severity of the friction points that motivated the request
    - Context of the situation that motivated the request
    ```
+
    New:
+
    ```
    ### Step 7: Formulate Feature Requests
-   
+
    #### 7a: Read Historical Reports
-   
+
    Read all prior telemetry reports from `_bmad-output/telemetry/`. Focus specifically on the
    "Feature Requests & Feedback" section of each report. Build a consolidated list of all prior
    feature requests across all historical reports found.
-   
+
    If the `_bmad-output/telemetry/` directory does not exist or is empty, skip to 7c (all
    requests are new) — this is normal for the first-ever telemetry run.
-   
+
    #### 7b: Detect Duplicates
-   
+
    For each candidate feature request from this sprint, compare against the consolidated list
    of prior requests. Two feature requests are HIGHLY SIMILAR (should be merged) when they
    satisfy ANY of these criteria:
-   
+
    | Criterion | Example |
    |-----------|---------|
    | Same tool or capability being requested | Two reports both request "batch mode for get_impact" |
    | Same underlying problem or root cause | Two reports describe timeout issues, even with different wording |
    | Same category of improvement | Both request "better error messages for stale index" |
    | Semantic overlap (different words, same intent) | "parallel queries" vs "concurrent tool execution" |
-   
+
    PREFER CONSOLIDATION. When uncertain whether two requests are similar enough to merge,
    err on the side of merging them and note in the context field that the request has been
    raised in multiple sprints. Only treat a request as truly distinct when it targets a
    different tool, a different problem category, or a substantively different improvement.
-   
+
    #### 7c: Build Consolidated Ledger
-   
+
    For each entry in your consolidated ledger:
    - **Prior request, no new match:** Carry forward with its existing ID, priority, and
      upvote count unchanged.
@@ -202,13 +210,14 @@ This implements **FR27** (Agents can deduce if feedback already exists and apply
      Update the Context field to note the most recent occurrence.
    - **New request (no prior match):** Assign a new FR-{n} ID (sequential, continuing from
      the highest prior ID found). Set upvotes to 1.
-   
+
    Also draft any genuinely new feature requests from this sprint's friction points using
    the same format. Priority should reflect the highest severity of the friction points
    that motivated the request.
    ```
 
 3. **Output Conventions** — Add historical report reading note. After the existing line about "Only create the report file" (line 268), add:
+
    ```
    - **Historical report reading:** When reading prior reports for deduplication, target ONLY
      the "Feature Requests & Feedback" section of each file. Do not re-read entire reports.
@@ -294,6 +303,7 @@ This implements **FR27** (Agents can deduce if feedback already exists and apply
 ### Git Intelligence
 
 Recent commits show a consistent pattern:
+
 - `feat(story-X.Y): description` — use this format for the 5.3 commit
 - `fix(memtrace): description` — for patches/corrections
 - All telemetry work is in `.agents/skills/bmad-memtrace-telemetry/SKILL.md`
@@ -404,6 +414,6 @@ opencode-go/deepseek-v4-flash
 
 ### File List
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                              | Action | Description                                                                                                                                                                                            |
+| ------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `.agents/skills/bmad-memtrace-telemetry/SKILL.md` | UPDATE | Add Upvotes column to Feature Requests table, replace placeholder with deduplication protocol in Step 7, add deduplication rules to Confinement Rules, add bounded-read guidance to Output Conventions |

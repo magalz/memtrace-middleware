@@ -27,12 +27,12 @@
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-| ---- | --------- | ---------- |
-| **E2E / Browser tests** | Backend-only TypeScript library — no UI | All coverage at Unit/Contract/Integration levels |
-| **Performance benchmarks** | Fusion engine is a pure function (no I/O, no async) — performance is dominated by Memtrace query execution, not fusion | Covered by existing backend timeout/degradation tests |
-| **Security-specific tests** | No auth, PII, or injection surfaces in fusion layer | Standard input validation through `validateContext()` covers safety boundary |
-| **Cross-repo MemFleet enrichment** | Deferred to Growth phase (FR33-FR35) | Noted in story file — out of MVP scope |
+| Item                               | Reasoning                                                                                                              | Mitigation                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **E2E / Browser tests**            | Backend-only TypeScript library — no UI                                                                                | All coverage at Unit/Contract/Integration levels                             |
+| **Performance benchmarks**         | Fusion engine is a pure function (no I/O, no async) — performance is dominated by Memtrace query execution, not fusion | Covered by existing backend timeout/degradation tests                        |
+| **Security-specific tests**        | No auth, PII, or injection surfaces in fusion layer                                                                    | Standard input validation through `validateContext()` covers safety boundary |
+| **Cross-repo MemFleet enrichment** | Deferred to Growth phase (FR33-FR35)                                                                                   | Noted in story file — out of MVP scope                                       |
 
 ---
 
@@ -40,24 +40,24 @@
 
 ### High-Priority Risks (Score ≥6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- | -------- |
-| R-001 | DATA | **Deduplication failure**: overlapping symbols from parallel queries produce duplicate entries in FusedContext, causing the agent to see repeated/redundant context | 2 | 3 | 6 | Deterministic dedup by `symbol::file_path::start_line` composite key; unit tests with intentional overlap scenarios | DEV | Pre-DS |
-| R-002 | ACC | **Provenance fabrications**: schema validation accepts fabricated/non-existent file paths or out-of-bounds line numbers, compromising claim traceability (FR14) | 2 | 3 | 6 | `validateContext()` rejects empty file_path, negative lines, end<start; unit tests covering all negative cases | DEV | Pre-DS |
+| Risk ID | Category | Description                                                                                                                                                         | Probability | Impact | Score | Mitigation                                                                                                          | Owner | Timeline |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------------------------------- | ----- | -------- |
+| R-001   | DATA     | **Deduplication failure**: overlapping symbols from parallel queries produce duplicate entries in FusedContext, causing the agent to see repeated/redundant context | 2           | 3      | 6     | Deterministic dedup by `symbol::file_path::start_line` composite key; unit tests with intentional overlap scenarios | DEV   | Pre-DS   |
+| R-002   | ACC      | **Provenance fabrications**: schema validation accepts fabricated/non-existent file paths or out-of-bounds line numbers, compromising claim traceability (FR14)     | 2           | 3      | 6     | `validateContext()` rejects empty file_path, negative lines, end<start; unit tests covering all negative cases      | DEV   | Pre-DS   |
 
 ### Medium-Priority Risks (Score 3-4)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- |
-| R-003 | INTEG | **Partial result corruption**: a timed-out sub-query's DegradedStub causes the entire fusion result to be dropped or mis-ordered, losing valid data from successful queries | 2 | 2 | 4 | Deterministic merge: degraded results excluded from blocks but set `partial: true`; valid results always preserved; unit tests with mixed degraded/valid inputs | DEV |
-| R-004 | TECH | **DI boundary violation**: fusion engine directly imports `src/backend/`, creating circular dependency and breaking test isolation | 1 | 3 | 3 | Contract test verifies no backend import in engine source; barrel export enforces boundary at package level | DEV |
+| Risk ID | Category | Description                                                                                                                                                                 | Probability | Impact | Score | Mitigation                                                                                                                                                      | Owner |
+| ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| R-003   | INTEG    | **Partial result corruption**: a timed-out sub-query's DegradedStub causes the entire fusion result to be dropped or mis-ordered, losing valid data from successful queries | 2           | 2      | 4     | Deterministic merge: degraded results excluded from blocks but set `partial: true`; valid results always preserved; unit tests with mixed degraded/valid inputs | DEV   |
+| R-004   | TECH     | **DI boundary violation**: fusion engine directly imports `src/backend/`, creating circular dependency and breaking test isolation                                          | 1           | 3      | 3     | Contract test verifies no backend import in engine source; barrel export enforces boundary at package level                                                     | DEV   |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ----- |
-| R-005 | DATA | **Edge case — all results degraded**: every sub-query times out, producing empty FusedContext but no error, causing silent empty response | 1 | 2 | 2 | Unit test verifies `partial: true` + empty blocks + provenance entries for each degraded tool |
-| R-006 | DATA | **Null/primitive data crash**: `QueryResult.data` is a primitive type (string, number, boolean) and the engine throws instead of gracefully skipping | 1 | 2 | 2 | Type narrowing with `unknown` — no `any`; unit tests with null/undefined/primitive data verify graceful skip |
+| Risk ID | Category | Description                                                                                                                                          | Probability | Impact | Score | Action                                                                                                       |
+| ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------------------------ |
+| R-005   | DATA     | **Edge case — all results degraded**: every sub-query times out, producing empty FusedContext but no error, causing silent empty response            | 1           | 2      | 2     | Unit test verifies `partial: true` + empty blocks + provenance entries for each degraded tool                |
+| R-006   | DATA     | **Null/primitive data crash**: `QueryResult.data` is a primitive type (string, number, boolean) and the engine throws instead of gracefully skipping | 1           | 2      | 2     | Type narrowing with `unknown` — no `any`; unit tests with null/undefined/primitive data verify graceful skip |
 
 ### Risk Category Legend
 
@@ -76,11 +76,11 @@
 
 **Purpose:** Capture story-specific NFR thresholds and planned validation for later `nfr-assess`.
 
-| NFR Category | Requirement / Threshold | Risk Link | Planned Validation | Evidence Needed |
-| ------------ | ----------------------- | --------- | ------------------ | --------------- |
-| Reliability | Partial results never drop valid data — all successful sub-queries produce ContextBlocks regardless of failed siblings | R-003 | Unit tests: degraded + valid mixed inputs; integration: slow-tool scenario | Test report with partial=true coverage |
-| Maintainability | No `src/backend/` imports in fusion module — DI boundary enforced by barrel exports and ESLint `import/no-restricted-paths` | R-004 | Contract test: engine source grep for backend imports; ESLint rule confirmation | Contract test pass + ESLint report |
-| Data Integrity | All provenance strings match `[memtrace: grounded via ...]` format — zero fabrications accepted | R-002 | Unit tests: provenance format regex; validate tests: reject empty/invalid paths/lines | Test report with 100% validation coverage |
+| NFR Category    | Requirement / Threshold                                                                                                     | Risk Link | Planned Validation                                                                    | Evidence Needed                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Reliability     | Partial results never drop valid data — all successful sub-queries produce ContextBlocks regardless of failed siblings      | R-003     | Unit tests: degraded + valid mixed inputs; integration: slow-tool scenario            | Test report with partial=true coverage    |
+| Maintainability | No `src/backend/` imports in fusion module — DI boundary enforced by barrel exports and ESLint `import/no-restricted-paths` | R-004     | Contract test: engine source grep for backend imports; ESLint rule confirmation       | Contract test pass + ESLint report        |
+| Data Integrity  | All provenance strings match `[memtrace: grounded via ...]` format — zero fabrications accepted                             | R-002     | Unit tests: provenance format regex; validate tests: reject empty/invalid paths/lines | Test report with 100% validation coverage |
 
 **Unknown thresholds:** None — all story-level NFRs are captured in ACs. System-level NFRs (latency, throughput) depend on Memtrace query execution, not pure fusion function.
 
@@ -110,27 +110,27 @@
 
 **Criteria:** Blocks core journey + High risk (≥6) + No workaround
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| AC 1 — Dedup overlapping symbols | Unit | R-001 | 1 | DEV | Same symbol across queries → single entry, highest centrality |
-| AC 1 — Rank by centrality descending | Unit | R-001 | 1 | DEV | Sort invariant: high-centrality first |
-| AC 1 — Return Result<FusedContext> shape | Unit | R-004 | 1 | DEV | `{ok:true,value}` or `{ok:false,error}` discriminated union |
-| AC 2 — Provenance annotation on every block | Unit | R-002 | 1 | DEV | `[memtrace: grounded via ...]` per block |
-| AC 2 — Provenance exact format | Unit | R-002 | 1 | DEV | Regex match on exact format string |
-| AC 4 — Valid context passes validation | Unit | R-002 | 1 | DEV | Identity: validated context === input context |
-| AC 4 — Empty file_path rejected | Unit | R-002 | 1 | DEV | `cause: 'fusion_validation_failed'`, `recoverable: false` |
-| AC 4 — end_line < start_line rejected | Unit | R-002 | 1 | DEV | Line boundary guard |
-| AC 4 — Negative start_line rejected | Unit | R-002 | 1 | DEV | Negative line guard |
-| AC 4 — Negative end_line rejected | Unit | R-002 | 1 | DEV | Negative line guard |
-| AC 4 — Blank symbol rejected | Unit | R-002 | 1 | DEV | Empty string guard |
-| AC 4 — Multiple blocks: first invalid triggers rejection | Unit | R-002 | 1 | DEV | Short-circuit validation |
-| AC 4 — MiddlewareError envelope on failure | Unit | R-002 | 1 | DEV | cause/recoverable/tier/trace_id/suggested_action |
-| AC 6 — DI compliance (no backend import) | Contract | R-004 | 1 | DEV | Engine source grep for backend imports |
-| AC 10 — FusedContext envelope shape | Contract | R-004 | 1 | DEV | blocks/partial/trace_id/provenance keys |
-| AC 10 — ContextBlock field types | Contract | R-004 | 1 | DEV | Runtime typeof checks |
-| AC 10 — Regression guard snapshot | Contract | R-004 | 1 | DEV | Deterministic output for known inputs |
-| AC 10 — Result shape contract | Contract | R-004 | 1 | DEV | `ok:true+value` or `ok:false+error` |
-| AC 1,2,3 — Full pipeline produces provenance | Integration | R-001,R-002 | 1 | DEV | classify→plan→execute→fuse → provenance in output |
+| Requirement                                              | Test Level  | Risk Link   | Test Count | Owner | Notes                                                         |
+| -------------------------------------------------------- | ----------- | ----------- | ---------- | ----- | ------------------------------------------------------------- |
+| AC 1 — Dedup overlapping symbols                         | Unit        | R-001       | 1          | DEV   | Same symbol across queries → single entry, highest centrality |
+| AC 1 — Rank by centrality descending                     | Unit        | R-001       | 1          | DEV   | Sort invariant: high-centrality first                         |
+| AC 1 — Return Result<FusedContext> shape                 | Unit        | R-004       | 1          | DEV   | `{ok:true,value}` or `{ok:false,error}` discriminated union   |
+| AC 2 — Provenance annotation on every block              | Unit        | R-002       | 1          | DEV   | `[memtrace: grounded via ...]` per block                      |
+| AC 2 — Provenance exact format                           | Unit        | R-002       | 1          | DEV   | Regex match on exact format string                            |
+| AC 4 — Valid context passes validation                   | Unit        | R-002       | 1          | DEV   | Identity: validated context === input context                 |
+| AC 4 — Empty file_path rejected                          | Unit        | R-002       | 1          | DEV   | `cause: 'fusion_validation_failed'`, `recoverable: false`     |
+| AC 4 — end_line < start_line rejected                    | Unit        | R-002       | 1          | DEV   | Line boundary guard                                           |
+| AC 4 — Negative start_line rejected                      | Unit        | R-002       | 1          | DEV   | Negative line guard                                           |
+| AC 4 — Negative end_line rejected                        | Unit        | R-002       | 1          | DEV   | Negative line guard                                           |
+| AC 4 — Blank symbol rejected                             | Unit        | R-002       | 1          | DEV   | Empty string guard                                            |
+| AC 4 — Multiple blocks: first invalid triggers rejection | Unit        | R-002       | 1          | DEV   | Short-circuit validation                                      |
+| AC 4 — MiddlewareError envelope on failure               | Unit        | R-002       | 1          | DEV   | cause/recoverable/tier/trace_id/suggested_action              |
+| AC 6 — DI compliance (no backend import)                 | Contract    | R-004       | 1          | DEV   | Engine source grep for backend imports                        |
+| AC 10 — FusedContext envelope shape                      | Contract    | R-004       | 1          | DEV   | blocks/partial/trace_id/provenance keys                       |
+| AC 10 — ContextBlock field types                         | Contract    | R-004       | 1          | DEV   | Runtime typeof checks                                         |
+| AC 10 — Regression guard snapshot                        | Contract    | R-004       | 1          | DEV   | Deterministic output for known inputs                         |
+| AC 10 — Result shape contract                            | Contract    | R-004       | 1          | DEV   | `ok:true+value` or `ok:false+error`                           |
+| AC 1,2,3 — Full pipeline produces provenance             | Integration | R-001,R-002 | 1          | DEV   | classify→plan→execute→fuse → provenance in output             |
 
 **Total P0**: 19 tests, ~5-7 hours
 
@@ -138,16 +138,16 @@
 
 **Criteria:** Important features + Medium risk (3-4) + Common workflows
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| AC 5 — Partial results: degraded+valid mixed | Unit | R-003 | 1 | DEV | `partial: true`, valid results preserved |
-| AC 5 — Data as array → all items extracted | Unit | R-003 | 1 | DEV | Array normalization |
-| AC 5 — Data as single object → one block | Unit | R-003 | 1 | DEV | Object normalization |
-| AC 5 — Callers/callees flatten into blocks | Unit | R-003 | 1 | DEV | Nested structure extraction |
-| AC 5 — Affected_symbols flatten into blocks | Unit | R-003 | 1 | DEV | Impact result extraction |
-| AC 4 — Partial:true passes validation | Unit | R-002 | 1 | DEV | Partial contexts are still valid |
-| AC 1,2,6 — Multi-query merged deduplicated | Integration | R-001,R-004 | 1 | DEV | get_symbol_context → merged blocks |
-| AC 6 — BaseAdapter imports fuse, no inline assembly | Integration | R-004 | 1 | DEV | Source-level verification |
+| Requirement                                         | Test Level  | Risk Link   | Test Count | Owner | Notes                                    |
+| --------------------------------------------------- | ----------- | ----------- | ---------- | ----- | ---------------------------------------- |
+| AC 5 — Partial results: degraded+valid mixed        | Unit        | R-003       | 1          | DEV   | `partial: true`, valid results preserved |
+| AC 5 — Data as array → all items extracted          | Unit        | R-003       | 1          | DEV   | Array normalization                      |
+| AC 5 — Data as single object → one block            | Unit        | R-003       | 1          | DEV   | Object normalization                     |
+| AC 5 — Callers/callees flatten into blocks          | Unit        | R-003       | 1          | DEV   | Nested structure extraction              |
+| AC 5 — Affected_symbols flatten into blocks         | Unit        | R-003       | 1          | DEV   | Impact result extraction                 |
+| AC 4 — Partial:true passes validation               | Unit        | R-002       | 1          | DEV   | Partial contexts are still valid         |
+| AC 1,2,6 — Multi-query merged deduplicated          | Integration | R-001,R-004 | 1          | DEV   | get_symbol_context → merged blocks       |
+| AC 6 — BaseAdapter imports fuse, no inline assembly | Integration | R-004       | 1          | DEV   | Source-level verification                |
 
 **Total P1**: 8 tests, ~2-3 hours
 
@@ -155,13 +155,13 @@
 
 **Criteria:** Secondary features + Low risk (1-2) + Edge cases
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| AC 5 — All results degraded → partial, empty blocks | Unit | R-005 | 1 | DEV | Edge case: 100% degradation |
-| AC 5 — Empty results → partial:false, empty blocks | Unit | R-005 | 1 | DEV | Edge case: no input |
-| AC 5 — Null/undefined/primitive data skipped | Unit | R-006 | 1 | DEV | Type narrowing edge cases |
-| AC 4 — Zero lines (0,0) passes if end>=start | Unit | R-002 | 1 | DEV | Edge case: root-level symbols |
-| AC 5 — Partial slow-tool produces partial:true | Integration | R-003 | 1 | DEV | Slow tool in pipeline |
+| Requirement                                         | Test Level  | Risk Link | Test Count | Owner | Notes                         |
+| --------------------------------------------------- | ----------- | --------- | ---------- | ----- | ----------------------------- |
+| AC 5 — All results degraded → partial, empty blocks | Unit        | R-005     | 1          | DEV   | Edge case: 100% degradation   |
+| AC 5 — Empty results → partial:false, empty blocks  | Unit        | R-005     | 1          | DEV   | Edge case: no input           |
+| AC 5 — Null/undefined/primitive data skipped        | Unit        | R-006     | 1          | DEV   | Type narrowing edge cases     |
+| AC 4 — Zero lines (0,0) passes if end>=start        | Unit        | R-002     | 1          | DEV   | Edge case: root-level symbols |
+| AC 5 — Partial slow-tool produces partial:true      | Integration | R-003     | 1          | DEV   | Slow tool in pipeline         |
 
 **Total P2**: 5 tests, ~1-2 hours
 
@@ -214,24 +214,27 @@
 
 ### Test Development Effort
 
-| Priority | Count | Hours/Test | Total Hours | Notes |
-| -------- | ----- | ---------- | ----------- | ----- |
-| P0 | 19 | — | ~5-7h | Complex logic for dedup/rank/provenance; validation schemas |
-| P1 | 8 | — | ~2-3h | Partial results, DI verification |
-| P2 | 5 | — | ~1-2h | Edge cases, type narrowing |
-| **Total** | **32** | **—** | **~8-12h** | **~1-2 days** |
+| Priority  | Count  | Hours/Test | Total Hours | Notes                                                       |
+| --------- | ------ | ---------- | ----------- | ----------------------------------------------------------- |
+| P0        | 19     | —          | ~5-7h       | Complex logic for dedup/rank/provenance; validation schemas |
+| P1        | 8      | —          | ~2-3h       | Partial results, DI verification                            |
+| P2        | 5      | —          | ~1-2h       | Edge cases, type narrowing                                  |
+| **Total** | **32** | **—**      | **~8-12h**  | **~1-2 days**                                               |
 
 ### Prerequisites
 
 **Test Data:**
+
 - `makeResult()` and `makeSymbol()` factory functions — inline in test files (following existing patterns)
 - `buildIntent()` from `tests/helpers/test-utils.ts` — reusable fixture
 
 **Tooling:**
+
 - `vitest` for all test execution — pre-configured in `vitest.config.ts`
 - `createMockMemtrace()` from `tests/fixtures/memtrace-mock.ts` for integration tests
 
 **Environment:**
+
 - Node.js >= 20 (project requirement)
 - Standard dev environment (no special setup needed for pure function testing)
 
@@ -344,11 +347,11 @@
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-| ----------------- | ------ | ---------------- |
-| **BaseAdapter** (`src/interface/base-adapter.ts`) | Inline ContextBlock assembly (lines 245-273) replaced by `fuse()` call | Existing `base-adapter-orchestration.test.ts` — all 6 tests must still pass |
-| **Barrel exports** (`src/index.ts`, `src/fusion/index.ts`) | New fusion symbols exported | Contract tests verify shape; no existing consumers yet |
-| **Integration tests** (`transport-roundtrip.test.ts`) | Fusion integration tests added to `fusion-pipeline.test.ts` | All existing integration tests continue unchanged |
+| Service/Component                                          | Impact                                                                 | Regression Scope                                                            |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **BaseAdapter** (`src/interface/base-adapter.ts`)          | Inline ContextBlock assembly (lines 245-273) replaced by `fuse()` call | Existing `base-adapter-orchestration.test.ts` — all 6 tests must still pass |
+| **Barrel exports** (`src/index.ts`, `src/fusion/index.ts`) | New fusion symbols exported                                            | Contract tests verify shape; no existing consumers yet                      |
+| **Integration tests** (`transport-roundtrip.test.ts`)      | Fusion integration tests added to `fusion-pipeline.test.ts`            | All existing integration tests continue unchanged                           |
 
 ---
 

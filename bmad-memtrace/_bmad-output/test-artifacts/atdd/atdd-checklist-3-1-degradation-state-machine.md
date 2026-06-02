@@ -65,55 +65,55 @@ inputDocuments: []
 
 **File:** `tests/unit/degrade/machine.test.ts` (~280 lines)
 
-| # | Test | Priority | Status | Verifies | AC |
-|---|------|----------|--------|----------|----|
-| 1 | initial state is Full tier | P0 | RED - class not yet implemented | Default tier is `DegradationTier.Full` | 1 |
-| 2 | single probe failure does NOT trigger degradation | P0 | RED - `recordProbeResult` not implemented | Hysteresis prevents flapping on 1 failure | 1, 12 |
-| 3 | three consecutive probe failures triggers Full → IntentReduced | P0 | RED - transition logic not implemented | 3-failure threshold triggers degrade | 1 |
-| 4 | six consecutive probe failures triggers Full → Passthrough | P0 | RED - multi-step degrade not implemented | Two-tier degrade after 6 failures | 2 |
-| 5 | nine consecutive probe failures triggers Full → FailClosed | P0 | RED - full-chain degrade not implemented | Three-tier degrade after 9 failures | 3 |
-| 6 | one success resets failure counter | P0 | RED - counter reset not implemented | 2 failures + 1 success + 1 failure = stays Full | 12 |
-| 7 | three consecutive successes triggers recovery | P0 | RED - recovery not implemented | 3 successes from Passthrough → Full | 4 |
-| 8 | Passthrough recovery goes straight to Full | P0 | RED - jump recovery not implemented | Recovery is a jump, not step-by-step | 4 |
-| 9 | floor Passthrough prevents upgrade to IntentReduced | P0 | RED - floor enforcement not implemented | Floor blocks upgrade, stays Passthrough | 5 |
-| 10 | floor IntentReduced allows Passthrough downgrade but blocks upgrade | P0 | RED - floor asymmetry not implemented | Floor blocks upgrades, allows downgrades | 5 |
-| 11 | transition reason is recorded correctly | P1 | RED - transition metadata not implemented | `getTransitionReason()` returns correct info | 9 |
-| 12 | tierHistory tracks all transitions | P1 | RED - history not implemented | Array of `{from, to, reason, timestamp}` | 9 |
-| 13 | reset() returns to Full and clears history | P1 | RED - reset not implemented | Full reset for test isolation | - |
-| 14 | interleaved failures and successes: 1 fail, 1 success, 3 failures → 1 step degrade only | P1 | RED - interleaved logic not implemented | Mixed probe results produce expected degrade | 12 |
-| 15 | rapid probe calls do not corrupt state (concurrent safety simulation) | P2 | RED - concurrent safety not verified | No race conditions in state mutations | - |
+| #   | Test                                                                                    | Priority | Status                                    | Verifies                                        | AC    |
+| --- | --------------------------------------------------------------------------------------- | -------- | ----------------------------------------- | ----------------------------------------------- | ----- |
+| 1   | initial state is Full tier                                                              | P0       | RED - class not yet implemented           | Default tier is `DegradationTier.Full`          | 1     |
+| 2   | single probe failure does NOT trigger degradation                                       | P0       | RED - `recordProbeResult` not implemented | Hysteresis prevents flapping on 1 failure       | 1, 12 |
+| 3   | three consecutive probe failures triggers Full → IntentReduced                          | P0       | RED - transition logic not implemented    | 3-failure threshold triggers degrade            | 1     |
+| 4   | six consecutive probe failures triggers Full → Passthrough                              | P0       | RED - multi-step degrade not implemented  | Two-tier degrade after 6 failures               | 2     |
+| 5   | nine consecutive probe failures triggers Full → FailClosed                              | P0       | RED - full-chain degrade not implemented  | Three-tier degrade after 9 failures             | 3     |
+| 6   | one success resets failure counter                                                      | P0       | RED - counter reset not implemented       | 2 failures + 1 success + 1 failure = stays Full | 12    |
+| 7   | three consecutive successes triggers recovery                                           | P0       | RED - recovery not implemented            | 3 successes from Passthrough → Full             | 4     |
+| 8   | Passthrough recovery goes straight to Full                                              | P0       | RED - jump recovery not implemented       | Recovery is a jump, not step-by-step            | 4     |
+| 9   | floor Passthrough prevents upgrade to IntentReduced                                     | P0       | RED - floor enforcement not implemented   | Floor blocks upgrade, stays Passthrough         | 5     |
+| 10  | floor IntentReduced allows Passthrough downgrade but blocks upgrade                     | P0       | RED - floor asymmetry not implemented     | Floor blocks upgrades, allows downgrades        | 5     |
+| 11  | transition reason is recorded correctly                                                 | P1       | RED - transition metadata not implemented | `getTransitionReason()` returns correct info    | 9     |
+| 12  | tierHistory tracks all transitions                                                      | P1       | RED - history not implemented             | Array of `{from, to, reason, timestamp}`        | 9     |
+| 13  | reset() returns to Full and clears history                                              | P1       | RED - reset not implemented               | Full reset for test isolation                   | -     |
+| 14  | interleaved failures and successes: 1 fail, 1 success, 3 failures → 1 step degrade only | P1       | RED - interleaved logic not implemented   | Mixed probe results produce expected degrade    | 12    |
+| 15  | rapid probe calls do not corrupt state (concurrent safety simulation)                   | P2       | RED - concurrent safety not verified      | No race conditions in state mutations           | -     |
 
 ### Unit Tests: ProbeTimer (8 tests)
 
 **File:** `tests/unit/degrade/probe-timer.test.ts` (~180 lines)
 
-| # | Test | Priority | Status | Verifies | AC |
-|---|------|----------|--------|----------|----|
-| 1 | timer starts and calls probe() on interval | P0 | RED - `ProbeTimer` not implemented | `start()` schedules probe calls at interval | 10 |
-| 2 | probe failure is recorded as failure in machine | P0 | RED - failure propagation not implemented | `backend.probe()` returning false triggers machine | 10 |
-| 3 | probe success is recorded as success | P0 | RED - success propagation not implemented | `backend.probe()` returning true records success | 10 |
-| 4 | stop() stops the interval | P1 | RED - stop not implemented | `clearInterval` prevents further calls | 10 |
-| 5 | restart() changes interval | P1 | RED - restart not implemented | New interval takes effect | 10 |
-| 6 | probe() that throws is treated as failure | P1 | RED - throw handling not implemented | Exceptions treated as probe failures | 10 |
-| 7 | isRunning() returns correct state | P2 | RED - running state not tracked | Status query works | - |
+| #   | Test                                            | Priority | Status                                    | Verifies                                           | AC  |
+| --- | ----------------------------------------------- | -------- | ----------------------------------------- | -------------------------------------------------- | --- |
+| 1   | timer starts and calls probe() on interval      | P0       | RED - `ProbeTimer` not implemented        | `start()` schedules probe calls at interval        | 10  |
+| 2   | probe failure is recorded as failure in machine | P0       | RED - failure propagation not implemented | `backend.probe()` returning false triggers machine | 10  |
+| 3   | probe success is recorded as success            | P0       | RED - success propagation not implemented | `backend.probe()` returning true records success   | 10  |
+| 4   | stop() stops the interval                       | P1       | RED - stop not implemented                | `clearInterval` prevents further calls             | 10  |
+| 5   | restart() changes interval                      | P1       | RED - restart not implemented             | New interval takes effect                          | 10  |
+| 6   | probe() that throws is treated as failure       | P1       | RED - throw handling not implemented      | Exceptions treated as probe failures               | 10  |
+| 7   | isRunning() returns correct state               | P2       | RED - running state not tracked           | Status query works                                 | -   |
 
 ### Integration Tests: Degradation Flow (13 tests)
 
 **File:** `tests/integration/degradation.test.ts` (~350 lines)
 
-| # | Test | Priority | Status | Verifies | AC |
-|---|------|----------|--------|----------|----|
-| 1 | Full → IntentReduced via probe failures | P0 | RED - degradation not wired | Full flow: probe failures trigger tier change | 1 |
-| 2 | IntentReduced → Passthrough via additional probe failures | P0 | RED - multi-step not wired | 3 more failures → Passthrough | 2 |
-| 3 | Passthrough → FailClosed via additional probe failures | P0 | RED - fail-closed not wired | 3 more failures → FailClosed | 3 |
-| 4 | Full recovery: Passthrough → Full | P0 | RED - recovery not wired | 3 successes → Full jump | 4 |
-| 5 | FailClosed dispatch returns structured error | P1 | RED - fail-closed error shape not wired | Error envelope with `tier: fail_closed` | 6 |
-| 6 | IntentReduced dispatch runs sequentially | P1 | RED - sequential execution not wired | No parallelism in IntentReduced | 7 |
-| 7 | Passthrough dispatch skips classification/fusion | P1 | RED - passthrough logic not wired | Raw results with `passthrough: true` | 8 |
-| 8 | transition reason appears in response metadata | P1 | RED - metadata enrichment not wired | Response includes `degradation_tier` + reason | 12 |
-| 9 | error type preserved end-to-end | P1 | RED - error propagation not wired | `recoverable: true|false` through dispatch | 11 |
-| 10 | floor enforcement at integration level | P1 | RED - floor not wired in dispatch | Config floor prevents upgrades | 5 |
-| 11 | single probe failure does not trigger tier change | P2 | RED - hysteresis at integration level | 1 transient blip → no change | 1 |
+| #   | Test                                                      | Priority | Status                                  | Verifies                                      | AC                      |
+| --- | --------------------------------------------------------- | -------- | --------------------------------------- | --------------------------------------------- | ----------------------- | --- |
+| 1   | Full → IntentReduced via probe failures                   | P0       | RED - degradation not wired             | Full flow: probe failures trigger tier change | 1                       |
+| 2   | IntentReduced → Passthrough via additional probe failures | P0       | RED - multi-step not wired              | 3 more failures → Passthrough                 | 2                       |
+| 3   | Passthrough → FailClosed via additional probe failures    | P0       | RED - fail-closed not wired             | 3 more failures → FailClosed                  | 3                       |
+| 4   | Full recovery: Passthrough → Full                         | P0       | RED - recovery not wired                | 3 successes → Full jump                       | 4                       |
+| 5   | FailClosed dispatch returns structured error              | P1       | RED - fail-closed error shape not wired | Error envelope with `tier: fail_closed`       | 6                       |
+| 6   | IntentReduced dispatch runs sequentially                  | P1       | RED - sequential execution not wired    | No parallelism in IntentReduced               | 7                       |
+| 7   | Passthrough dispatch skips classification/fusion          | P1       | RED - passthrough logic not wired       | Raw results with `passthrough: true`          | 8                       |
+| 8   | transition reason appears in response metadata            | P1       | RED - metadata enrichment not wired     | Response includes `degradation_tier` + reason | 12                      |
+| 9   | error type preserved end-to-end                           | P1       | RED - error propagation not wired       | `recoverable: true                            | false` through dispatch | 11  |
+| 10  | floor enforcement at integration level                    | P1       | RED - floor not wired in dispatch       | Config floor prevents upgrades                | 5                       |
+| 11  | single probe failure does not trigger tier change         | P2       | RED - hysteresis at integration level   | 1 transient blip → no change                  | 1                       |
 
 ---
 
@@ -157,11 +157,13 @@ const result = await backend.probe();
 - `execute(query, signal): Promise<QueryResult>` — return mock result
 
 **Failure Response (probe returns false):**
+
 ```json
 { "tool": "memtrace_find_code", "data": [], "trace_id": "t1", "elapsed_ms": 10, "degraded": false }
 ```
 
 **Error Response (probe throws):**
+
 ```text
 Error: "simulated backend failure"
 ```
@@ -368,6 +370,7 @@ pnpm build
 ```
 
 **Summary:**
+
 - Total tests: 36 (when written)
 - Skipped: 0 (scaffolds are written without `test.skip()` to confirm RED on first run)
 - Activated RED tests: 36 (all fail until implementation)

@@ -43,8 +43,14 @@ uncovered_nodes, coverage_percentage, threshold, passed, uncovered_details.`);
     }
   }
 
-  if (!result.blastRadius) { fail('Missing --blast-radius'); process.exit(1); }
-  if (!result.testCoverage) { fail('Missing --test-coverage'); process.exit(1); }
+  if (!result.blastRadius) {
+    fail('Missing --blast-radius');
+    process.exit(1);
+  }
+  if (!result.testCoverage) {
+    fail('Missing --test-coverage');
+    process.exit(1);
+  }
 
   return result;
 }
@@ -67,35 +73,52 @@ async function readJsonFile(filePath) {
 }
 
 function normalizeBlastData(raw) {
-  const syms = Array.isArray(raw?.affected_symbols) ? raw.affected_symbols
-    : Array.isArray(raw?.symbols) ? raw.symbols
-    : [];
-  const total = typeof raw?.total_count === 'number' ? raw.total_count
-    : typeof raw?.total_count === 'string' ? Number(raw.total_count)
-    : typeof raw?.total_affected === 'number' ? raw.total_affected
-    : typeof raw?.total_affected === 'string' ? Number(raw.total_affected)
-    : syms.length;
+  const syms = Array.isArray(raw?.affected_symbols)
+    ? raw.affected_symbols
+    : Array.isArray(raw?.symbols)
+      ? raw.symbols
+      : [];
+  const total =
+    typeof raw?.total_count === 'number'
+      ? raw.total_count
+      : typeof raw?.total_count === 'string'
+        ? Number(raw.total_count)
+        : typeof raw?.total_affected === 'number'
+          ? raw.total_affected
+          : typeof raw?.total_affected === 'string'
+            ? Number(raw.total_affected)
+            : syms.length;
   return {
-    symbols: syms.filter(s => s != null && typeof s === 'object'),
+    symbols: syms.filter((s) => s != null && typeof s === 'object'),
     totalCount: total,
   };
 }
 
 function normalizeCoverageData(raw) {
-  const mods = Array.isArray(raw?.modules) ? raw.modules
-    : Array.isArray(raw?.coverage?.modules) ? raw.coverage.modules
-    : [];
+  const mods = Array.isArray(raw?.modules)
+    ? raw.modules
+    : Array.isArray(raw?.coverage?.modules)
+      ? raw.coverage.modules
+      : [];
   return {
-    modules: mods.filter(m => m != null && typeof m === 'object').map(m => ({
-      path: m?.module ?? m?.file ?? m?.path ?? '',
-      coverage: typeof m?.coverage === 'string' ? m.coverage
-        : typeof m?.status === 'string' ? m.status
-        : 'None',
-      symbolsCovered: Array.isArray(m?.symbols_covered) ? m.symbols_covered
-        : Array.isArray(m?.covered_symbols) ? m.covered_symbols
-        : Array.isArray(m?.covered) ? m.covered
-        : [],
-    })),
+    modules: mods
+      .filter((m) => m != null && typeof m === 'object')
+      .map((m) => ({
+        path: m?.module ?? m?.file ?? m?.path ?? '',
+        coverage:
+          typeof m?.coverage === 'string'
+            ? m.coverage
+            : typeof m?.status === 'string'
+              ? m.status
+              : 'None',
+        symbolsCovered: Array.isArray(m?.symbols_covered)
+          ? m.symbols_covered
+          : Array.isArray(m?.covered_symbols)
+            ? m.covered_symbols
+            : Array.isArray(m?.covered)
+              ? m.covered
+              : [],
+      })),
   };
 }
 
@@ -115,7 +138,7 @@ function compute(rawBlastData, rawCoverageData, threshold) {
       uncovered_details: [],
       elapsed_ms: 0,
       note: 'Empty blast radius — no nodes to intersect',
-      total_count_reported: blastData.totalCount
+      total_count_reported: blastData.totalCount,
     };
   }
 
@@ -126,7 +149,9 @@ function compute(rawBlastData, rawCoverageData, threshold) {
   }
 
   if (blastData.totalCount !== undefined && blastData.totalCount !== blastSet.size) {
-    console.error(`WARNING: total_count mismatch: reported=${blastData.totalCount}, actual=${blastSet.size}`);
+    console.error(
+      `WARNING: total_count mismatch: reported=${blastData.totalCount}, actual=${blastSet.size}`
+    );
   }
 
   const coveredSet = new Set();
@@ -135,7 +160,7 @@ function compute(rawBlastData, rawCoverageData, threshold) {
     const cov = mod.coverage || '';
 
     if (cov === 'Yes') {
-      for (const sym of (mod.symbolsCovered || [])) {
+      for (const sym of mod.symbolsCovered || []) {
         if (blastSet.has(`${modPath}:${sym}`)) {
           coveredSet.add(`${modPath}:${sym}`);
         }
@@ -174,7 +199,7 @@ function compute(rawBlastData, rawCoverageData, threshold) {
     passed,
     uncovered_details: uncoveredDetails,
     elapsed_ms: 0,
-    total_count_reported: blastData.totalCount
+    total_count_reported: blastData.totalCount,
   };
 }
 
@@ -211,12 +236,11 @@ const timeout = new Promise((_, reject) =>
   setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS)
 );
 
-Promise.race([main(), timeout])
-  .catch(err => {
-    if (err?.message === 'TIMEOUT') {
-      console.log(TIMEOUT_TOKEN);
-    } else {
-      fail(err?.message ?? String(err));
-    }
-    process.exit(1);
-  });
+Promise.race([main(), timeout]).catch((err) => {
+  if (err?.message === 'TIMEOUT') {
+    console.log(TIMEOUT_TOKEN);
+  } else {
+    fail(err?.message ?? String(err));
+  }
+  process.exit(1);
+});

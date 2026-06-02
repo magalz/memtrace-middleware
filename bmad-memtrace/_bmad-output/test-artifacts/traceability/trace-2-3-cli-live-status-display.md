@@ -34,10 +34,10 @@ externalPointerStatus: 'not-applicable'
 
 ### Coverage Summary
 
-| Priority | Total Criteria | FULL Coverage | Coverage % | Status |
-|---|---|---|---|---|
-| P0 (AC 1-6 core) | 6 | 6 | 100% | ✅ PASS |
-| **Total** | **6** | **6** | **100%** | **✅ PASS** |
+| Priority         | Total Criteria | FULL Coverage | Coverage % | Status      |
+| ---------------- | -------------- | ------------- | ---------- | ----------- |
+| P0 (AC 1-6 core) | 6              | 6             | 100%       | ✅ PASS     |
+| **Total**        | **6**          | **6**         | **100%**   | **✅ PASS** |
 
 ---
 
@@ -201,12 +201,15 @@ externalPointerStatus: 'not-applicable'
 ### Coverage Heuristics Findings
 
 #### Endpoint Coverage Gaps
+
 - Not applicable (no HTTP endpoints in this story)
 
 #### Auth/Authz Negative-Path Gaps
+
 - Not applicable (no auth in telemetry/CLI)
 
 #### Happy-Path-Only Criteria
+
 - None — all ACs cover both TTY and piped paths, success and failure flash, all three degradation tiers, and null snapshot
 
 ---
@@ -228,19 +231,21 @@ externalPointerStatus: 'not-applicable'
 ### Duplicate Coverage Analysis
 
 #### Acceptable Overlap (Defense in Depth)
+
 - Ring buffer behavior tested at unit level (17 tests) and consumed by metrics (integration path) ✅
 
 #### Unacceptable Duplication
+
 - None
 
 ---
 
 ### Coverage by Test Level
 
-| Test Level | Tests | Criteria Covered | Coverage % |
-|---|---|---|---|
-| Unit | 33 | 6 ACs | 100% |
-| **Total** | **33** | **6 ACs** | **100%** |
+| Test Level | Tests  | Criteria Covered | Coverage % |
+| ---------- | ------ | ---------------- | ---------- |
+| Unit       | 33     | 6 ACs            | 100%       |
+| **Total**  | **33** | **6 ACs**        | **100%**   |
 
 ---
 
@@ -289,32 +294,32 @@ externalPointerStatus: 'not-applicable'
 
 #### P0 Criteria (Must ALL Pass)
 
-| Criterion | Threshold | Actual | Status |
-|---|---|---|---|
-| P0 Coverage (ACs) | 100% | 100% | ✅ PASS |
-| P0 Test Pass Rate | 100% | 100% | ✅ PASS |
-| Security Issues | 0 | 0 | ✅ PASS |
-| Critical NFR Failures | 0 | 0 | ✅ PASS |
-| Flaky Tests | 0 | 0 | ✅ PASS |
+| Criterion             | Threshold | Actual | Status  |
+| --------------------- | --------- | ------ | ------- |
+| P0 Coverage (ACs)     | 100%      | 100%   | ✅ PASS |
+| P0 Test Pass Rate     | 100%      | 100%   | ✅ PASS |
+| Security Issues       | 0         | 0      | ✅ PASS |
+| Critical NFR Failures | 0         | 0      | ✅ PASS |
+| Flaky Tests           | 0         | 0      | ✅ PASS |
 
 **P0 Evaluation**: ✅ ALL PASS
 
 #### P1 Criteria (Required for PASS)
 
-| Criterion | Threshold | Actual | Status |
-|---|---|---|---|
-| P1 Coverage | ≥90% | 100% | ✅ PASS |
-| P1 Test Pass Rate | ≥95% | 100% | ✅ PASS |
-| Overall Test Pass Rate | ≥95% | 100% | ✅ PASS |
-| Overall Coverage | ≥90% | 100% | ✅ PASS |
+| Criterion              | Threshold | Actual | Status  |
+| ---------------------- | --------- | ------ | ------- |
+| P1 Coverage            | ≥90%      | 100%   | ✅ PASS |
+| P1 Test Pass Rate      | ≥95%      | 100%   | ✅ PASS |
+| Overall Test Pass Rate | ≥95%      | 100%   | ✅ PASS |
+| Overall Coverage       | ≥90%      | 100%   | ✅ PASS |
 
 **P1 Evaluation**: ✅ ALL PASS
 
 #### P2/P3 Criteria (Informational, Don't Block)
 
-| Criterion | Actual | Notes |
-|---|---|---|
-| P2 Test Pass Rate | 100% | Informational |
+| Criterion         | Actual | Notes         |
+| ----------------- | ------ | ------------- |
+| P2 Test Pass Rate | 100%   | Informational |
 
 ---
 

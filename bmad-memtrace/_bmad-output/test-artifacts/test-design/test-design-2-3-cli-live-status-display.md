@@ -41,14 +41,14 @@ lastSaved: '2026-05-29T09:16:00Z'
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-| ---- | --------- | ---------- |
-| **Full telemetry emitter pipeline** (tracer.ts, detailed per-phase event emission) | Deferred to Epic 4, Story 4.1 | No testing needed now — story boundaries respected |
-| **CLI `start` command (server mode)** | Placeholder only in this story — server mode requires full pipeline lifecycle management | No testing needed until that story |
-| **End-to-end integration with Memtrace MCP server** | This story uses in-memory ring buffer — no Memtrace polling | Ring buffer tests verify data source isolation |
-| **Web UI or dashboard telemetry** | Deferred beyond MVP | Not in scope for this epic |
-| **Performance benchmarks for 99th percentile latency** | Story only uses p50/p95 from a ring buffer of 100 confidence values | Covered by unit tests on confidence calculation |
-| **Cross-process ring buffer persistence** | Single-process in-memory only | Crash tolerance not required — state is ephemeral |
+| Item                                                                               | Reasoning                                                                                | Mitigation                                         |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **Full telemetry emitter pipeline** (tracer.ts, detailed per-phase event emission) | Deferred to Epic 4, Story 4.1                                                            | No testing needed now — story boundaries respected |
+| **CLI `start` command (server mode)**                                              | Placeholder only in this story — server mode requires full pipeline lifecycle management | No testing needed until that story                 |
+| **End-to-end integration with Memtrace MCP server**                                | This story uses in-memory ring buffer — no Memtrace polling                              | Ring buffer tests verify data source isolation     |
+| **Web UI or dashboard telemetry**                                                  | Deferred beyond MVP                                                                      | Not in scope for this epic                         |
+| **Performance benchmarks for 99th percentile latency**                             | Story only uses p50/p95 from a ring buffer of 100 confidence values                      | Covered by unit tests on confidence calculation    |
+| **Cross-process ring buffer persistence**                                          | Single-process in-memory only                                                            | Crash tolerance not required — state is ephemeral  |
 
 ---
 
@@ -56,26 +56,26 @@ lastSaved: '2026-05-29T09:16:00Z'
 
 ### High-Priority Risks (Score ≥6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- | -------- |
-| R-001 | DATA | Ring buffer concurrent read during write returns inconsistent snapshot (stale/mixed data) | 3 | 3 | 9 | Enforce `toArray()` returns a frozen shallow copy; add property-based test for concurrent read safety (sequential simulation). Ring buffer is single-threaded (Node.js), but any async access pattern must still get a consistent view | DEV | Story impl |
-| R-002 | PERF | 500ms setInterval drifts or accumulates if render takes >500ms, causing overlapped writes or memory growth | 2 | 3 | 6 | Use `setInterval` with a guard: if previous render is still running, skip this cycle. On `stop()`, `clearInterval` must be called. Test with artificially slow renders | DEV | Story impl |
-| R-003 | OPS | TTY detection (`process.stdout.isTTY`) is unreliable on Windows (ConPTY, Git Bash, WSL, CI pipelines) producing wrong output format | 2 | 3 | 6 | Fallback to piped NDJSON when isTTY is falsy or undefined. Document in dev notes that CI always produces NDJSON. Test both branches explicitly with mocked isTTY values | DEV | Story impl |
+| Risk ID | Category | Description                                                                                                                         | Probability | Impact | Score | Mitigation                                                                                                                                                                                                                             | Owner | Timeline   |
+| ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------- |
+| R-001   | DATA     | Ring buffer concurrent read during write returns inconsistent snapshot (stale/mixed data)                                           | 3           | 3      | 9     | Enforce `toArray()` returns a frozen shallow copy; add property-based test for concurrent read safety (sequential simulation). Ring buffer is single-threaded (Node.js), but any async access pattern must still get a consistent view | DEV   | Story impl |
+| R-002   | PERF     | 500ms setInterval drifts or accumulates if render takes >500ms, causing overlapped writes or memory growth                          | 2           | 3      | 6     | Use `setInterval` with a guard: if previous render is still running, skip this cycle. On `stop()`, `clearInterval` must be called. Test with artificially slow renders                                                                 | DEV   | Story impl |
+| R-003   | OPS      | TTY detection (`process.stdout.isTTY`) is unreliable on Windows (ConPTY, Git Bash, WSL, CI pipelines) producing wrong output format | 2           | 3      | 6     | Fallback to piped NDJSON when isTTY is falsy or undefined. Document in dev notes that CI always produces NDJSON. Test both branches explicitly with mocked isTTY values                                                                | DEV   | Story impl |
 
 ### Medium-Priority Risks (Score 3-4)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- |
-| R-004 | TECH | p50/p95 confidence calculation on empty dataset (0 dispatches) produces NaN, Infinity, or throws | 2 | 2 | 4 | Guard: if confidence array is empty, return 0 for both p50 and p95. Test with empty buffer | DEV |
-| R-005 | TECH | Flash indicator leaks across stop/start cycles (not reset on stop()) | 2 | 2 | 4 | On `stop()`, reset flashCounter to 0. Verify via `getFlashState()` internal helper during tests | DEV |
-| R-006 | DATA | Ring buffer capacity=0 is not rejected, causing infinite loop or division by zero in modulo operations | 2 | 2 | 4 | Clamp capacity to minimum of 1 or throw in constructor. Test with capacity=0 explicitly | DEV |
+| Risk ID | Category | Description                                                                                            | Probability | Impact | Score | Mitigation                                                                                      | Owner |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------ | ----------- | ------ | ----- | ----------------------------------------------------------------------------------------------- | ----- |
+| R-004   | TECH     | p50/p95 confidence calculation on empty dataset (0 dispatches) produces NaN, Infinity, or throws       | 2           | 2      | 4     | Guard: if confidence array is empty, return 0 for both p50 and p95. Test with empty buffer      | DEV   |
+| R-005   | TECH     | Flash indicator leaks across stop/start cycles (not reset on stop())                                   | 2           | 2      | 4     | On `stop()`, reset flashCounter to 0. Verify via `getFlashState()` internal helper during tests | DEV   |
+| R-006   | DATA     | Ring buffer capacity=0 is not rejected, causing infinite loop or division by zero in modulo operations | 2           | 2      | 4     | Clamp capacity to minimum of 1 or throw in constructor. Test with capacity=0 explicitly         | DEV   |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-| ------- | -------- | ----------- | ----------- | ------ | ----- | ------ |
-| R-007 | BUS | NDJSON piped output is not parseable by `jq` because of extraneous non-JSON content (e.g., logger stderr leak) | 1 | 2 | 2 | Verify NDJSON output via regex: each line must be valid JSON. Add `jq` test in CI pipeline. Use `createLogger` to stderr — stdout reserved for CLI display only | Monitor |
-| R-008 | OPS | `version` field reads `package.json` at each refresh (500ms fs read) causing I/O churn | 1 | 2 | 2 | Use static constant `MIDDLEWARE_VERSION` in `src/constants.ts` — no runtime fs reads | Monitor |
+| Risk ID | Category | Description                                                                                                    | Probability | Impact | Score | Action                                                                                                                                                          |
+| ------- | -------- | -------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| R-007   | BUS      | NDJSON piped output is not parseable by `jq` because of extraneous non-JSON content (e.g., logger stderr leak) | 1           | 2      | 2     | Verify NDJSON output via regex: each line must be valid JSON. Add `jq` test in CI pipeline. Use `createLogger` to stderr — stdout reserved for CLI display only | Monitor |
+| R-008   | OPS      | `version` field reads `package.json` at each refresh (500ms fs read) causing I/O churn                         | 1           | 2      | 2     | Use static constant `MIDDLEWARE_VERSION` in `src/constants.ts` — no runtime fs reads                                                                            | Monitor |
 
 ### Risk Category Legend
 
@@ -90,13 +90,13 @@ lastSaved: '2026-05-29T09:16:00Z'
 
 ## NFR Planning
 
-| NFR Category | Requirement / Threshold | Risk Link | Planned Validation | Evidence Needed |
-| ------------ | ----------------------- | --------- | ------------------ | --------------- |
-| Reliability | Ring buffer concurrent read safety — toArray() returns consistent snapshot during writes | R-001 | Unit test: sequential simulation of concurrent read during write | Test pass |
-| Performance | 500ms refresh interval does not leak setInterval handles | R-002 | Unit test: start/stop cycle verifies clearInterval called, no orphan timers | Test pass + no memory growth |
-| Maintainability | TTY vs piped output contract is stable across terminals and CI | R-003 | Unit test: both branches with mocked isTTY=true/false/undefined | Test passes |
-| Maintainability | Zero `console.log` in all new code | — | ESLint no-console rule + manual review | ESLint pass |
-| Security | NDJSON output to stdout — no mixing of telemetry stderr with CLI display | R-007 | Code review: all log output goes to stderr via createLogger() | Code review pass |
+| NFR Category    | Requirement / Threshold                                                                  | Risk Link | Planned Validation                                                          | Evidence Needed              |
+| --------------- | ---------------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------- | ---------------------------- |
+| Reliability     | Ring buffer concurrent read safety — toArray() returns consistent snapshot during writes | R-001     | Unit test: sequential simulation of concurrent read during write            | Test pass                    |
+| Performance     | 500ms refresh interval does not leak setInterval handles                                 | R-002     | Unit test: start/stop cycle verifies clearInterval called, no orphan timers | Test pass + no memory growth |
+| Maintainability | TTY vs piped output contract is stable across terminals and CI                           | R-003     | Unit test: both branches with mocked isTTY=true/false/undefined             | Test passes                  |
+| Maintainability | Zero `console.log` in all new code                                                       | —         | ESLint no-console rule + manual review                                      | ESLint pass                  |
+| Security        | NDJSON output to stdout — no mixing of telemetry stderr with CLI display                 | R-007     | Code review: all log output goes to stderr via createLogger()               | Code review pass             |
 
 **Unknown thresholds:** No NFR thresholds invented — this is a CLI display, not a server. Latency requirements are implicit (500ms refresh). No SLAs defined.
 
@@ -129,14 +129,14 @@ lastSaved: '2026-05-29T09:16:00Z'
 
 **Criteria:** Blocks core journey + High risk (≥6) + No workaround
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| Ring buffer push/overflow | Unit | R-001 | 2 | DEV | Capacity enforcement + oldest dropped |
-| Ring buffer wrap-around | Unit | R-001 | 2 | DEV | head < tail after overflow |
-| Ring buffer concurrent read safety | Unit | R-001 | 1 | DEV | Sequential simulation of read during write |
-| CLI status JSON piped output | Unit | R-003 | 1 | DEV | All 9 required keys present with correct types |
-| CLI status TTY ANSI output | Unit | R-003 | 1 | DEV | `\r`, color codes, health dot present |
-| CLI flash indicator | Unit | R-005 | 1 | DEV | 3-cycle flash then clear |
+| Requirement                        | Test Level | Risk Link | Test Count | Owner | Notes                                          |
+| ---------------------------------- | ---------- | --------- | ---------- | ----- | ---------------------------------------------- |
+| Ring buffer push/overflow          | Unit       | R-001     | 2          | DEV   | Capacity enforcement + oldest dropped          |
+| Ring buffer wrap-around            | Unit       | R-001     | 2          | DEV   | head < tail after overflow                     |
+| Ring buffer concurrent read safety | Unit       | R-001     | 1          | DEV   | Sequential simulation of read during write     |
+| CLI status JSON piped output       | Unit       | R-003     | 1          | DEV   | All 9 required keys present with correct types |
+| CLI status TTY ANSI output         | Unit       | R-003     | 1          | DEV   | `\r`, color codes, health dot present          |
+| CLI flash indicator                | Unit       | R-005     | 1          | DEV   | 3-cycle flash then clear                       |
 
 **Total P0**: 8 tests, 5.0 hours
 
@@ -144,17 +144,17 @@ lastSaved: '2026-05-29T09:16:00Z'
 
 **Criteria:** Important features + Medium risk (3-4) + Common workflows
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| Ring buffer edge cases (capacity 1, empty, clear) | Unit | R-006 | 4 | DEV | Boundary conditions |
-| Ring buffer toArray copy isolation | Unit | R-001 | 1 | DEV | Mutate returned array, buffer unaffected |
-| CLI degraded tier output | Unit | — | 1 | DEV | All 4 tiers produce correct health dot + name |
-| CLI confidence p50/p95 validity | Unit | R-004 | 1 | DEV | isFinite check, non-NaN |
-| CLI active_intents type | Unit | — | 1 | DEV | Array of strings |
-| CLI query counts type | Unit | — | 1 | DEV | Non-negative integers |
-| CLI null snapshot resilience | Unit | — | 1 | DEV | Graceful handling, no crash |
-| CLI flash counter decrement | Unit | R-005 | 1 | DEV | flashCounter state machine |
-| CLI piped NDJSON one-line-per-refresh | Unit | R-007 | 1 | DEV | Exactly one JSON line per call |
+| Requirement                                       | Test Level | Risk Link | Test Count | Owner | Notes                                         |
+| ------------------------------------------------- | ---------- | --------- | ---------- | ----- | --------------------------------------------- |
+| Ring buffer edge cases (capacity 1, empty, clear) | Unit       | R-006     | 4          | DEV   | Boundary conditions                           |
+| Ring buffer toArray copy isolation                | Unit       | R-001     | 1          | DEV   | Mutate returned array, buffer unaffected      |
+| CLI degraded tier output                          | Unit       | —         | 1          | DEV   | All 4 tiers produce correct health dot + name |
+| CLI confidence p50/p95 validity                   | Unit       | R-004     | 1          | DEV   | isFinite check, non-NaN                       |
+| CLI active_intents type                           | Unit       | —         | 1          | DEV   | Array of strings                              |
+| CLI query counts type                             | Unit       | —         | 1          | DEV   | Non-negative integers                         |
+| CLI null snapshot resilience                      | Unit       | —         | 1          | DEV   | Graceful handling, no crash                   |
+| CLI flash counter decrement                       | Unit       | R-005     | 1          | DEV   | flashCounter state machine                    |
+| CLI piped NDJSON one-line-per-refresh             | Unit       | R-007     | 1          | DEV   | Exactly one JSON line per call                |
 
 **Total P1**: 12 tests, 6.0 hours
 
@@ -162,15 +162,15 @@ lastSaved: '2026-05-29T09:16:00Z'
 
 **Criteria:** Secondary features + Low risk (1-2) + Edge cases
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-| ----------- | ---------- | --------- | ---------- | ----- | ----- |
-| Ring buffer multiple wrap-arounds | Unit | — | 1 | DEV | 3+ full cycles |
-| Ring buffer 100k stress | Unit | — | 1 | DEV | No throw, no memory growth |
-| Ring buffer confidence buffer pattern | Unit | — | 1 | DEV | RingBuffer<number> works identically |
-| CLI piped NDJSON no ANSI codes | Unit | R-003 | 1 | DEV | Regex negate `\x1b\[` |
-| CLI version is string | Unit | — | 1 | DEV | typeof check |
-| CLI getCount accuracy | Unit | — | 1 | DEV | After mixed push/clear cycles |
-| CLI toArray order after wrap | Unit | — | 1 | DEV | Oldest→newest ordering |
+| Requirement                           | Test Level | Risk Link | Test Count | Owner | Notes                                |
+| ------------------------------------- | ---------- | --------- | ---------- | ----- | ------------------------------------ |
+| Ring buffer multiple wrap-arounds     | Unit       | —         | 1          | DEV   | 3+ full cycles                       |
+| Ring buffer 100k stress               | Unit       | —         | 1          | DEV   | No throw, no memory growth           |
+| Ring buffer confidence buffer pattern | Unit       | —         | 1          | DEV   | RingBuffer<number> works identically |
+| CLI piped NDJSON no ANSI codes        | Unit       | R-003     | 1          | DEV   | Regex negate `\x1b\[`                |
+| CLI version is string                 | Unit       | —         | 1          | DEV   | typeof check                         |
+| CLI getCount accuracy                 | Unit       | —         | 1          | DEV   | After mixed push/clear cycles        |
+| CLI toArray order after wrap          | Unit       | —         | 1          | DEV   | Oldest→newest ordering               |
 
 **Total P2**: 12 tests, 3.0 hours
 
@@ -230,12 +230,12 @@ lastSaved: '2026-05-29T09:16:00Z'
 
 ### Test Development Effort
 
-| Priority | Count | Hours/Test | Total Hours | Notes |
-| -------- | ----- | ---------- | ----------- | ----- |
-| P0 | 8 | 2.0 | 16.0 | Ring buffer concurrent safety, CLI format contracts require careful assertions |
-| P1 | 12 | 1.0 | 12.0 | Standard coverage, property-based ring buffer variants |
-| P2 | 8 | 0.5 | 4.0 | Simple edge cases and stress tests |
-| **Total** | **28** | **-** | **32.0** | **~4 days** |
+| Priority  | Count  | Hours/Test | Total Hours | Notes                                                                          |
+| --------- | ------ | ---------- | ----------- | ------------------------------------------------------------------------------ |
+| P0        | 8      | 2.0        | 16.0        | Ring buffer concurrent safety, CLI format contracts require careful assertions |
+| P1        | 12     | 1.0        | 12.0        | Standard coverage, property-based ring buffer variants                         |
+| P2        | 8      | 0.5        | 4.0         | Simple edge cases and stress tests                                             |
+| **Total** | **28** | **-**      | **32.0**    | **~4 days**                                                                    |
 
 ### Prerequisites
 
@@ -360,14 +360,14 @@ Design covers all 6 ACs with 28 test scaffolds. Ring buffer tests are the founda
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-| ----------------- | ------ | ---------------- |
-| **src/constants.ts** | Add `MIDDLEWARE_VERSION` — existing constants unchanged | All existing tests importing constants must pass unchanged |
-| **src/types.ts** | Add `StatusSnapshot` and `EventType` — existing types unchanged | All existing type consumers must compile unchanged |
+| Service/Component                 | Impact                                                                                               | Regression Scope                                                     |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **src/constants.ts**              | Add `MIDDLEWARE_VERSION` — existing constants unchanged                                              | All existing tests importing constants must pass unchanged           |
+| **src/types.ts**                  | Add `StatusSnapshot` and `EventType` — existing types unchanged                                      | All existing type consumers must compile unchanged                   |
 | **src/interface/base-adapter.ts** | Add `metrics.recordDispatch()` call after `buildDefaultContext()` — existing orchestration untouched | 6 isolation tests in `tests/integration/isolation.test.ts` must pass |
-| **src/telemetry/index.ts** | Replace placeholder with barrel exports — no existing consumers | No existing test imports from this barrel yet |
-| **src/cli/index.ts** | Replace placeholder with `--status` entry point — no existing consumers | No existing test imports from this file yet |
-| **src/index.ts** | Barrel export additions — new public symbols | Existing barrel exports must remain unchanged |
+| **src/telemetry/index.ts**        | Replace placeholder with barrel exports — no existing consumers                                      | No existing test imports from this barrel yet                        |
+| **src/cli/index.ts**              | Replace placeholder with `--status` entry point — no existing consumers                              | No existing test imports from this file yet                          |
+| **src/index.ts**                  | Barrel export additions — new public symbols                                                         | Existing barrel exports must remain unchanged                        |
 
 ---
 

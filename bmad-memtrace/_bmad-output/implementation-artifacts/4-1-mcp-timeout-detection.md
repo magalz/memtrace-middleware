@@ -82,6 +82,7 @@ The adapter's timeout infrastructure was built in Story 3.1 but has two critical
 2. **Individual RPC calls (`sendRequest`) and the spawn step have no timeout.** The top-level query is guarded by `withTimeout()`, but within that window, a hung `sendRequest()` (the actual RPC to the MCP server) or a stuck `spawn()` can hang indefinitely because they have no per-operation timeout.
 
 This story makes timeout detection **accurate and reliable**:
+
 - `fail()` becomes a pure error reporter (STDERR only)
 - Every MCP operation (spawn, handshake, sendRequest, query execution) is individually guarded by timeout
 - `MEMTRACE_MCP_ERROR_TIMEOUT` is **only** emitted when an actual timeout occurs
@@ -90,6 +91,7 @@ This story makes timeout detection **accurate and reliable**:
 This implements **FR20** (detect server connection failure or timeout) and addresses **NFR3** (reliably detect server drops within 10000ms threshold).
 
 **Relationship to prior stories:**
+
 - Story 3.1: Built initial adapter with `withTimeout`, `TimeoutError`, `TIMEOUT_TOKEN` — this story fixes the token emission bug introduced there
 - Story 3.4: Added freshness check and batch mode — both rely on correct timeout semantics
 - Story 4.2 (future): Autonomous recovery workflow will trigger on `MEMTRACE_MCP_ERROR_TIMEOUT` — requires the token to be reliable
@@ -112,6 +114,7 @@ This implements **FR20** (detect server connection failure or timeout) and addre
 **Location:** `D:\Repos\bmad-memtrace\bmad-memtrace\_bmad\scripts\memtrace\memtrace-adapter.mjs`
 
 **Current state (606 lines, Stories 3.1-3.4):**
+
 - Lines 7-8: `TIMEOUT_MS` and `TIMEOUT_TOKEN` constants — correct, do NOT change
 - Lines 102-105: `fail()` — emits `TIMEOUT_TOKEN` on `console.log` for ALL errors (BUG)
 - Lines 114-162: `McpClient.spawn()` — no timeout wrapping (GAP)
@@ -136,6 +139,7 @@ function fail(msg) {
 ```
 
 This affects EVERY caller of `fail()`:
+
 - `parseArgs()` — unknown arg, missing query, invalid query, missing target, empty target → all now correctly do NOT emit TIMEOUT_TOKEN
 - `runSingleQuery()` non-timeout catch → now correctly does NOT emit TIMEOUT_TOKEN
 - `runBatchQuery()` empty-targets guard → now correctly does NOT emit TIMEOUT_TOKEN
@@ -196,6 +200,7 @@ The batch error handling is already correct — errors are pushed to the `result
 The `parseArgs()` function calls `fail()` for validation errors. After fixing `fail()`, these will correctly NOT emit `TIMEOUT_TOKEN`. No additional changes to `main()` needed.
 
 **Must preserve (DO NOT MODIFY):**
+
 - `TIMEOUT_MS` constant (line 7) — unchanged
 - `TIMEOUT_TOKEN` constant (line 8) — unchanged
 - `SUMMARIZE_TOKEN_LIMIT` (line 9) — unchanged
@@ -232,17 +237,21 @@ Add new test block:
 ##### `describe('Timeout detection accuracy', ...)`
 
 1. **Parse error does NOT emit TIMEOUT_TOKEN:**
+
    ```javascript
    it('should NOT emit MEMTRACE_MCP_ERROR_TIMEOUT for parse errors', async () => {
      const r = await runAdapter(['--unknown']);
      assert.equal(r.code, 1);
      assert.ok(r.stderr.includes('Unknown argument'));
-     assert.ok(!r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
-       'TIMEOUT_TOKEN must NOT appear for non-timeout parse errors');
+     assert.ok(
+       !r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
+       'TIMEOUT_TOKEN must NOT appear for non-timeout parse errors'
+     );
    });
    ```
 
 2. **Missing argument error does NOT emit TIMEOUT_TOKEN:**
+
    ```javascript
    it('should NOT emit MEMTRACE_MCP_ERROR_TIMEOUT for missing --query', async () => {
      const r = await runAdapter(['--target', 'foo']);
@@ -255,16 +264,26 @@ Add new test block:
 3. **Timeout scenario DOES emit TIMEOUT_TOKEN** (uses existing MCP test pattern):
    ```javascript
    it('should emit MEMTRACE_MCP_ERROR_TIMEOUT on actual timeout', { timeout: 30000 }, async () => {
-     const r = await runAdapter(['--target', '!@#$%^&*()_NONEXISTENT_SYMBOL_12345', '--query', 'get_impact', '--repo', 'Repos']);
+     const r = await runAdapter([
+       '--target',
+       '!@#$%^&*()_NONEXISTENT_SYMBOL_12345',
+       '--query',
+       'get_impact',
+       '--repo',
+       'Repos',
+     ]);
      if (r.code === 1) {
-       assert.ok(r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
-         'Actual MCP timeouts must emit the token');
+       assert.ok(
+         r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
+         'Actual MCP timeouts must emit the token'
+       );
      }
      // Code 0 is also acceptable if MCP returns empty result fast
    });
    ```
 
 **Must preserve:**
+
 - All existing tests (27+) unchanged or minimally adjusted
 - Test framework: Node.js built-in `describe`, `it`, `assert`
 - `runAdapter()` helper function
@@ -339,6 +358,7 @@ Existing tests at lines 169-172, 183-185, 223-225, 281-283, 307-308, 323-324, 33
 ### Output Contract (STDOUT)
 
 #### Successful query (unchanged):
+
 ```json
 {
   "target": "validateToken",
@@ -350,19 +370,27 @@ Existing tests at lines 169-172, 183-185, 223-225, 281-283, 307-308, 323-324, 33
 ```
 
 #### Timeout (STDOUT):
+
 ```
 MEMTRACE_MCP_ERROR_TIMEOUT
 ```
+
 STDERR: `ERROR: Query timed out after 10250ms`
 
 #### Non-timeout error (STDOUT — EMPTY or prior JSON):
+
 ```
+
 ```
+
 STDERR: `ERROR: memtrace process exited with code 1`
 
 #### Parse/validation error (STDOUT — EMPTY):
+
 ```
+
 ```
+
 STDERR: `ERROR: Unknown argument: --badflag`
 
 ### Testing Requirements
@@ -448,6 +476,7 @@ deepseek-v4-pro (opencode)
 **Implemented:** Story 4.1 MCP Timeout Detection — made timeout detection accurate and reliable.
 
 **Changes made:**
+
 1. `fail()` — removed `console.log(TIMEOUT_TOKEN)`, now STDERR-only reporter
 2. `McpClient.spawn()` — wrapped with `withTimeout(spawnPromise, TIMEOUT_MS)`
 3. `McpClient.sendRequest()` — wrapped with `withTimeout(requestPromise, TIMEOUT_MS)`
@@ -455,6 +484,7 @@ deepseek-v4-pro (opencode)
 5. `memtrace-adapter.test.mjs` — added 7 new timeout accuracy tests in `describe('Timeout detection accuracy')` block
 
 **Test results (all passing):**
+
 - `memtrace-adapter.test.mjs`: 39/39 pass (6 CLI + 7 summarize + 4 freshness + 4 batch + 5 MCP + 7 timeout accuracy + 6 help/basic)
 - `qa-memtrace.test.mjs`: 10/10 pass
 - `validate-dead-code.test.mjs`: 12/12 pass
@@ -464,16 +494,18 @@ deepseek-v4-pro (opencode)
 
 ### Test Coverage Justification
 
-| Module | Affected Symbols | Test Files | Coverage |
-|--------|-----------------|------------|----------|
+| Module                                        | Affected Symbols                                                                                                                           | Test Files                                            | Coverage                                                                                   |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `_bmad/scripts/memtrace/memtrace-adapter.mjs` | `fail` (lines 102-104), `McpClient.spawn` (lines 113-162), `McpClient.sendRequest` (lines 164-198), `runSingleQuery` catch (lines 499-510) | `memtrace-adapter.test.mjs` (376→430 lines, 39 tests) | Yes — all targets exercised by existing CLI/MCP/batch tests + 7 new timeout accuracy tests |
 
 **Coverage Summary:**
+
 - **Covered:** 1/1 modules (4 affected functions)
 - **Uncovered:** 0/1 modules
 - **Partial:** 0/1 modules
 
 **Justification Notes:**
+
 - `fail()` covered by 6 CLI validation tests (lines 48-97) + serialization error path (line 494)
 - `McpClient.spawn()` covered by all MCP query tests, freshness tests, and batch tests (every test that invokes MCP operations exercises spawn)
 - `McpClient.sendRequest()` covered by all MCP query tests via `callTool` → `sendRequest` chain
@@ -481,6 +513,7 @@ deepseek-v4-pro (opencode)
 - Mathematical Quality Gate skipped due to stale Memtrace index (last indexed 2026-05-04, adapter files created after)
 
 **Acceptance Criteria satisfied:**
+
 - AC #2: Non-timeout errors do NOT emit MEMTRACE_MCP_ERROR_TIMEOUT ✓
 - AC #3: Per-call sendRequest timeout with TIMEOUT_MS ✓
 - AC #4: Spawn guarded by TIMEOUT_MS ✓
@@ -488,10 +521,10 @@ deepseek-v4-pro (opencode)
 
 ### File List
 
-| File | Action | Description |
-|------|--------|-------------|
-| `_bmad/scripts/memtrace/memtrace-adapter.mjs` | MODIFY | Fix `fail()` STDERR-only; add `withTimeout` to `spawn()` and `sendRequest()`; fix `runSingleQuery` catch |
-| `_bmad/scripts/memtrace/memtrace-adapter.test.mjs` | MODIFY | Add 7 new timeout-accuracy tests in `Timeout detection accuracy` describe block |
+| File                                               | Action | Description                                                                                              |
+| -------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| `_bmad/scripts/memtrace/memtrace-adapter.mjs`      | MODIFY | Fix `fail()` STDERR-only; add `withTimeout` to `spawn()` and `sendRequest()`; fix `runSingleQuery` catch |
+| `_bmad/scripts/memtrace/memtrace-adapter.test.mjs` | MODIFY | Add 7 new timeout-accuracy tests in `Timeout detection accuracy` describe block                          |
 
 ### Change Log
 

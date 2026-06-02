@@ -88,12 +88,14 @@ so that multi-agent discussions and automated lifecycles are grounded in the act
 6. **Self-contained Memtrace context block** (established in 6-3, continued in 6-4, 6-5): Add a `## 🧠 Memtrace Context (Self-Contained)` block at the end of every modified workflow/step file.
 
 **Lessons from 6-1 review (applicable to this story):**
+
 - Partial structural success must be handled (not just binary available/unavailable)
 - Greenfield/empty graph: skip structural comparison entirely
 - Freshness timestamp must be checked explicitly, not just "indexed yes/no"
 - All-queries-fail produces "unavailable" (not misleading "partial")
 
 **Lessons from 6-5 (most recent, most relevant):**
+
 - This is ENRICHMENT/PROPAGATION, not a blocking integration
 - Structural data RECOMMENDS but does not DICTATE actions
 - Stale index (older than 30 min) must gate the availability decision
@@ -105,6 +107,7 @@ so that multi-agent discussions and automated lifecycles are grounded in the act
 ### Git Intelligence
 
 Recent commits (last 8):
+
 ```
 0b79767d feat(story-6.5): implement pm technical debt analysis
 cdec481a feat(story-6.4): implement hallucination-free documentation
@@ -122,21 +125,21 @@ afde2efc feat(story-6.2): implement code reviewer deep audit
 
 ### Files Being Modified (UPDATE — read each before modifying)
 
-| File | Type | Current State | What Changes |
-|------|------|--------------|--------------|
-| `src/core-skills/bmad-party-mode/SKILL.md` | UPDATE | 128 lines, single monolithic file. No Memtrace integration. Agent prompt template with Discussion Context section. 5-step On Activation. 4-step Core Loop. | Add step 4.5 to On Activation for structural context gathering. Add "Structural Context" section to agent prompt template. Add context block. Add freshness guidance. |
-| `.agents/skills/bmad-party-mode/SKILL.md` | UPDATE | Identical to source (128 lines). Installed copy. | Apply identical changes as source SKILL.md. |
-| `.agents/skills/bmad-story-automator/workflow.md` | UPDATE | 172 lines. Initialization Sequence: Config Loading → Mode Determination → Route to First Step. No Memtrace awareness. | Add Memtrace state initialization between Config Loading and Mode Determination. Add context block. |
-| `.agents/skills/bmad-story-automator/steps-c/step-01-init.md` | UPDATE | 139 lines. Steps: Verify Stop Hook → Load Rules → Check State → Welcome. No Memtrace check. | Add Memtrace health check between Stop Hook verification and Rules loading. Add context block. |
-| `.agents/skills/bmad-story-automator/steps-c/step-02-preflight.md` | UPDATE | 200 lines. Steps: Confirm Epic → Review Epic → Read Stories & Complexity → Custom Instructions → Proceed to Config. No Memtrace state propagation. | Add Memtrace state carry-forward to Proceed to Configuration (section 5). Add context block. |
+| File                                                               | Type   | Current State                                                                                                                                              | What Changes                                                                                                                                                          |
+| ------------------------------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/core-skills/bmad-party-mode/SKILL.md`                         | UPDATE | 128 lines, single monolithic file. No Memtrace integration. Agent prompt template with Discussion Context section. 5-step On Activation. 4-step Core Loop. | Add step 4.5 to On Activation for structural context gathering. Add "Structural Context" section to agent prompt template. Add context block. Add freshness guidance. |
+| `.agents/skills/bmad-party-mode/SKILL.md`                          | UPDATE | Identical to source (128 lines). Installed copy.                                                                                                           | Apply identical changes as source SKILL.md.                                                                                                                           |
+| `.agents/skills/bmad-story-automator/workflow.md`                  | UPDATE | 172 lines. Initialization Sequence: Config Loading → Mode Determination → Route to First Step. No Memtrace awareness.                                      | Add Memtrace state initialization between Config Loading and Mode Determination. Add context block.                                                                   |
+| `.agents/skills/bmad-story-automator/steps-c/step-01-init.md`      | UPDATE | 139 lines. Steps: Verify Stop Hook → Load Rules → Check State → Welcome. No Memtrace check.                                                                | Add Memtrace health check between Stop Hook verification and Rules loading. Add context block.                                                                        |
+| `.agents/skills/bmad-story-automator/steps-c/step-02-preflight.md` | UPDATE | 200 lines. Steps: Confirm Epic → Review Epic → Read Stories & Complexity → Custom Instructions → Proceed to Config. No Memtrace state propagation.         | Add Memtrace state carry-forward to Proceed to Configuration (section 5). Add context block.                                                                          |
 
 ### Files Being Created (NEW)
 
-| File | Type | Content |
-|------|------|---------|
-| `src/core-skills/bmad-party-mode/customize.toml` | NEW | Persistent fact for Memtrace structural context capability |
-| `.agents/skills/bmad-party-mode/customize.toml` | NEW | Identical to source copy |
-| `.agents/skills/bmad-story-automator/customize.toml` | NEW | Persistent fact for Memtrace MCP state propagation |
+| File                                                 | Type | Content                                                    |
+| ---------------------------------------------------- | ---- | ---------------------------------------------------------- |
+| `src/core-skills/bmad-party-mode/customize.toml`     | NEW  | Persistent fact for Memtrace structural context capability |
+| `.agents/skills/bmad-party-mode/customize.toml`      | NEW  | Identical to source copy                                   |
+| `.agents/skills/bmad-story-automator/customize.toml` | NEW  | Persistent fact for Memtrace MCP state propagation         |
 
 ---
 
@@ -155,17 +158,19 @@ After step 4 (Load project context) and before step 5 (Welcome the user), add:
 ```markdown
 4.5. **Gather structural context** — if Memtrace is available for this project:
 
-   Use the Memtrace MCP tool `list_indexed_repositories` to check if the project root is indexed. If an indexed repo matches:
-   - Call `get_codebase_briefing` (detail_level: "summary") to get the architecture overview.
-   - Call `find_central_symbols` (top 10, kinds: Function/Method/Class) to identify load-bearing code.
-   - Call `list_communities` (min_size: 5) to map the logical module boundaries.
-   - Process ALL queries STRICTLY SEQUENTIALLY using `for...of` with `await` — NEVER `Promise.all`.
-   - Store the combined output as `{structural_context}` for injection into agent prompts.
+Use the Memtrace MCP tool `list_indexed_repositories` to check if the project root is indexed. If an indexed repo matches:
 
-   **Graceful degradation:**
-   - If Memtrace is unavailable or the index is stale (>30 min since `last_indexed_at`): set `{structural_context}` to empty, note diagnostic. Party mode continues.
-   - If some queries succeed and others fail (partial): use available data only.
-   - This step is ADVISORY — never block party mode activation on Memtrace availability.
+- Call `get_codebase_briefing` (detail_level: "summary") to get the architecture overview.
+- Call `find_central_symbols` (top 10, kinds: Function/Method/Class) to identify load-bearing code.
+- Call `list_communities` (min_size: 5) to map the logical module boundaries.
+- Process ALL queries STRICTLY SEQUENTIALLY using `for...of` with `await` — NEVER `Promise.all`.
+- Store the combined output as `{structural_context}` for injection into agent prompts.
+
+**Graceful degradation:**
+
+- If Memtrace is unavailable or the index is stale (>30 min since `last_indexed_at`): set `{structural_context}` to empty, note diagnostic. Party mode continues.
+- If some queries succeed and others fail (partial): use available data only.
+- This step is ADVISORY — never block party mode activation on Memtrace availability.
 ```
 
 #### A3.2 / A4.2: Modify the agent prompt template (in "2. Build Context and Spawn")
@@ -174,6 +179,7 @@ Insert a new section between "Discussion Context" and "What Other Agents Said Th
 
 ```markdown
 ## Codebase Structural Context
+
 {structural_context — if available: a compact summary of the real codebase architecture, key modules, and load-bearing symbols. If not available, omit this entire section.}
 ```
 
@@ -185,14 +191,16 @@ Append at the very end of SKILL.md (after the "Exit" section):
 ## 🧠 Memtrace Context (Self-Contained)
 
 ### Tools Referenced
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `list_indexed_repositories` | Availability gate | none |
-| `get_codebase_briefing` | Architecture overview | `detail_level: "summary"` |
-| `find_central_symbols` | Load-bearing code | `limit: 10`, `kinds: Function/Method/Class` |
-| `list_communities` | Module boundaries | `min_size: 5` |
+
+| Tool                        | Purpose               | Key Parameters                              |
+| --------------------------- | --------------------- | ------------------------------------------- |
+| `list_indexed_repositories` | Availability gate     | none                                        |
+| `get_codebase_briefing`     | Architecture overview | `detail_level: "summary"`                   |
+| `find_central_symbols`      | Load-bearing code     | `limit: 10`, `kinds: Function/Method/Class` |
+| `list_communities`          | Module boundaries     | `min_size: 5`                               |
 
 ### Usage Rules
+
 1. **Index Freshness First:** Always call `list_indexed_repositories` before any graph query. Check `last_indexed_at` against 30-minute recency threshold.
 2. **Sequential Only:** Process all Memtrace queries with `for...of` + `await`. NEVER `Promise.all`.
 3. **Advisory Only:** Memtrace data enriches discussions but never blocks them. Party mode continues with or without structural context.
@@ -202,13 +210,15 @@ Append at the very end of SKILL.md (after the "Exit" section):
 
 ### Data Flow
 ```
+
 On Activation Step 4.5
-  → list_indexed_repositories (availability gate)
-  → get_codebase_briefing (architecture summary)
-  → find_central_symbols (key symbols)
-  → list_communities (module map)
-  → Store as {structural_context}
-  → Inject into agent prompt template per round
+→ list_indexed_repositories (availability gate)
+→ get_codebase_briefing (architecture summary)
+→ find_central_symbols (key symbols)
+→ list_communities (module map)
+→ Store as {structural_context}
+→ Inject into agent prompt template per round
+
 ```
 
 ### Fallback Path
@@ -241,6 +251,7 @@ Between "### 1. Configuration Loading" and "### 2. Mode Determination", insert:
 Before routing to the first step, determine the Memtrace MCP connection state for this session:
 
 **Check Availability:**
+
 - Use the Memtrace MCP tool `list_indexed_repositories` to verify the local Memtrace MCP server is reachable.
 - If a repository matching the project root is found, check `last_indexed_at` timestamp:
   - If indexed within the last 30 minutes: `memtrace_state = "available"`
@@ -249,6 +260,7 @@ Before routing to the first step, determine the Memtrace MCP connection state fo
 - If the MCP call itself fails (timeout, connection refused): `memtrace_state = "unavailable"`
 
 **Store and Propagate:**
+
 - Set `{memtrace_state}` for the current session. This variable is carried forward to every step file and passed to spawned Tmux sessions as part of the story context.
 - The state determines whether downstream steps that depend on structural graph queries can run or must gracefully degrade.
 
@@ -270,11 +282,13 @@ Append at the end of workflow.md (after the initialization routing table):
 ## 🧠 Memtrace Context (Self-Contained)
 
 ### Tools Referenced
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `list_indexed_repositories` | Connection health + freshness gate | none |
+
+| Tool                        | Purpose                            | Key Parameters |
+| --------------------------- | ---------------------------------- | -------------- |
+| `list_indexed_repositories` | Connection health + freshness gate | none           |
 
 ### Usage Rules
+
 1. **Connection State Only:** The automator's ONLY Memtrace interaction is checking server health at init. It does NOT run graph queries itself — that's delegated to spawned story sessions.
 2. **State Propagation:** `{memtrace_state}` is passed to every Tmux session as context. Each story workflow makes its own Memtrace availability decisions.
 3. **Advisory Only:** NEVER block the automator lifecycle on Memtrace availability. `unavailable` means "notify sessions" not "halt execution."
@@ -283,13 +297,15 @@ Append at the end of workflow.md (after the initialization routing table):
 
 ### Data Flow
 ```
+
 workflow.md Init Step 1.5
-  → list_indexed_repositories (health check)
-  → Set {memtrace_state} = "available" | "stale" | "unavailable"
-  → Propagate to:
-      step-01-init.md (carried in state document frontmatter)
-      step-02-preflight.md (carried forward in step transition)
-      Spawned Tmux sessions (passed as session context variable)
+→ list_indexed_repositories (health check)
+→ Set {memtrace_state} = "available" | "stale" | "unavailable"
+→ Propagate to:
+step-01-init.md (carried in state document frontmatter)
+step-02-preflight.md (carried forward in step transition)
+Spawned Tmux sessions (passed as session context variable)
+
 ```
 
 ### Fallback Path
@@ -306,6 +322,7 @@ Between "### 1. Verify Stop Hook Installation" and "### 2. Load Rules" (at the D
 Check if Memtrace MCP is available for this orchestration session:
 
 **Check:**
+
 - Use the Memtrace MCP tool `list_indexed_repositories` to verify the server is reachable.
 - If a matching repo is found and `last_indexed_at` is within 30 minutes: set `memtrace_state = "available"`
 - If found but stale (>30 min): set `memtrace_state = "stale"`
@@ -314,6 +331,7 @@ Check if Memtrace MCP is available for this orchestration session:
 **Store:** Record `memtrace_state` in the state document frontmatter for propagation to all subsequent steps.
 
 **Display:**
+
 - `"available"`: "✓ Memtrace MCP server responsive. Index is fresh. Story sessions will have structural graph access."
 - `"stale"`: "⚠ Memtrace MCP server responsive but index may be outdated. Story sessions will run with stale-data warnings."
 - `"unavailable"`: "ℹ Memtrace MCP server not reachable. Story sessions will use legacy heuristics only."
@@ -331,11 +349,13 @@ Append at end of step-01-init.md:
 ## 🧠 Memtrace Context (Self-Contained)
 
 ### Tools Referenced
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `list_indexed_repositories` | Server health + index freshness | none |
+
+| Tool                        | Purpose                         | Key Parameters |
+| --------------------------- | ------------------------------- | -------------- |
+| `list_indexed_repositories` | Server health + index freshness | none           |
 
 ### Usage Rules
+
 1. **Health Check Only:** This step verifies Memtrace MCP is reachable. It does not run graph analysis.
 2. **State Propagation:** `memtrace_state` is stored in the state document frontmatter and carried to step-02-preflight.md and beyond.
 3. **Advisory Only:** NEVER block initialization on Memtrace availability. `unavailable` is a status, not an error.
@@ -347,11 +367,13 @@ Append at end of step-01-init.md:
 In the "Carry forward:" line at the end of section 5, append `memtrace_state` to the list of carried-forward variables:
 
 Change:
+
 ```
 Carry forward: `epic_path`, `epic_name`, `story_count`, `story_ids_csv`, `range_json`, `selected_ids`, `selected_count`, `stories_json`, `epic_id`, `first_story_id`, `custom_instructions`.
 ```
 
 To:
+
 ```
 Carry forward: `epic_path`, `epic_name`, `story_count`, `story_ids_csv`, `range_json`, `selected_ids`, `selected_count`, `stories_json`, `epic_id`, `first_story_id`, `custom_instructions`, `memtrace_state`.
 ```
@@ -364,20 +386,25 @@ Append at end of step-02-preflight.md:
 ## 🧠 Memtrace Context (Self-Contained)
 
 ### Tools Referenced
+
 None — this step carries forward `memtrace_state` from step-01-init.md.
 
 ### Usage Rules
+
 1. **State Carry-Forward:** `memtrace_state` originates in step-01-init.md and is passed through this step unchanged.
 2. **No Queries Here:** This step does not make direct Memtrace MCP calls. State propagation only.
 3. **Session Context:** `memtrace_state` will be passed to spawned Tmux sessions as part of the story execution context.
 
 ### Data Flow
 ```
+
 step-01-init.md (health check, set memtrace_state)
-  → step-02-preflight.md (carry forward)
-  → step-03-execute.md (pass to Tmux sessions)
-  → Each spawned create-story/dev-story/code-review session
+→ step-02-preflight.md (carry forward)
+→ step-03-execute.md (pass to Tmux sessions)
+→ Each spawned create-story/dev-story/code-review session
+
 ```
+
 ```
 
 ---
@@ -412,12 +439,12 @@ persistent_facts = [
 
 ### Memtrace MCP Tools Used
 
-| Tool | Party Mode | Story Automator | Purpose |
-|------|-----------|-----------------|---------|
-| `list_indexed_repositories` | Availability gate | Connection health + freshness | Verify MCP server is reachable |
-| `get_codebase_briefing` | Architecture overview | — | High-level structural summary for agent context |
-| `find_central_symbols` | Key symbols identification | — | Load-bearing code awareness |
-| `list_communities` | Module boundary mapping | — | Logical architecture awareness |
+| Tool                        | Party Mode                 | Story Automator               | Purpose                                         |
+| --------------------------- | -------------------------- | ----------------------------- | ----------------------------------------------- |
+| `list_indexed_repositories` | Availability gate          | Connection health + freshness | Verify MCP server is reachable                  |
+| `get_codebase_briefing`     | Architecture overview      | —                             | High-level structural summary for agent context |
+| `find_central_symbols`      | Key symbols identification | —                             | Load-bearing code awareness                     |
+| `list_communities`          | Module boundary mapping    | —                             | Logical architecture awareness                  |
 
 ### Anti-Patterns (DO NOT IMPLEMENT)
 
