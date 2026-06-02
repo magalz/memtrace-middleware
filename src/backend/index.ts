@@ -6,6 +6,7 @@ import {
 
 export { MemtraceTransport } from './transport.js';
 export { ToolCatalog } from './tool-catalog.js';
+export { createNoopBackend } from './noop.js';
 export type { MemtraceBackend, DegradationProbeHooks } from './trait.js';
 
 let currentSubQueryTimeout = MAX_SUB_QUERY_TIMEOUT_MS;
