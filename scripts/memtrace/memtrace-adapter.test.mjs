@@ -15,24 +15,28 @@ process.env.MEMTRACE_TIMEOUT_MS = '2000';
 
 function runAdapter(args) {
   return new Promise((resolvePromise) => {
-    execFile(process.execPath, [ADAPTER, ...args], {
-      env: { ...process.env, NODE_NO_WARNINGS: '1' },
-      timeout: 30000,
-      windowsHide: true
-    }, (error, stdout, stderr) => {
-      resolvePromise({
-        code: error?.code === 'ETIMEDOUT' ? null : (error?.code || 0),
-        signal: error?.signal || null,
-        stdout: stdout || '',
-        stderr: stderr || '',
-        error
-      });
-    });
+    execFile(
+      process.execPath,
+      [ADAPTER, ...args],
+      {
+        env: { ...process.env, NODE_NO_WARNINGS: '1' },
+        timeout: 30000,
+        windowsHide: true,
+      },
+      (error, stdout, stderr) => {
+        resolvePromise({
+          code: error?.code === 'ETIMEDOUT' ? null : error?.code || 0,
+          signal: error?.signal || null,
+          stdout: stdout || '',
+          stderr: stderr || '',
+          error,
+        });
+      }
+    );
   });
 }
 
 describe('memtrace-adapter.mjs', () => {
-
   describe('CLI argument handling', () => {
     it('should output usage with --help and exit 0', async () => {
       const r = await runAdapter(['--help']);
@@ -91,22 +95,30 @@ describe('memtrace-adapter.mjs', () => {
 
     it('should accept --summarize as a valid flag', async () => {
       const r = await runAdapter(['--target', 'foo', '--query', 'get_impact', '--summarize']);
-      assert.ok(!r.stderr.includes('Unknown argument'), '--summarize should not cause unknown argument error');
+      assert.ok(
+        !r.stderr.includes('Unknown argument'),
+        '--summarize should not cause unknown argument error'
+      );
     });
 
     it('should accept --check-freshness as a valid flag', async () => {
       const r = await runAdapter(['--target', 'foo', '--query', 'get_impact', '--check-freshness']);
-      assert.ok(!r.stderr.includes('Unknown argument'), '--check-freshness should not cause unknown argument error');
+      assert.ok(
+        !r.stderr.includes('Unknown argument'),
+        '--check-freshness should not cause unknown argument error'
+      );
     });
 
     it('should accept --batch as a valid flag', async () => {
       const r = await runAdapter(['--target', 'foo', '--query', 'get_impact', '--batch']);
-      assert.ok(!r.stderr.includes('Unknown argument'), '--batch should not cause unknown argument error');
+      assert.ok(
+        !r.stderr.includes('Unknown argument'),
+        '--batch should not cause unknown argument error'
+      );
     });
   });
 
   describe('Summarization (--summarize)', () => {
-
     it('--help output should mention --summarize', async () => {
       const r = await runAdapter(['--help']);
       assert.equal(r.code, 0);
@@ -116,7 +128,10 @@ describe('memtrace-adapter.mjs', () => {
     it('--help output should mention --check-freshness', async () => {
       const r = await runAdapter(['--help']);
       assert.equal(r.code, 0);
-      assert.ok(r.stdout.includes('--check-freshness'), 'Help text must document --check-freshness');
+      assert.ok(
+        r.stdout.includes('--check-freshness'),
+        'Help text must document --check-freshness'
+      );
     });
 
     it('--help output should mention --batch', async () => {
@@ -125,179 +140,307 @@ describe('memtrace-adapter.mjs', () => {
       assert.ok(r.stdout.includes('--batch'), 'Help text must document --batch');
     });
 
-    it('--summarize with find_dead_code should emit warning on STDERR, no summarized field', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--target', 'src', '--query', 'find_dead_code', '--repo', 'Repos', '--summarize']);
-      assert.ok(r.stderr.includes('WARNING'), 'STDERR must contain warning');
-      assert.ok(r.stderr.includes('--summarize'), 'STDERR must reference --summarize');
-      assert.equal(r.code, 0);
-      const parsed = JSON.parse(r.stdout);
-      assert.equal(parsed.summarized, undefined, 'STDOUT must not have summarized field for find_dead_code');
-    });
-
-    it('--summarize with list_repos should emit warning on STDERR, no summarized field', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--query', 'list_repos', '--summarize']);
-      assert.ok(r.stderr.includes('WARNING'), 'STDERR must contain warning');
-      assert.equal(r.code, 0);
-      const parsed = JSON.parse(r.stdout);
-      assert.equal(parsed.summarized, undefined, 'STDOUT must not have summarized field for list_repos');
-    });
-
-    it('get_impact WITH --summarize should include summarized field', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--target', 'bmad-dev-story', '--query', 'get_impact', '--repo', 'Repos', '--summarize']);
-      assert.equal(r.code, 0);
-      let parsed;
-      try {
-        parsed = JSON.parse(r.stdout);
-      } catch (e) {
-        assert.fail(`STDOUT is not valid JSON: ${r.stdout.slice(0, 200)}`);
+    it(
+      '--summarize with find_dead_code should emit warning on STDERR, no summarized field',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'src',
+          '--query',
+          'find_dead_code',
+          '--repo',
+          'Repos',
+          '--summarize',
+        ]);
+        assert.ok(r.stderr.includes('WARNING'), 'STDERR must contain warning');
+        assert.ok(r.stderr.includes('--summarize'), 'STDERR must reference --summarize');
+        assert.equal(r.code, 0);
+        const parsed = JSON.parse(r.stdout);
+        assert.equal(
+          parsed.summarized,
+          undefined,
+          'STDOUT must not have summarized field for find_dead_code'
+        );
       }
-      assert.ok(typeof parsed.summarized === 'object', 'summarized field must be an object');
-      assert.ok(typeof parsed.summarized.total_affected === 'number');
-      assert.ok(Array.isArray(parsed.summarized.critical_dependents));
-      assert.ok(typeof parsed.summarized.module_impact === 'object');
-      assert.ok(typeof parsed.summarized.token_estimate === 'number');
-      assert.ok(parsed.summarized.token_estimate <= 2000, `token_estimate ${parsed.summarized.token_estimate} must be ≤ 2000`);
+    );
 
-      parsed.summarized.critical_dependents.forEach(s => {
-        assert.ok(s.depth <= 2, `critical_dependent ${s.name} must have depth ≤ 2`);
-        assert.ok(typeof s.name === 'string');
-        assert.ok(typeof s.file === 'string');
-      });
-      assert.ok(parsed.summarized.critical_dependents.length <= 20);
+    it(
+      '--summarize with list_repos should emit warning on STDERR, no summarized field',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter(['--query', 'list_repos', '--summarize']);
+        assert.ok(r.stderr.includes('WARNING'), 'STDERR must contain warning');
+        assert.equal(r.code, 0);
+        const parsed = JSON.parse(r.stdout);
+        assert.equal(
+          parsed.summarized,
+          undefined,
+          'STDOUT must not have summarized field for list_repos'
+        );
+      }
+    );
 
-      for (const [prefix, mod] of Object.entries(parsed.summarized.module_impact)) {
-        assert.ok(typeof mod.count === 'number');
-        if (mod.top_symbols) {
-          assert.ok(Array.isArray(mod.top_symbols));
-          assert.ok(mod.top_symbols.length <= 3);
+    it(
+      'get_impact WITH --summarize should include summarized field',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'bmad-dev-story',
+          '--query',
+          'get_impact',
+          '--repo',
+          'Repos',
+          '--summarize',
+        ]);
+        assert.equal(r.code, 0);
+        let parsed;
+        try {
+          parsed = JSON.parse(r.stdout);
+        } catch (e) {
+          assert.fail(`STDOUT is not valid JSON: ${r.stdout.slice(0, 200)}`);
+        }
+        assert.ok(typeof parsed.summarized === 'object', 'summarized field must be an object');
+        assert.ok(typeof parsed.summarized.total_affected === 'number');
+        assert.ok(Array.isArray(parsed.summarized.critical_dependents));
+        assert.ok(typeof parsed.summarized.module_impact === 'object');
+        assert.ok(typeof parsed.summarized.token_estimate === 'number');
+        assert.ok(
+          parsed.summarized.token_estimate <= 2000,
+          `token_estimate ${parsed.summarized.token_estimate} must be ≤ 2000`
+        );
+
+        parsed.summarized.critical_dependents.forEach((s) => {
+          assert.ok(s.depth <= 2, `critical_dependent ${s.name} must have depth ≤ 2`);
+          assert.ok(typeof s.name === 'string');
+          assert.ok(typeof s.file === 'string');
+        });
+        assert.ok(parsed.summarized.critical_dependents.length <= 20);
+
+        for (const [prefix, mod] of Object.entries(parsed.summarized.module_impact)) {
+          assert.ok(typeof mod.count === 'number');
+          if (mod.top_symbols) {
+            assert.ok(Array.isArray(mod.top_symbols));
+            assert.ok(mod.top_symbols.length <= 3);
+          }
         }
       }
-    });
+    );
 
-    it('get_impact WITHOUT --summarize should NOT have summarized field', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--target', 'bmad-dev-story', '--query', 'get_impact', '--repo', 'Repos']);
-      assert.equal(r.code, 0);
-      const parsed = JSON.parse(r.stdout);
-      assert.equal(parsed.summarized, undefined, 'Without --summarize, output must NOT have summarized field');
-      assert.ok(typeof parsed.target === 'string');
-      assert.ok(Array.isArray(parsed.affected_symbols));
-      assert.ok(typeof parsed.total_count === 'number');
-    });
+    it(
+      'get_impact WITHOUT --summarize should NOT have summarized field',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'bmad-dev-story',
+          '--query',
+          'get_impact',
+          '--repo',
+          'Repos',
+        ]);
+        assert.equal(r.code, 0);
+        const parsed = JSON.parse(r.stdout);
+        assert.equal(
+          parsed.summarized,
+          undefined,
+          'Without --summarize, output must NOT have summarized field'
+        );
+        assert.ok(typeof parsed.target === 'string');
+        assert.ok(Array.isArray(parsed.affected_symbols));
+        assert.ok(typeof parsed.total_count === 'number');
+      }
+    );
   });
 
   describe('Freshness (--check-freshness)', () => {
-
     it('--help output should mention --check-freshness', async () => {
       const r = await runAdapter(['--help']);
       assert.equal(r.code, 0);
       assert.ok(r.stdout.includes('--check-freshness'));
     });
 
-    it('--check-freshness with list_repos should emit [FRESHNESS] on STDERR', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--query', 'list_repos', '--check-freshness']);
-      if (r.code === 0) {
-        assert.ok(r.stderr.includes('[FRESHNESS]'), 'STDERR must contain [FRESHNESS] line');
-        const parsed = JSON.parse(r.stdout);
-        assert.ok(Array.isArray(parsed.repositories));
-      } else if (r.code === 1) {
-        assert.ok(r.stderr.includes('[FRESHNESS]'), 'STDERR must contain [FRESHNESS] line even on stale index');
-        try {
+    it(
+      '--check-freshness with list_repos should emit [FRESHNESS] on STDERR',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter(['--query', 'list_repos', '--check-freshness']);
+        if (r.code === 0) {
+          assert.ok(r.stderr.includes('[FRESHNESS]'), 'STDERR must contain [FRESHNESS] line');
           const parsed = JSON.parse(r.stdout);
-          assert.ok(parsed.freshness_error || parsed.error, 'Diagnostic JSON must have freshness_error or error field');
-        } catch {
-          // STDOUT may not always be parseable JSON; not a hard failure
+          assert.ok(Array.isArray(parsed.repositories));
+        } else if (r.code === 1) {
+          assert.ok(
+            r.stderr.includes('[FRESHNESS]'),
+            'STDERR must contain [FRESHNESS] line even on stale index'
+          );
+          try {
+            const parsed = JSON.parse(r.stdout);
+            assert.ok(
+              parsed.freshness_error || parsed.error,
+              'Diagnostic JSON must have freshness_error or error field'
+            );
+          } catch {
+            // STDOUT may not always be parseable JSON; not a hard failure
+          }
         }
       }
-    });
+    );
 
-    it('invalid MEMTRACE_FRESHNESS_MAX_AGE_MINUTES should not crash', { timeout: 30000 }, async () => {
-      const r = await runAdapter(['--query', 'list_repos', '--check-freshness']);
-      // Should exit cleanly (0 or 1) regardless of env value — never hang or crash
-      assert.ok(r.code === 0 || r.code === 1, 'Must exit cleanly with invalid env');
-    });
-
-    it('--check-freshness without --repo should auto-detect and not crash', { timeout: 30000 }, async () => {
-      const r = await runAdapter(['--query', 'list_repos', '--check-freshness']);
-      assert.ok(r.code === 0 || r.code === 1, 'Must exit cleanly with auto-detected repo');
-      if (r.code === 0 || r.code === 1) {
-        assert.ok(r.stderr.includes('[FRESHNESS]'), 'STDERR must contain [FRESHNESS] line');
+    it(
+      'invalid MEMTRACE_FRESHNESS_MAX_AGE_MINUTES should not crash',
+      { timeout: 30000 },
+      async () => {
+        const r = await runAdapter(['--query', 'list_repos', '--check-freshness']);
+        // Should exit cleanly (0 or 1) regardless of env value — never hang or crash
+        assert.ok(r.code === 0 || r.code === 1, 'Must exit cleanly with invalid env');
       }
-    });
+    );
+
+    it(
+      '--check-freshness without --repo should auto-detect and not crash',
+      { timeout: 30000 },
+      async () => {
+        const r = await runAdapter(['--query', 'list_repos', '--check-freshness']);
+        assert.ok(r.code === 0 || r.code === 1, 'Must exit cleanly with auto-detected repo');
+        if (r.code === 0 || r.code === 1) {
+          assert.ok(r.stderr.includes('[FRESHNESS]'), 'STDERR must contain [FRESHNESS] line');
+        }
+      }
+    );
   });
 
   describe('Batch mode (--batch)', () => {
-
     it('--batch with list_repos should exit 1 with unsupported query error', async () => {
       const r = await runAdapter(['--query', 'list_repos', '--batch']);
       assert.equal(r.code, 1);
       assert.ok(r.stderr.includes('not support') || r.stderr.includes('ERROR'));
     });
 
-    it('--batch with comma-separated targets should produce results array', { timeout: 15000 }, async () => {
-      const r = await runAdapter(['--target', 'bmad-dev-story,parseArgs', '--query', 'get_impact', '--repo', 'Repos', '--batch']);
-      assert.equal(r.code, 0);
-      const parsed = JSON.parse(r.stdout);
-      assert.equal(parsed.query, 'get_impact');
-      assert.ok(Array.isArray(parsed.targets));
-      assert.ok(Array.isArray(parsed.results));
-      assert.ok(typeof parsed.total_succeeded === 'number');
-      assert.ok(typeof parsed.total_failed === 'number');
-      assert.ok(parsed.results.length >= 1);
-      assert.ok(parsed.results[0].target);
-      assert.equal(parsed.total_failed, 0);
-    });
+    it(
+      '--batch with comma-separated targets should produce results array',
+      { timeout: 15000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'bmad-dev-story,parseArgs',
+          '--query',
+          'get_impact',
+          '--repo',
+          'Repos',
+          '--batch',
+        ]);
+        assert.equal(r.code, 0);
+        const parsed = JSON.parse(r.stdout);
+        assert.equal(parsed.query, 'get_impact');
+        assert.ok(Array.isArray(parsed.targets));
+        assert.ok(Array.isArray(parsed.results));
+        assert.ok(typeof parsed.total_succeeded === 'number');
+        assert.ok(typeof parsed.total_failed === 'number');
+        assert.ok(parsed.results.length >= 1);
+        assert.ok(parsed.results[0].target);
+        assert.equal(parsed.total_failed, 0);
+      }
+    );
 
-    it('--batch with --summarize should give each result summarized field', { timeout: 15000 }, async () => {
-      const r = await runAdapter(['--target', 'bmad-dev-story,parseArgs', '--query', 'get_impact', '--repo', 'Repos', '--batch', '--summarize']);
-      assert.equal(r.code, 0);
-      const parsed = JSON.parse(r.stdout);
-      assert.ok(Array.isArray(parsed.results));
-      for (const res of parsed.results) {
-        if (res.risk_level) { // succeeded
-          assert.ok(res.summarized, 'Each successful target should have summarized field');
-          assert.ok(typeof res.summarized.total_affected === 'number');
+    it(
+      '--batch with --summarize should give each result summarized field',
+      { timeout: 15000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'bmad-dev-story,parseArgs',
+          '--query',
+          'get_impact',
+          '--repo',
+          'Repos',
+          '--batch',
+          '--summarize',
+        ]);
+        assert.equal(r.code, 0);
+        const parsed = JSON.parse(r.stdout);
+        assert.ok(Array.isArray(parsed.results));
+        for (const res of parsed.results) {
+          if (res.risk_level) {
+            // succeeded
+            assert.ok(res.summarized, 'Each successful target should have summarized field');
+            assert.ok(typeof res.summarized.total_affected === 'number');
+          }
         }
       }
-    });
+    );
 
-    it('--batch with non-existent symbols should succeed with mock data', { timeout: 15000 }, async () => {
-      const r = await runAdapter(['--target', 'unknown1,unknown2', '--query', 'get_impact', '--repo', 'Repos', '--batch']);
-      assert.equal(r.code, 0);
-      let parsed;
-      try { parsed = JSON.parse(r.stdout); } catch { assert.fail('STDOUT must be valid JSON'); }
-      assert.ok(Array.isArray(parsed.results));
-      assert.equal(parsed.total_succeeded, 2, 'Mock should succeed for all targets');
-      assert.equal(parsed.total_failed, 0);
-    });
+    it(
+      '--batch with non-existent symbols should succeed with mock data',
+      { timeout: 15000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'unknown1,unknown2',
+          '--query',
+          'get_impact',
+          '--repo',
+          'Repos',
+          '--batch',
+        ]);
+        assert.equal(r.code, 0);
+        let parsed;
+        try {
+          parsed = JSON.parse(r.stdout);
+        } catch {
+          assert.fail('STDOUT must be valid JSON');
+        }
+        assert.ok(Array.isArray(parsed.results));
+        assert.equal(parsed.total_succeeded, 2, 'Mock should succeed for all targets');
+        assert.equal(parsed.total_failed, 0);
+      }
+    );
   });
 
   describe('MCP queries', () => {
-
-    it('should list repositories and return valid JSON with repos array', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--query', 'list_repos']);
-      assert.equal(r.code, 0);
-      let parsed;
-      try {
-        parsed = JSON.parse(r.stdout);
-      } catch (e) {
-        assert.fail(`STDOUT is not valid JSON: ${r.stdout.slice(0, 200)}`);
+    it(
+      'should list repositories and return valid JSON with repos array',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter(['--query', 'list_repos']);
+        assert.equal(r.code, 0);
+        let parsed;
+        try {
+          parsed = JSON.parse(r.stdout);
+        } catch (e) {
+          assert.fail(`STDOUT is not valid JSON: ${r.stdout.slice(0, 200)}`);
+        }
+        assert.equal(parsed.query, 'list_repos');
+        assert.ok(Array.isArray(parsed.repositories));
+        assert.ok(typeof parsed.elapsed_ms === 'number');
+        // Verify freshness is always computed (AC #3)
+        for (const repo of parsed.repositories) {
+          assert.ok(repo.freshness, 'Each repo must have freshness field');
+          assert.ok(
+            typeof repo.freshness.age_minutes === 'number' || repo.freshness.age_minutes === null
+          );
+          assert.equal(typeof repo.freshness.is_fresh, 'boolean');
+        }
+        const oldProject = parsed.repositories.find((r) => r.repo_id === 'old-project');
+        assert.ok(oldProject, 'old-project must be in repos');
+        assert.equal(
+          oldProject.freshness.is_fresh,
+          false,
+          'old-project must be stale (age > 30min)'
+        );
       }
-      assert.equal(parsed.query, 'list_repos');
-      assert.ok(Array.isArray(parsed.repositories));
-      assert.ok(typeof parsed.elapsed_ms === 'number');
-      // Verify freshness is always computed (AC #3)
-      for (const repo of parsed.repositories) {
-        assert.ok(repo.freshness, 'Each repo must have freshness field');
-        assert.ok(typeof repo.freshness.age_minutes === 'number' || repo.freshness.age_minutes === null);
-        assert.equal(typeof repo.freshness.is_fresh, 'boolean');
-      }
-      const oldProject = parsed.repositories.find(r => r.repo_id === 'old-project');
-      assert.ok(oldProject, 'old-project must be in repos');
-      assert.equal(oldProject.freshness.is_fresh, false, 'old-project must be stale (age > 30min)');
-    });
+    );
 
     it('should query get_impact and return structured JSON', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--target', 'bmad-dev-story', '--query', 'get_impact', '--repo', 'Repos']);
+      const r = await runAdapter([
+        '--target',
+        'bmad-dev-story',
+        '--query',
+        'get_impact',
+        '--repo',
+        'Repos',
+      ]);
       assert.equal(r.code, 0);
       let parsed;
       try {
@@ -312,45 +455,71 @@ describe('memtrace-adapter.mjs', () => {
       assert.ok(typeof parsed.elapsed_ms === 'number');
     });
 
-    it('should query find_dead_code with --target and --repo and return structured JSON', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--target', 'src', '--query', 'find_dead_code', '--repo', 'Repos']);
-      assert.equal(r.code, 0);
-      let parsed;
-      try {
-        parsed = JSON.parse(r.stdout);
-      } catch (e) {
-        assert.fail(`STDOUT is not valid JSON: ${r.stdout.slice(0, 200)}`);
+    it(
+      'should query find_dead_code with --target and --repo and return structured JSON',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'src',
+          '--query',
+          'find_dead_code',
+          '--repo',
+          'Repos',
+        ]);
+        assert.equal(r.code, 0);
+        let parsed;
+        try {
+          parsed = JSON.parse(r.stdout);
+        } catch (e) {
+          assert.fail(`STDOUT is not valid JSON: ${r.stdout.slice(0, 200)}`);
+        }
+        assert.equal(parsed.query, 'find_dead_code');
+        assert.equal(typeof parsed.target, 'string');
+        assert.ok(Array.isArray(parsed.symbols));
+        assert.equal(parsed.total_count, parsed.symbols.length);
+        assert.equal(typeof parsed.elapsed_ms, 'number');
+        assert.equal(parsed.note, undefined, 'Stub note must be removed');
+        if (parsed.symbols.length > 0) {
+          assert.ok(
+            parsed.symbols.every((s) => typeof s.name === 'string' && typeof s.file === 'string'),
+            'Each symbol must have name and file fields'
+          );
+        }
       }
-      assert.equal(parsed.query, 'find_dead_code');
-      assert.equal(typeof parsed.target, 'string');
-      assert.ok(Array.isArray(parsed.symbols));
-      assert.equal(parsed.total_count, parsed.symbols.length);
-      assert.equal(typeof parsed.elapsed_ms, 'number');
-      assert.equal(parsed.note, undefined, 'Stub note must be removed');
-      if (parsed.symbols.length > 0) {
-        assert.ok(parsed.symbols.every(s => typeof s.name === 'string' && typeof s.file === 'string'),
-          'Each symbol must have name and file fields');
-      }
-    });
+    );
 
-    it('should query find_dead_code without --repo and auto-detect repo', { timeout: 10000 }, async () => {
-      const r = await runAdapter(['--target', 'src', '--query', 'find_dead_code']);
-      assert.equal(r.code, 0);
-      let parsed = JSON.parse(r.stdout);
-      assert.equal(parsed.query, 'find_dead_code');
-      assert.ok(Array.isArray(parsed.symbols));
-      assert.equal(parsed.total_count, parsed.symbols.length);
-      if (parsed.symbols.length > 0) {
-        assert.ok(parsed.symbols.every(s => typeof s.name === 'string' && typeof s.file === 'string'),
-          'Each symbol must have name and file fields');
+    it(
+      'should query find_dead_code without --repo and auto-detect repo',
+      { timeout: 10000 },
+      async () => {
+        const r = await runAdapter(['--target', 'src', '--query', 'find_dead_code']);
+        assert.equal(r.code, 0);
+        let parsed = JSON.parse(r.stdout);
+        assert.equal(parsed.query, 'find_dead_code');
+        assert.ok(Array.isArray(parsed.symbols));
+        assert.equal(parsed.total_count, parsed.symbols.length);
+        if (parsed.symbols.length > 0) {
+          assert.ok(
+            parsed.symbols.every((s) => typeof s.name === 'string' && typeof s.file === 'string'),
+            'Each symbol must have name and file fields'
+          );
+        }
       }
-    });
+    );
 
     it('should emit MEMTRACE_MCP_ERROR_TIMEOUT on MCP timeout', { timeout: 10000 }, async () => {
       const prevDeadline = process.env.MEMTRACE_MOCK_DEADLINE_MS;
       process.env.MEMTRACE_MOCK_DEADLINE_MS = '5000';
       try {
-        const r = await runAdapter(['--target', 'delay-test', '--query', 'get_impact', '--repo', 'Repos']);
+        const r = await runAdapter([
+          '--target',
+          'delay-test',
+          '--query',
+          'get_impact',
+          '--repo',
+          'Repos',
+        ]);
         assert.equal(r.code, 1);
         assert.ok(r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'), 'Must emit timeout token');
       } finally {
@@ -364,49 +533,68 @@ describe('memtrace-adapter.mjs', () => {
   });
 
   describe('Mock failure-mode simulation', () => {
-
-    it('should handle memtrace_fail via MEMTRACE_MOCK_FAIL env var', { timeout: 5000 }, async () => {
-      const prevFail = process.env.MEMTRACE_MOCK_FAIL;
-      process.env.MEMTRACE_MOCK_FAIL = 'true';
-      try {
-        const r = await runAdapter(['--target', 'test', '--query', 'get_impact', '--repo', 'Repos']);
-        assert.equal(r.code, 1);
-        assert.ok(r.stderr.includes('ERROR') || r.stderr.includes('MCP error') || r.stderr.includes('Simulated failure'));
-      } finally {
-        if (prevFail !== undefined) {
-          process.env.MEMTRACE_MOCK_FAIL = prevFail;
-        } else {
-          delete process.env.MEMTRACE_MOCK_FAIL;
+    it(
+      'should handle memtrace_fail via MEMTRACE_MOCK_FAIL env var',
+      { timeout: 5000 },
+      async () => {
+        const prevFail = process.env.MEMTRACE_MOCK_FAIL;
+        process.env.MEMTRACE_MOCK_FAIL = 'true';
+        try {
+          const r = await runAdapter([
+            '--target',
+            'test',
+            '--query',
+            'get_impact',
+            '--repo',
+            'Repos',
+          ]);
+          assert.equal(r.code, 1);
+          assert.ok(
+            r.stderr.includes('ERROR') ||
+              r.stderr.includes('MCP error') ||
+              r.stderr.includes('Simulated failure')
+          );
+        } finally {
+          if (prevFail !== undefined) {
+            process.env.MEMTRACE_MOCK_FAIL = prevFail;
+          } else {
+            delete process.env.MEMTRACE_MOCK_FAIL;
+          }
         }
       }
-    });
+    );
 
-    it('should handle memtrace_bad_json via MEMTRACE_MOCK_BAD_JSON env var', { timeout: 5000 }, async () => {
-      const prevBadJson = process.env.MEMTRACE_MOCK_BAD_JSON;
-      process.env.MEMTRACE_MOCK_BAD_JSON = 'true';
-      try {
-        const r = await runAdapter(['--query', 'list_repos']);
-        assert.equal(r.code, 0, 'Must recover from bad JSON line and process valid response');
-        const parsed = JSON.parse(r.stdout);
-        assert.ok(Array.isArray(parsed.repositories));
-      } finally {
-        if (prevBadJson !== undefined) {
-          process.env.MEMTRACE_MOCK_BAD_JSON = prevBadJson;
-        } else {
-          delete process.env.MEMTRACE_MOCK_BAD_JSON;
+    it(
+      'should handle memtrace_bad_json via MEMTRACE_MOCK_BAD_JSON env var',
+      { timeout: 5000 },
+      async () => {
+        const prevBadJson = process.env.MEMTRACE_MOCK_BAD_JSON;
+        process.env.MEMTRACE_MOCK_BAD_JSON = 'true';
+        try {
+          const r = await runAdapter(['--query', 'list_repos']);
+          assert.equal(r.code, 0, 'Must recover from bad JSON line and process valid response');
+          const parsed = JSON.parse(r.stdout);
+          assert.ok(Array.isArray(parsed.repositories));
+        } finally {
+          if (prevBadJson !== undefined) {
+            process.env.MEMTRACE_MOCK_BAD_JSON = prevBadJson;
+          } else {
+            delete process.env.MEMTRACE_MOCK_BAD_JSON;
+          }
         }
       }
-    });
+    );
   });
 
   describe('Timeout detection accuracy', () => {
-
     it('should NOT emit MEMTRACE_MCP_ERROR_TIMEOUT for unknown argument', async () => {
       const r = await runAdapter(['--unknown']);
       assert.equal(r.code, 1);
       assert.ok(r.stderr.includes('Unknown argument'));
-      assert.ok(!r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
-        'TIMEOUT_TOKEN must NOT appear for non-timeout parse errors');
+      assert.ok(
+        !r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
+        'TIMEOUT_TOKEN must NOT appear for non-timeout parse errors'
+      );
     });
 
     it('should NOT emit MEMTRACE_MCP_ERROR_TIMEOUT for missing --query', async () => {
@@ -444,22 +632,35 @@ describe('memtrace-adapter.mjs', () => {
       assert.ok(!r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'));
     });
 
-    it('should emit MEMTRACE_MCP_ERROR_TIMEOUT on actual MCP timeout', { timeout: 10000 }, async () => {
-      const prevDeadline = process.env.MEMTRACE_MOCK_DEADLINE_MS;
-      process.env.MEMTRACE_MOCK_DEADLINE_MS = '5000';
-      try {
-        const r = await runAdapter(['--target', 'delay-test', '--query', 'get_impact', '--repo', 'Repos']);
-        assert.equal(r.code, 1);
-        assert.ok(r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
-          'Actual MCP timeouts must emit the token');
-      } finally {
-        if (prevDeadline !== undefined) {
-          process.env.MEMTRACE_MOCK_DEADLINE_MS = prevDeadline;
-        } else {
-          delete process.env.MEMTRACE_MOCK_DEADLINE_MS;
+    it(
+      'should emit MEMTRACE_MCP_ERROR_TIMEOUT on actual MCP timeout',
+      { timeout: 10000 },
+      async () => {
+        const prevDeadline = process.env.MEMTRACE_MOCK_DEADLINE_MS;
+        process.env.MEMTRACE_MOCK_DEADLINE_MS = '5000';
+        try {
+          const r = await runAdapter([
+            '--target',
+            'delay-test',
+            '--query',
+            'get_impact',
+            '--repo',
+            'Repos',
+          ]);
+          assert.equal(r.code, 1);
+          assert.ok(
+            r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT'),
+            'Actual MCP timeouts must emit the token'
+          );
+        } finally {
+          if (prevDeadline !== undefined) {
+            process.env.MEMTRACE_MOCK_DEADLINE_MS = prevDeadline;
+          } else {
+            delete process.env.MEMTRACE_MOCK_DEADLINE_MS;
+          }
         }
       }
-    });
+    );
   });
 
   describe('McpClient robustness (unit)', () => {
@@ -476,7 +677,9 @@ describe('memtrace-adapter.mjs', () => {
     function makeMockChild() {
       const child = new EventEmitter();
       child.stdin = new Writable({
-        write(chunk, encoding, callback) { callback(); }
+        write(chunk, encoding, callback) {
+          callback();
+        },
       });
       child.stdout = new Readable({ read() {} });
       child.stderr = new Readable({ read() {} });
@@ -510,7 +713,10 @@ describe('memtrace-adapter.mjs', () => {
         const resultPromise = withTimeout(slowPromise, 10, 'query');
         await assert.rejects(resultPromise, (err) => {
           assert.ok(err instanceof TimeoutError);
-          assert.ok(err.message.includes('phase: query'), `Expected phase in message, got: ${err.message}`);
+          assert.ok(
+            err.message.includes('phase: query'),
+            `Expected phase in message, got: ${err.message}`
+          );
           assert.ok(err.message.includes('10ms'));
           return true;
         });
@@ -538,7 +744,9 @@ describe('memtrace-adapter.mjs', () => {
         client.child = makeMockChild();
         attachStreams(client);
         const resultPromise = client.sendRequest('test/method', { key: 'val' });
-        client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { ok: true } }) + '\n');
+        client.child.stdout.push(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: { ok: true } }) + '\n'
+        );
         const result = await resultPromise;
         assert.deepEqual(result, { ok: true });
         assert.equal(client._activeRequests.size, 0);
@@ -549,7 +757,9 @@ describe('memtrace-adapter.mjs', () => {
         client.child = makeMockChild();
         attachStreams(client);
         const resultPromise = client.sendRequest('test/method');
-        client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { message: 'Something broke' } }) + '\n');
+        client.child.stdout.push(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, error: { message: 'Something broke' } }) + '\n'
+        );
         await assert.rejects(resultPromise, /Something broke/);
         assert.equal(client._activeRequests.size, 0);
       });
@@ -579,7 +789,9 @@ describe('memtrace-adapter.mjs', () => {
         client.child = makeMockChild();
         attachStreams(client);
         const resultPromise = client.sendRequest('test/method');
-        client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/updated', params: {} }) + '\n');
+        client.child.stdout.push(
+          JSON.stringify({ jsonrpc: '2.0', method: 'notifications/updated', params: {} }) + '\n'
+        );
         client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', id: 1, result: 'done' }) + '\n');
         const result = await resultPromise;
         assert.equal(result, 'done');
@@ -591,7 +803,9 @@ describe('memtrace-adapter.mjs', () => {
         client.child = makeMockChild();
         attachStreams(client);
         const resultPromise = client.sendRequest('test/method');
-        client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', id: 999, result: 'orphan' }) + '\n');
+        client.child.stdout.push(
+          JSON.stringify({ jsonrpc: '2.0', id: 999, result: 'orphan' }) + '\n'
+        );
         client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', id: 1, result: 'real' }) + '\n');
         const result = await resultPromise;
         assert.equal(result, 'real');
@@ -606,7 +820,9 @@ describe('memtrace-adapter.mjs', () => {
         attachStreams(client);
         const resultPromise = client.sendRequest('test/method');
         client.child.stdout.push('{"jsonrpc": "2.0", "id": 1, "res' + '\n');
-        client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', id: 1, result: 'after-malform' }) + '\n');
+        client.child.stdout.push(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: 'after-malform' }) + '\n'
+        );
         const result = await resultPromise;
         assert.equal(result, 'after-malform');
       });
@@ -619,7 +835,9 @@ describe('memtrace-adapter.mjs', () => {
         client.child.stdout.push('\n');
         client.child.stdout.push('   \n');
         client.child.stdout.push('\t\n');
-        client.child.stdout.push(JSON.stringify({ jsonrpc: '2.0', id: 1, result: 'after-blanks' }) + '\n');
+        client.child.stdout.push(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: 'after-blanks' }) + '\n'
+        );
         const result = await resultPromise;
         assert.equal(result, 'after-blanks');
       });
@@ -703,11 +921,13 @@ describe('memtrace-adapter.mjs', () => {
         try {
           client.child.stderr.push('some diagnostics error\n');
           client.child.stderr.push('more info\n');
-          await new Promise(r => setTimeout(r, 50));
+          await new Promise((r) => setTimeout(r, 50));
 
           assert.ok(stderrLines.length >= 2);
-          assert.ok(stderrLines.some(l => l.includes('[MCP stderr]') && l.includes('some diagnostics')));
-          assert.ok(stderrLines.some(l => l.includes('[MCP stderr]') && l.includes('more info')));
+          assert.ok(
+            stderrLines.some((l) => l.includes('[MCP stderr]') && l.includes('some diagnostics'))
+          );
+          assert.ok(stderrLines.some((l) => l.includes('[MCP stderr]') && l.includes('more info')));
         } finally {
           console.error = originalError;
         }
@@ -760,8 +980,12 @@ describe('memtrace-adapter.mjs', () => {
         assert.equal(child.stderr.listenerCount('data'), 1);
 
         // Verify the cleanup pattern (matching adapter's shutdown/kill style)
-        try { child.stdout.removeListener('data', fn1); } catch (e) {}
-        try { child.stderr.removeListener('data', fn2); } catch (e) {}
+        try {
+          child.stdout.removeListener('data', fn1);
+        } catch (e) {}
+        try {
+          child.stderr.removeListener('data', fn2);
+        } catch (e) {}
         assert.equal(child.stdout.listenerCount('data'), 0);
         assert.equal(child.stderr.listenerCount('data'), 0);
       });
@@ -772,7 +996,9 @@ describe('memtrace-adapter.mjs', () => {
 
         // removeListener on a stream with no matching listener should not throw
         assert.doesNotThrow(() => {
-          try { child.stdout.removeListener('data', fn); } catch (e) {}
+          try {
+            child.stdout.removeListener('data', fn);
+          } catch (e) {}
         });
         assert.equal(child.stdout.listenerCount('data'), 0);
       });
@@ -855,7 +1081,11 @@ describe('memtrace-adapter.mjs', () => {
         assert.equal(typeof client.shutdown, 'function');
         assert.equal(typeof client.kill, 'function');
         assert.equal(client.spawn.length, 0, 'spawn() takes 0 args');
-        assert.equal(client.sendRequest.length, 1, 'sendRequest(method, params) has 1 arg (params has default)');
+        assert.equal(
+          client.sendRequest.length,
+          1,
+          'sendRequest(method, params) has 1 arg (params has default)'
+        );
         assert.equal(client.callTool.length, 2, 'callTool(name, args) takes 2 args');
         assert.equal(client.handshake.length, 0, 'handshake() takes 0 args');
         assert.equal(client.shutdown.length, 0, 'shutdown() takes 0 args');
