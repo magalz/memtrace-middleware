@@ -17,8 +17,9 @@ vi.mock('node:os', async (importOriginal) => {
   };
 });
 
-import { loadConfig, ensureConfigDir } from '../../../src/config/loader.js';
+import { loadConfig, ensureConfigDir, writeConfig } from '../../../src/config/loader.js';
 import { DEFAULT_CONFIG, normalizeFloor } from '../../../src/config/types.js';
+import type { MiddlewareConfig } from '../../../src/config/types.js';
 import { DegradationTier } from '../../../src/types.js';
 import { MiddlewareError } from '../../../src/errors.js';
 
@@ -178,5 +179,34 @@ describe('config loader', () => {
     // Then: the directory is created
     expect(existsSync(MEMTRACE_DIR)).toBe(true);
     rmdirSync(MEMTRACE_DIR);
+  });
+
+  // AC-2: writeConfig → loadConfig round-trip preserves all non-secret fields
+  it('[P0] writeConfig round-trips correctly through loadConfig for non-secret fields', () => {
+    // Given: a config is written to the standard config path
+    const original: MiddlewareConfig = {
+      ...DEFAULT_CONFIG,
+      memtrace_host: 'http://roundtrip:7070',
+      degradation_floor: 'Full',
+      timeout_budgets: { sub_query_ms: 500, dispatch_ms: 1000, probe_interval_ms: 5000 },
+      hysteresis_probe_count: 7,
+      classification_threshold: 0.8,
+      memtrace_token: 'should-verify-token-survives',
+    };
+    writeConfig(original);
+    // When: config is loaded back
+    const reloaded = loadConfig();
+    // Then: non-secret fields match
+    expect(reloaded.memtrace_host).toBe(original.memtrace_host);
+    expect(reloaded.degradation_floor).toBe(original.degradation_floor);
+    expect(reloaded.timeout_budgets.sub_query_ms).toBe(original.timeout_budgets.sub_query_ms);
+    expect(reloaded.timeout_budgets.dispatch_ms).toBe(original.timeout_budgets.dispatch_ms);
+    expect(reloaded.timeout_budgets.probe_interval_ms).toBe(
+      original.timeout_budgets.probe_interval_ms
+    );
+    expect(reloaded.hysteresis_probe_count).toBe(original.hysteresis_probe_count);
+    expect(reloaded.classification_threshold).toBe(original.classification_threshold);
+    // Token should survive the round-trip
+    expect(reloaded.memtrace_token).toBe(original.memtrace_token);
   });
 });

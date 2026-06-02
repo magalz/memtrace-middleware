@@ -58,13 +58,13 @@ export function discoverEnvironment(
   let workspaceAnchor: string | null = null;
 
   if (isGitRepo) {
-    const memtraceWorkspace = join(projectRoot, '.memtrace-workspace');
-    if (existsSync(memtraceWorkspace)) {
-      workspaceAnchor = memtraceWorkspace;
+    const memtraceDir = join(projectRoot, '.memtrace');
+    if (existsSync(memtraceDir)) {
+      workspaceAnchor = memtraceDir;
     } else {
-      const memtraceDir = join(projectRoot, '.memtrace');
-      if (existsSync(memtraceDir)) {
-        workspaceAnchor = memtraceDir;
+      const memtraceWorkspace = join(projectRoot, '.memtrace-workspace');
+      if (existsSync(memtraceWorkspace)) {
+        workspaceAnchor = memtraceWorkspace;
       }
     }
   }
@@ -77,7 +77,8 @@ export function discoverEnvironment(
     has_ts_config: hasTsConfig,
     is_git_repo: isGitRepo,
     workspace_anchor: workspaceAnchor,
-    memtrace_indexed: false,
+    memtrace_indexed:
+      workspaceAnchor !== null && readWorkspaceConfig(workspaceAnchor)?.repo_id != null,
     config_file_path: configFilePath,
   };
 

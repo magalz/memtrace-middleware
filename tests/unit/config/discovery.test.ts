@@ -30,14 +30,29 @@ describe('discoverEnvironment', () => {
   });
 
   it('[P0] should return sync info immediately without I/O', () => {
-    const { sync } = discoverEnvironment();
+    const tempDir = createTempDir();
 
-    expect(typeof sync.project_root).toBe('string');
-    expect(typeof sync.is_git_repo).toBe('boolean');
-    expect(typeof sync.has_package_json).toBe('boolean');
-    expect(typeof sync.has_ts_config).toBe('boolean');
-    expect(sync.memtrace_indexed).toBe(false);
-    expect(typeof sync.config_file_path).toBe('string');
+    try {
+      const gitDir = join(tempDir, '.git');
+      mkdirSync(gitDir);
+
+      const currentCwd = process.cwd();
+      try {
+        process.chdir(tempDir);
+        const { sync } = discoverEnvironment();
+
+        expect(typeof sync.project_root).toBe('string');
+        expect(typeof sync.is_git_repo).toBe('boolean');
+        expect(typeof sync.has_package_json).toBe('boolean');
+        expect(typeof sync.has_ts_config).toBe('boolean');
+        expect(sync.memtrace_indexed).toBe(false);
+        expect(typeof sync.config_file_path).toBe('string');
+      } finally {
+        process.chdir(currentCwd);
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('[P0] should provide a probe function that resolves to boolean', async () => {
@@ -92,6 +107,73 @@ describe('discoverEnvironment', () => {
         process.chdir(tempDir);
         const { sync } = discoverEnvironment();
         expect(normalizePath(sync.workspace_anchor!)).toBe(normalizePath(workspaceFile));
+      } finally {
+        process.chdir(currentCwd);
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('[P1] should set memtrace_indexed true when .memtrace/config.json has valid repo_id', () => {
+    const tempDir = createTempDir();
+
+    try {
+      mkdirSync(join(tempDir, '.git'));
+      const memtraceDir = join(tempDir, '.memtrace');
+      mkdirSync(memtraceDir);
+      writeFileSync(join(memtraceDir, 'config.json'), JSON.stringify({ repo_id: 'test-repo' }));
+
+      const currentCwd = process.cwd();
+      try {
+        process.chdir(tempDir);
+        const { sync } = discoverEnvironment();
+        expect(sync.memtrace_indexed).toBe(true);
+        expect(sync.workspace_anchor).not.toBeNull();
+      } finally {
+        process.chdir(currentCwd);
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('[P1] should set memtrace_indexed false when .memtrace/config.json has no repo_id', () => {
+    const tempDir = createTempDir();
+
+    try {
+      mkdirSync(join(tempDir, '.git'));
+      const memtraceDir = join(tempDir, '.memtrace');
+      mkdirSync(memtraceDir);
+      writeFileSync(join(memtraceDir, 'config.json'), JSON.stringify({}));
+
+      const currentCwd = process.cwd();
+      try {
+        process.chdir(tempDir);
+        const { sync } = discoverEnvironment();
+        expect(sync.memtrace_indexed).toBe(false);
+      } finally {
+        process.chdir(currentCwd);
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('[P1] should set memtrace_indexed false when .memtrace/config.json is broken JSON', () => {
+    const tempDir = createTempDir();
+
+    try {
+      mkdirSync(join(tempDir, '.git'));
+      const memtraceDir = join(tempDir, '.memtrace');
+      mkdirSync(memtraceDir);
+      writeFileSync(join(memtraceDir, 'config.json'), '{invalid}');
+
+      const currentCwd = process.cwd();
+      try {
+        process.chdir(tempDir);
+        const { sync } = discoverEnvironment();
+        expect(sync.memtrace_indexed).toBe(false);
       } finally {
         process.chdir(currentCwd);
       }

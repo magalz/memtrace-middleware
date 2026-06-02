@@ -1,10 +1,19 @@
 #!/usr/bin/env node
 
+import { existsSync } from 'node:fs';
+
 import { createCliAdapter } from '../adapters/index.js';
 import { createNoopBackend } from '../backend/index.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import { MemtraceTransport } from '../backend/transport.js';
-import { DEFAULT_CONFIG, type MiddlewareConfig } from '../config/types.js';
+import {
+  DEFAULT_CONFIG,
+  getConfigPath,
+  discoverEnvironment,
+  readWorkspaceConfig,
+  writeConfig,
+} from '../config/index.js';
+import type { MiddlewareConfig } from '../config/types.js';
 import { MIDDLEWARE_VERSION, STATUS_REFRESH_MS } from '../constants.js';
 import { initializeDegradation, shutdownDegradation } from '../degrade/index.js';
 import { createLogger } from '../logger.js';
@@ -17,7 +26,7 @@ let activeMcpServer: McpServerInstance | null = null;
 let activeBackend: MemtraceBackend | null = null;
 
 function printUsage(): void {
-  process.stderr.write('usage: memtrace --status | start\n');
+  process.stderr.write('usage: memtrace --status | init [--force] | start\n');
 }
 
 export async function startServer(config: MiddlewareConfig = DEFAULT_CONFIG): Promise<void> {
@@ -68,6 +77,64 @@ export async function startServer(config: MiddlewareConfig = DEFAULT_CONFIG): Pr
   }
 }
 
+export async function runInit(force: boolean): Promise<void> {
+  const configPath = getConfigPath();
+
+  if (!force && existsSync(configPath)) {
+    process.stderr.write(`Configuration already exists at ${configPath}\n`);
+    process.stderr.write('Use --force to overwrite.\n');
+    return;
+  }
+
+  const { sync } = discoverEnvironment();
+
+  let host =
+    sync.memtrace_indexed && sync.workspace_anchor
+      ? (readWorkspaceConfig(sync.workspace_anchor)?.host as string | undefined)
+      : undefined;
+  host = host ?? process.env['MEMTRACE_HOST'] ?? 'http://localhost:8080';
+
+  let reachable = false;
+  try {
+    const resp = await fetch(`${host}/health`, { signal: AbortSignal.timeout(3000) });
+    reachable = resp.ok;
+  } catch {
+    reachable = false;
+  }
+
+  const token = process.env['MEMTRACE_MCP_TOKEN'] ?? '';
+
+  const config: MiddlewareConfig = {
+    ...DEFAULT_CONFIG,
+    memtrace_host: host,
+    memtrace_token: token,
+  };
+
+  process.stderr.write('mtm init — Memtrace Middleware auto-detection\n');
+  process.stderr.write(`  project_root:      ${sync.project_root}\n`);
+  process.stderr.write(`  is_git_repo:       ${sync.is_git_repo}\n`);
+  process.stderr.write(`  memtrace_indexed:  ${sync.memtrace_indexed}\n`);
+  if (sync.workspace_anchor)
+    process.stderr.write(`  workspace_anchor:  ${sync.workspace_anchor}\n`);
+  process.stderr.write(`  memtrace_host:     ${host}\n`);
+  process.stderr.write(`  memtrace_token:    ${token ? '<present>' : '<not set>'}\n\n`);
+
+  writeConfig(config, configPath);
+
+  if (sync.memtrace_indexed && reachable) {
+    process.stderr.write('✅ Memtrace indexed and reachable — ready.\n');
+  } else if (sync.memtrace_indexed) {
+    process.stderr.write(
+      '⚠️  Memtrace indexed but unreachable. Run `mtm start` when Memtrace server is running.\n'
+    );
+  } else {
+    process.stderr.write(
+      '⚠️  No Memtrace index detected. Run `memtrace` to index this project first.\n'
+    );
+  }
+  process.stderr.write('Next: run `mtm start` to begin intercepting agent tool calls.\n');
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -88,6 +155,12 @@ async function main(): Promise<void> {
     });
 
     void adapter;
+    return;
+  }
+
+  if (args[0] === 'init') {
+    const forceOverwrite = args.includes('--force');
+    await runInit(forceOverwrite);
     return;
   }
 
