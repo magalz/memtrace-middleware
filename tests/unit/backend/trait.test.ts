@@ -162,3 +162,46 @@ describe('DegradationProbeHooks (Epic 3 stubs)', () => {
     expect(backend.degradationHooks).toBeUndefined();
   });
 });
+
+// Task 1 — Formalize disconnect() on MemtraceBackend trait (AC: 2)
+describe('MemtraceBackend disconnect() (Task 1)', () => {
+  it('[P0] MemtraceBackend trait accepts optional disconnect() method', async () => {
+    // Given: a mock MemtraceBackend with disconnect
+    const disconnect = vi.fn().mockResolvedValue(undefined);
+    const backend: MemtraceBackend = {
+      execute: vi.fn(),
+      probe: vi.fn(),
+      listTools: vi.fn(),
+      disconnect,
+    };
+    // When: disconnect is called via optional chaining
+    await backend.disconnect?.();
+    // Then: disconnect is callable and returns void
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(backend.disconnect).toBeDefined();
+    expect(typeof backend.disconnect).toBe('function');
+  });
+
+  it('[P0] disconnect() via interface works without duck-typing', async () => {
+    // Given: a MemtraceTransport instance (has real disconnect)
+    const transport: MemtraceBackend = new MemtraceTransport('http://localhost:9999');
+    // Then: disconnect exists on the interface (not duck-typed)
+    expect(typeof transport.disconnect).toBe('function');
+    // When: called
+    await transport.disconnect!();
+    // Then: no throw — disconnect is idempotent on unconnected transport
+  });
+
+  it('[P1] MemtraceBackend without disconnect() is backwards-compatible with optional chaining', async () => {
+    // Given: a MemtraceBackend that does NOT provide disconnect
+    const backend: MemtraceBackend = {
+      execute: vi.fn(),
+      probe: vi.fn(),
+      listTools: vi.fn(),
+    };
+    // When: disconnect is called via optional chaining
+    // Then: no throw — optional chaining silently returns undefined for missing method
+    const result = backend.disconnect?.();
+    expect(result).toBeUndefined();
+  });
+});

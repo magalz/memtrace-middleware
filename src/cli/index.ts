@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import { createCliAdapter } from '../adapters/index.js';
+import { createNoopBackend } from '../backend/index.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import { MemtraceTransport } from '../backend/transport.js';
 import { DEFAULT_CONFIG, type MiddlewareConfig } from '../config/types.js';
 import { MIDDLEWARE_VERSION, STATUS_REFRESH_MS } from '../constants.js';
 import { initializeDegradation, shutdownDegradation } from '../degrade/index.js';
 import { createLogger } from '../logger.js';
-import type { QueryResult, ToolSchema, GraphQuery } from '../types.js';
 import { createDegradedMcpServer, createMcpServer, type McpServerInstance } from './mcp-server.js';
 import { startStatusDisplay } from './status.js';
 
@@ -15,20 +15,6 @@ const log = createLogger('cli');
 
 let activeMcpServer: McpServerInstance | null = null;
 let activeBackend: MemtraceBackend | null = null;
-
-function createNoopBackend(): MemtraceBackend {
-  return {
-    async execute(_query: GraphQuery, _signal: AbortSignal): Promise<QueryResult> {
-      throw new Error('not connected');
-    },
-    async probe(): Promise<boolean> {
-      return false;
-    },
-    async listTools(): Promise<ToolSchema[]> {
-      return [];
-    },
-  };
-}
 
 function printUsage(): void {
   process.stderr.write('usage: memtrace --status | start\n');
@@ -60,9 +46,9 @@ export async function startServer(config: MiddlewareConfig = DEFAULT_CONFIG): Pr
       error: err instanceof Error ? err.message : String(err),
     });
 
-    if (activeBackend && 'disconnect' in activeBackend) {
+    if (activeBackend) {
       try {
-        await (activeBackend as MemtraceTransport).disconnect();
+        await activeBackend.disconnect?.();
       } catch {
         // best-effort cleanup
       }
@@ -126,13 +112,9 @@ export async function shutdown(): Promise<void> {
     activeMcpServer = null;
   }
 
-  if (
-    activeBackend &&
-    'disconnect' in activeBackend &&
-    typeof (activeBackend as MemtraceTransport).disconnect === 'function'
-  ) {
+  if (activeBackend) {
     try {
-      await (activeBackend as MemtraceTransport).disconnect();
+      await activeBackend.disconnect?.();
     } catch (err: unknown) {
       log.error('backend_disconnect_error', {
         error: err instanceof Error ? err.message : String(err),
