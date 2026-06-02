@@ -312,6 +312,13 @@ export class BaseAdapter implements ToolProvider {
         trace_id: traceId,
         provenance: [],
       };
+      const validatedEmpty = validateContext(fusedContext);
+      if (!validatedEmpty.ok) {
+        log.warn('empty_query_plan_validation_failed', {
+          trace_id: traceId,
+          error: validatedEmpty.error,
+        });
+      }
       const response = this.contextBuilder.buildContext(fusedContext);
       response.metadata = {
         ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),

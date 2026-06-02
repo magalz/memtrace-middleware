@@ -126,6 +126,10 @@ export class DegradationMachine {
   }
 
   setFloorTier(tier: DegradationTier): void {
+    if (tier == null || !(tier in TIER_ORDINAL)) {
+      log.warn('set_floor_tier_invalid', { tier });
+      return;
+    }
     this.floorTier = tier;
   }
 

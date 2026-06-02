@@ -425,7 +425,7 @@ describe('memtrace-adapter.mjs', () => {
         const oldProject = parsed.repositories.find((r) => r.repo_id === 'old-project');
         assert.ok(oldProject, 'old-project must be in repos');
         assert.equal(
-          oldProject.freshness.is_fresh,
+          oldProject?.freshness?.is_fresh,
           false,
           'old-project must be stale (age > 30min)'
         );
