@@ -1,5 +1,5 @@
 # generated: 2026-05-29
-# last_updated: 2026-06-01
+# last_updated: 2026-06-02
 # project: bmad-memtrace
 # project_key: NOKEY
 # tracking_system: file-system
@@ -36,7 +36,7 @@
 # - This file covers v2.0 (Memtrace Agent Middleware). v1.0 v1 sprint-status.yaml moved to sprint-status-v1.yaml
 
 generated: 2026-05-29
-last_updated: 2026-06-01
+last_updated: 2026-06-02
 project: bmad-memtrace
 project_key: NOKEY
 tracking_system: file-system
@@ -60,11 +60,41 @@ development_status:
   3-1-degradation-state-machine: done
   3-2-dead-code-detection-adapter: done
   epic-3-retrospective: done
-  epic-inter: in-progress
+  epic-inter: done
   i-1-mcpclient-refactor: done
   i-2-hermetic-mcp-mocking: done
   i-3-qa-memtrace-fixes: done
-  epic-inter-retrospective: optional
-  epic-4: in-progress
-  4-1-telemetry-pipeline-ci-gates-and-documentation: ready-for-dev
-  epic-4-retrospective: optional
+  epic-inter-retrospective: done
+  epic-4: done
+  4-1-telemetry-pipeline-ci-gates-and-documentation: done
+  4-1-mcp-timeout-detection: done
+  epic-4-retrospective: done
+  epic-post: done
+  post-1-memtrace-v051-intent-bridge: done
+  epic-post-retrospective: done
+  epic-5: in-progress
+  5-1-mcp-server-mode: done
+  5-2-memtrace-backend-real: done
+  5-3-init-auto-detection: done
+  5-4-force-tier-cli: done
+  5-5-empty-query-plan-bypass: done
+  5-6-adapter-hardening: backlog
+  epic-6: backlog
+  6-1-classification-hardening: backlog
+  6-2-single-point-intent-registration: backlog
+  6-3-7-new-intent-types: backlog
+  epic-7: backlog
+  7-1-config-driven-degradation-thresholds: backlog
+  7-2-k6-load-testing-suite: backlog
+  7-3-rate-limiting-circuit-breaking: backlog
+  epic-8: backlog
+  8-1-deferred-work-consolidation: backlog
+  8-2-query-plan-caching: backlog
+  epic-9: backlog
+  9-1-telemetry-api-endpoint: backlog
+  9-2-telemetry-dashboard-ui: backlog
+  9-3-context-pruning: backlog
+  epic-10: backlog
+  10-1-claude-code-cli-adapter: backlog
+  10-2-cursor-vscode-adapters: backlog
+  10-3-npm-publish-automation: backlog

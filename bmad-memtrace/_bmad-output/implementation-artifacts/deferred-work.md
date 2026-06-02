@@ -1,16 +1,20 @@
 # Deferred Work Log
 
-## Deferred from: code review of i-3-qa-memtrace-fixes (2026-06-01)
+## Deferred from: code review of i-3-qa-memtrace-fixes (2026-06-01) — PARTIALLY RESOLVED 2026-06-01
 
-- Negative `Partial:N` value causes incorrect coverage slicing (`qa-memtrace.mjs:108`) — `parseInt` result can be negative, bypassing `|| 0` fallback and causing `slice(0, negative)`.
-- Symbol key collisions when file/name is null/undefined (`qa-memtrace.mjs:87-89`) — Map silently deduplicates identical keys like `"undefined:undefined"`.
-- Floating-point threshold silently truncated by parseInt (`qa-memtrace.mjs:35`) — `65.7` becomes `65` without warning.
-- Error object may lack `.message` in catch-all handler (`qa-memtrace.mjs:178`) — non-Error throws produce `"ERROR: undefined"`.
-- `Partial:` prefix is case/whitespace-sensitive (`qa-memtrace.mjs:107`) — `"partial:1"` or `" Partial:1"` falls through without counting.
-- Temp filenames use Date.now() — collision risk under parallel exec (`qa-memtrace.test.mjs:13-14`).
-- `total_count` mismatch warning is stderr-only, not in JSON output (`qa-memtrace.mjs:93`) — consumers parsing stdout won't see the warning.
-- Empty file/module path treated as valid key (`qa-memtrace.mjs:98`) — creates keys like `":foo"`.
-- Missing-arg test has OR fallback that can mask regressions (`qa-memtrace.test.mjs:141`) — timeout pass-by masks missing-message regression.
+- ✅ Negative `Partial:N` value causes incorrect coverage slicing (`qa-memtrace.mjs:108`) — FIXED: `Math.max(0, parseInt(...) || 0)`
+- ✅ Symbol key collisions when file/name is null/undefined (`qa-memtrace.mjs:87-89`) — FIXED: skip entries with null file/name
+- ✅ Floating-point threshold silently truncated by parseInt (`qa-memtrace.mjs:35`) — FIXED: `parseFloat` with truncation warning + `Math.floor`
+- ✅ Error object may lack `.message` in catch-all handler (`qa-memtrace.mjs:178`) — FIXED: `err?.message ?? String(err)`
+- ✅ `Partial:` prefix is case/whitespace-sensitive (`qa-memtrace.mjs:107`) — FIXED: `.trim().toLowerCase().startsWith('partial:')`
+- 🔵 Temp filenames use Date.now() — collision risk under parallel exec (`qa-memtrace.test.mjs:13-14`). [DEFERRED: test-only, low risk]
+
+## Deferred from: code review of post-1-memtrace-v051-intent-bridge (2026-06-01)
+
+- 🔵 New MCP tool constants (`find_ast_review_issues`, `get_style_fingerprint`) do not follow `memtrace_*` prefix convention used by existing constants (`src/constants.ts:16-17`). [DEFERRED: these are Memtrace v0.5.x native MCP tool names, not project-invented names — behavior is correct, convention inconsistency is upstream.]
+- 🔵 `total_count` mismatch warning is stderr-only, not in JSON output (`qa-memtrace.mjs:93`) — [DEFERRED: by design, invalid data throws]
+- ✅ Empty file/module path treated as valid key (`qa-memtrace.mjs:98`) — FIXED: null guard on blast Set construction (same fix as key collision)
+- 🔵 Missing-arg test has OR fallback that can mask regressions (`qa-memtrace.test.mjs:141`) [DEFERRED: test-only]
 
 ## Deferred from: code review of 1-3b-query-decomposition-and-multi-intent-routing (2026-05-28)
 
@@ -72,14 +76,14 @@
 
 - Pre-existing formatting changes in test files [test/verify-installer.js:58-61, test/test-inject-mcp-config.js:43-258] — Empty catch blocks and catch-param renames (`err` → `error`) in test files are pre-existing working-tree changes, not from this story. Deferred, pre-existing.
 
-## Deferred from: code review of story 4-1-mcp-timeout-detection (2026-05-20)
+## Deferred from: code review of story 4-1-mcp-timeout-detection (2026-05-20) — PARTIALLY RESOLVED 2026-06-01
 
-- D1: `spawn()` timeout wrapper is no-op — `spawnPromise` resolves synchronously at `resolvePromise()`, making `withTimeout` effectively unused for spawn alone. `handshake()` provides the real timeout. Pre-existing design. [memtrace-adapter.mjs:113-162]
-- D2: `sendRequest` stdout listener leak on child death — If child process dies mid-request, the listener on `this.child.stdout` is never removed. Pre-existing, not introduced by this change. [memtrace-adapter.mjs:164-199]
-- D3: Batch mode does not emit `TIMEOUT_TOKEN` for timeouts — `runBatchQuery` catch pushes errors to results array without emitting the token. By design (batch outputs JSON aggregations). Out of scope. [memtrace-adapter.mjs:544-548]
-- D4: `err.message` on non-Error objects — Line 507 accesses `err.message` directly; string throws produce `ERROR: undefined`. Pre-existing in both old `fail(err.message)` and new inline code. [memtrace-adapter.mjs:507]
-- D5: Missing test coverage for edge paths — No tests cover timeout during `--summarize`, `--check-freshness`, serialization failure, or batch mixed success/failure. Out of scope for this story. [memtrace-adapter.test.mjs]
-- D6: `TimeoutError instanceof` cross-realm risk — `instanceof TimeoutError` may fail for errors from different modules. Pre-existing pattern; `withTimeout` is in same module scope. [memtrace-adapter.mjs:503]
+- 🔵 D1: `spawn()` timeout wrapper is no-op — `spawnPromise` resolves synchronously at `resolvePromise()`, making `withTimeout` effectively unused for spawn alone. `handshake()` provides the real timeout. Pre-existing design. [memtrace-adapter.mjs:113-162]
+- 🔵 D2: `sendRequest` stdout listener leak on child death — If child process dies mid-request, the listener on `this.child.stdout` is never removed. Pre-existing, not introduced by this change. [memtrace-adapter.mjs:164-199]
+- 🔵 D3: Batch mode does not emit `TIMEOUT_TOKEN` for timeouts — `runBatchQuery` catch pushes errors to results array without emitting the token. By design (batch outputs JSON aggregations). Out of scope. [memtrace-adapter.mjs:544-548]
+- ✅ D4: `err.message` on non-Error objects — FIXED: `err?.message ?? String(err)` in 3 locations (runSingleQuery, runBatchQuery, freshness check) [memtrace-adapter.mjs:455,507,546]
+- 🔵 D5: Missing test coverage for edge paths — No tests cover timeout during `--summarize`, `--check-freshness`, serialization failure, or batch mixed success/failure. Out of scope for this story. [memtrace-adapter.test.mjs]
+- 🔵 D6: `TimeoutError instanceof` cross-realm risk — `instanceof TimeoutError` may fail for errors from different modules. Pre-existing pattern; `withTimeout` is in same module scope. [memtrace-adapter.mjs:503]
 
 ## Deferred from: code review of story-2-1 (2026-05-28)
 
