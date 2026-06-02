@@ -199,7 +199,7 @@ export function writeConfig(config: MiddlewareConfig, path?: string): void {
     throw new MiddlewareError({
       cause: 'config_invalid',
       recoverable: false,
-      suggested_action: 'check_config_file_permissions',
+      suggested_action: `check_config_file_permissions: ${err instanceof Error ? err.message : String(err)}`,
     });
   }
   log.info('config written', { path: target });
