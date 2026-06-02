@@ -14,33 +14,42 @@ const TOOL_SCHEMAS = [
   {
     name: 'find_code',
     description: 'Find code using hybrid BM25+vector search',
-    inputSchema: { type: 'object', properties: { query: { type: 'string' } } }
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
   },
   {
     name: 'get_impact',
     description: 'Compute blast radius of changing a symbol',
-    inputSchema: { type: 'object', properties: { target: { type: 'string' }, repo_id: { type: 'string' } } }
+    inputSchema: {
+      type: 'object',
+      properties: { target: { type: 'string' }, repo_id: { type: 'string' } },
+    },
   },
   {
     name: 'get_symbol_context',
     description: 'Get 360-degree view of a symbol',
-    inputSchema: { type: 'object', properties: { symbol: { type: 'string' }, repo_id: { type: 'string' } } }
+    inputSchema: {
+      type: 'object',
+      properties: { symbol: { type: 'string' }, repo_id: { type: 'string' } },
+    },
   },
   {
     name: 'find_dead_code',
     description: 'Find dead code candidates',
-    inputSchema: { type: 'object', properties: { repo_id: { type: 'string' }, file_path: { type: 'string' } } }
+    inputSchema: {
+      type: 'object',
+      properties: { repo_id: { type: 'string' }, file_path: { type: 'string' } },
+    },
   },
   {
     name: 'list_indexed_repositories',
     description: 'List all indexed repositories',
-    inputSchema: { type: 'object', properties: {} }
+    inputSchema: { type: 'object', properties: {} },
   },
   {
     name: 'memtrace_check_freshness',
     description: 'Check index freshness',
-    inputSchema: { type: 'object', properties: { repo_id: { type: 'string' } } }
-  }
+    inputSchema: { type: 'object', properties: { repo_id: { type: 'string' } } },
+  },
 ];
 
 function sendResponse(id, result) {
@@ -64,13 +73,15 @@ function extractMagicParams(rawArgs) {
   const args = typeof rawArgs === 'object' && rawArgs !== null ? { ...rawArgs } : {};
 
   const envFail = process.env.MEMTRACE_MOCK_FAIL === 'true';
-  const envDeadline = process.env.MEMTRACE_MOCK_DEADLINE_MS ? parseInt(process.env.MEMTRACE_MOCK_DEADLINE_MS, 10) : null;
+  const envDeadline = process.env.MEMTRACE_MOCK_DEADLINE_MS
+    ? parseInt(process.env.MEMTRACE_MOCK_DEADLINE_MS, 10)
+    : null;
   const envBadJson = process.env.MEMTRACE_MOCK_BAD_JSON === 'true';
 
   const magic = {
     fail: args.memtrace_fail === true || envFail,
     deadline: typeof args.memtrace_deadline === 'number' ? args.memtrace_deadline : envDeadline,
-    badJson: args.memtrace_bad_json === true || envBadJson
+    badJson: args.memtrace_bad_json === true || envBadJson,
   };
   delete args.memtrace_fail;
   delete args.memtrace_deadline;
@@ -139,7 +150,13 @@ rl.on('line', (line) => {
   try {
     request = JSON.parse(line);
   } catch {
-    process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }) + '\n');
+    process.stdout.write(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32700, message: 'Parse error' },
+      }) + '\n'
+    );
     return;
   }
 
@@ -155,7 +172,7 @@ rl.on('line', (line) => {
       sendResponse(id, {
         capabilities: { tools: {} },
         protocolVersion: '2024-11-05',
-        serverInfo: { name: 'memtrace-mock', version: '1.0.0' }
+        serverInfo: { name: 'memtrace-mock', version: '1.0.0' },
       });
       sendNotification('notifications/initialized', {});
       initialized = true;
@@ -194,5 +211,9 @@ rl.on('close', () => {
   }, 100);
 });
 
-process.on('SIGTERM', () => { process.exit(0); });
-process.on('SIGINT', () => { process.exit(0); });
+process.on('SIGTERM', () => {
+  process.exit(0);
+});
+process.on('SIGINT', () => {
+  process.exit(0);
+});
