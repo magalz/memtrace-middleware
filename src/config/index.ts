@@ -1,4 +1,4 @@
-export { loadConfig, getConfigPath, ensureConfigDir } from './loader.js';
+export { loadConfig, getConfigPath, ensureConfigDir, writeConfig } from './loader.js';
 export { watchConfig, getCurrentConfig } from './watcher.js';
 export { discoverEnvironment, readWorkspaceConfig } from './discovery.js';
 export type { EnvironmentInfo } from './discovery.js';

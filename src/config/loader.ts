@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { MiddlewareError } from '../errors.js';
 import { createLogger } from '../logger.js';
@@ -184,4 +184,23 @@ export function ensureConfigDir(): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
+}
+
+export function writeConfig(config: MiddlewareConfig, path?: string): void {
+  const target = path ?? getConfigPath();
+  ensureConfigDir();
+  const parent = dirname(target);
+  if (!existsSync(parent)) {
+    mkdirSync(parent, { recursive: true });
+  }
+  try {
+    writeFileSync(target, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (err: unknown) {
+    throw new MiddlewareError({
+      cause: 'config_invalid',
+      recoverable: false,
+      suggested_action: `check_config_file_permissions: ${err instanceof Error ? err.message : String(err)}`,
+    });
+  }
+  log.info('config written', { path: target });
 }
