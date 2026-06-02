@@ -300,7 +300,12 @@ export class BaseAdapter implements ToolProvider {
     const subQueryTimeout = this.config.timeout_budgets.sub_query_ms;
 
     if (queries.length === 0) {
+      const elapsed = Date.now() - dispatchStart;
       log.warn('empty_query_plan', { trace_id: traceId, intent_type: intent.intent_type });
+      const clampedConfidence = Number.isFinite(intent.confidence)
+        ? Math.max(0, Math.min(1, intent.confidence))
+        : 0;
+      const intentType = intent.intent_type ?? 'unknown';
       const fusedContext: FusedContext = {
         blocks: [],
         partial: true,
@@ -309,10 +314,20 @@ export class BaseAdapter implements ToolProvider {
       };
       const response = this.contextBuilder.buildContext(fusedContext);
       response.metadata = {
+        ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
         tier: DegradationTier.IntentReduced,
         trace_id: traceId,
-        elapsed_ms: Date.now() - dispatchStart,
+        elapsed_ms: elapsed,
       };
+      try {
+        metrics.recordDispatch(true, intentType, clampedConfidence, elapsed);
+      } catch (err: unknown) {
+        log.warn('empty_query_plan_metrics_failed', {
+          trace_id: traceId,
+          intent_type: intentType,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
       return response;
     }
 
