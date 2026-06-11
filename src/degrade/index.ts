@@ -51,6 +51,15 @@ export function onConfigChanged(delta: Partial<MiddlewareConfig>): void {
     log.info('floor_updated', { floor: delta.degradation_floor });
   }
 
+  if ('hysteresis_probe_count' in delta && delta.hysteresis_probe_count !== undefined) {
+    const accepted = degradationMachine.setHysteresisCount(delta.hysteresis_probe_count);
+    if (accepted) {
+      log.info('hysteresis_count_updated_via_config', {
+        count: delta.hysteresis_probe_count,
+      });
+    }
+  }
+
   if (
     'timeout_budgets' in delta &&
     delta.timeout_budgets?.probe_interval_ms !== undefined &&
@@ -82,11 +91,13 @@ export function initializeDegradation(backend: MemtraceBackend, config: Middlewa
   const intervalMs = config.timeout_budgets.probe_interval_ms;
   lastProbeIntervalMs = intervalMs;
   degradationMachine.setFloorTier(normalizeFloor(config.degradation_floor));
+  degradationMachine.setHysteresisCount(config.hysteresis_probe_count);
   probeTimer.start(intervalMs);
 
   log.info('degradation_initialized', {
     floor: config.degradation_floor,
     probe_interval_ms: intervalMs,
+    hysteresis_count: config.hysteresis_probe_count,
   });
 }
 
@@ -98,3 +109,4 @@ export function shutdownDegradation(): void {
   lastProbeIntervalMs = null;
   log.info('degradation_shutdown');
 }
+

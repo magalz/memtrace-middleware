@@ -1,4 +1,3 @@
-import { HYSTERESIS_PROBE_COUNT } from '../constants.js';
 import { createLogger } from '../logger.js';
 import { DegradationTier } from '../types.js';
 
@@ -35,6 +34,7 @@ export class DegradationMachine {
   private consecutiveProbeSuccesses = 0;
   private floorTier: DegradationTier = DegradationTier.Full;
   private forceTier: DegradationTier | null = null;
+  private hysteresisProbeCount = 3;
   private lastTransitionReason: string | null = null;
   private lastTransitionAt: string | null = null;
   private tierHistory: TierTransition[] = [];
@@ -66,12 +66,12 @@ export class DegradationMachine {
       this.consecutiveProbeSuccesses++;
 
       if (
-        this.consecutiveProbeSuccesses >= HYSTERESIS_PROBE_COUNT &&
+        this.consecutiveProbeSuccesses >= this.hysteresisProbeCount &&
         this.currentTier !== DegradationTier.Full
       ) {
         this.transition(
           DegradationTier.Full,
-          `${HYSTERESIS_PROBE_COUNT} consecutive probe successes — recovered to Full`
+          `${this.hysteresisProbeCount} consecutive probe successes — recovered to Full`
         );
         this.consecutiveProbeSuccesses = 0;
       }
@@ -79,12 +79,12 @@ export class DegradationMachine {
       this.consecutiveProbeSuccesses = 0;
       this.consecutiveProbeFailures++;
 
-      if (this.consecutiveProbeFailures >= HYSTERESIS_PROBE_COUNT) {
+      if (this.consecutiveProbeFailures >= this.hysteresisProbeCount) {
         if (this.currentTier !== DegradationTier.FailClosed) {
           const nextTier = degradeTier(this.currentTier);
           this.transition(
             nextTier,
-            `${HYSTERESIS_PROBE_COUNT} consecutive probe failures — degraded to ${nextTier}`
+            `${this.hysteresisProbeCount} consecutive probe failures — degraded to ${nextTier}`
           );
         }
         this.consecutiveProbeFailures = 0;
@@ -131,6 +131,22 @@ export class DegradationMachine {
       return;
     }
     this.floorTier = tier;
+  }
+
+  setHysteresisCount(count: number): boolean {
+    if (!Number.isFinite(count) || count < 1 || !Number.isInteger(count)) {
+      log.warn('set_hysteresis_count_invalid', { count });
+      return false;
+    }
+    if (count > 10_000) {
+      log.warn('set_hysteresis_count_excessive', { count });
+    }
+    const previous = this.hysteresisProbeCount;
+    this.hysteresisProbeCount = count;
+    if (count !== previous) {
+      log.info('hysteresis_count_updated', { previous, current: count });
+    }
+    return true;
   }
 
   reset(): void {
@@ -182,3 +198,4 @@ export class DegradationMachine {
 }
 
 export const degradationMachine = new DegradationMachine();
+
