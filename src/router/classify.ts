@@ -156,10 +156,7 @@ function extractSearchText(message: Record<string, unknown>): string {
   const args = params?.arguments as Record<string, unknown> | undefined;
   if (args?.query && typeof args.query === 'string') return args.query;
   if (args?.name && typeof args.name === 'string') return args.name;
-  logger.debug('extractSearchText_fallback_to_stringify', {
-    message_keys: Object.keys(message).slice(0, 5),
-  });
-  return JSON.stringify(message);
+  return '';
 }
 
 function extractToolName(message: Record<string, unknown>): string | undefined {

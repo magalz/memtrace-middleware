@@ -9,7 +9,8 @@ export interface TraceContext {
 }
 
 export function generateTraceId(intentType: string): string {
-  const short = getRegistry().getTraceIdPrefix(intentType) ?? (intentType.slice(0, 4) || 'unk');
+  const safeType = intentType ?? 'unknown';
+  const short = getRegistry().getTraceIdPrefix(safeType) ?? (safeType.slice(0, 4) || 'unk');
   const uuid = randomUUID();
   const first8 = uuid.split('-')[0] ?? uuid.slice(0, 8);
   return `${short}-${first8}`;
