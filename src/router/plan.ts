@@ -4,14 +4,6 @@ import { getRegistry } from './classify.js';
 
 const logger = createLogger('router');
 
-const ARG_KEY_BY_TOOL: Record<string, string> = {
-  memtrace_find_code: 'query',
-  memtrace_get_symbol_context: 'symbol',
-  memtrace_get_impact: 'target',
-  find_ast_review_issues: 'query',
-  get_style_fingerprint: 'query',
-};
-
 export function plan(
   intent: ClassifiedIntent,
   capabilities: MemtraceCapabilities
@@ -40,18 +32,14 @@ export function plan(
 
   const queries: GraphQuery[] = [];
 
-  for (const tool of intentDef.tools) {
-    if (!availableTools.has(tool)) {
-      logger.warn('tool_not_in_capabilities', { tool, intent: intent.intent_type });
+  for (const td of intentDef.tools) {
+    if (!availableTools.has(td.name)) {
+      logger.warn('tool_not_in_capabilities', { tool: td.name, intent: intent.intent_type });
       continue;
     }
 
-    const argKey = ARG_KEY_BY_TOOL[tool];
-    const usedFallback = argKey === undefined;
+    const argKey = td.argKey;
     const resolvedKey = argKey ?? 'query';
-    if (usedFallback) {
-      logger.warn('plan_arg_key_fallback', { tool, intent: intent.intent_type });
-    }
     const args: Record<string, unknown> = {
       [resolvedKey]: extractedArgs[resolvedKey] ?? extractedArgs.query ?? '',
     };
@@ -59,7 +47,7 @@ export function plan(
       args.lang = extractedArgs.lang;
     }
     queries.push({
-      tool,
+      tool: td.name,
       arguments: args,
     });
   }
@@ -86,7 +74,9 @@ function extractArgs(message: unknown): Record<string, string> {
   return {
     query: queryVal || nameVal || symbolVal,
     symbol: symbolVal || nameVal || queryVal,
-    target: typeof args.target === 'string' ? args.target : symbolVal || nameVal || queryVal,
+    target: (typeof args.target === 'string' && args.target !== '')
+      ? args.target
+      : symbolVal || nameVal || queryVal,
     lang: langVal,
   };
 }
