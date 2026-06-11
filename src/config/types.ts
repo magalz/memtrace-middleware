@@ -11,7 +11,20 @@ export const DEGRADATION_FLOOR_VALUES = [
 
 export type DegradationFloor = (typeof DEGRADATION_FLOOR_VALUES)[number];
 
-export const INTENT_TYPE_VALUES = ['find_code', 'get_symbol_context', 'get_impact'] as const;
+export const INTENT_TYPE_VALUES = [
+  'find_code',
+  'get_symbol_context',
+  'get_impact',
+  'review_code',
+  'get_style_fingerprint',
+  'find_dead_code',
+  'get_evolution',
+  'get_process_flow',
+  'get_api_topology',
+  'find_bridge_symbols',
+  'find_central_symbols',
+  'find_dependency_path',
+] as const;
 
 export type IntentType = (typeof INTENT_TYPE_VALUES)[number];
 
@@ -53,7 +66,20 @@ export const DEFAULT_CONFIG: MiddlewareConfig = {
   },
   hysteresis_probe_count: 3,
   degradation_floor: 'Passthrough',
-  enabled_intents: ['find_code', 'get_symbol_context', 'get_impact'],
+  enabled_intents: [
+    'find_code',
+    'get_symbol_context',
+    'get_impact',
+    'review_code',
+    'get_style_fingerprint',
+    'find_dead_code',
+    'get_evolution',
+    'get_process_flow',
+    'get_api_topology',
+    'find_bridge_symbols',
+    'find_central_symbols',
+    'find_dependency_path',
+  ],
   classification_threshold: 0.95,
 };
 

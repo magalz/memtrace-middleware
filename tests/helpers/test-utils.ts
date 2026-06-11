@@ -5,6 +5,15 @@ export const mockCapabilities: MemtraceCapabilities = {
     { name: 'memtrace_find_code', description: 'Find code', inputSchema: {} },
     { name: 'memtrace_get_symbol_context', description: 'Get symbol context', inputSchema: {} },
     { name: 'memtrace_get_impact', description: 'Get impact', inputSchema: {} },
+    { name: 'find_ast_review_issues', description: 'Find AST review issues', inputSchema: {} },
+    { name: 'get_style_fingerprint', description: 'Get style fingerprint', inputSchema: {} },
+    { name: 'memtrace_find_dead_code', description: 'Find dead code', inputSchema: {} },
+    { name: 'memtrace_get_evolution', description: 'Get evolution', inputSchema: {} },
+    { name: 'memtrace_get_process_flow', description: 'Get process flow', inputSchema: {} },
+    { name: 'memtrace_get_api_topology', description: 'Get API topology', inputSchema: {} },
+    { name: 'memtrace_find_bridge_symbols', description: 'Find bridge symbols', inputSchema: {} },
+    { name: 'memtrace_find_central_symbols', description: 'Find central symbols', inputSchema: {} },
+    { name: 'memtrace_find_dependency_path', description: 'Find dependency path', inputSchema: {} },
   ],
 };
 
