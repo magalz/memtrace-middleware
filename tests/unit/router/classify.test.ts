@@ -197,19 +197,19 @@ describe('plugin contract — IntentRegistry', () => {
 
   // AC 1.3a-3 — register new intent without affecting existing ones
   it('[P0] registers a new intent type without modifying any existing intent definitions', () => {
-    // Given: a fresh IntentRegistry with 3 MVP defaults
+    // Given: a fresh IntentRegistry with 12 defaults
     const registry = new IntentRegistry();
     const beforeCount = registry.list().length;
-    // When: a new intent type find_dead_code is registered via the plugin contract
+    // When: a new intent type custom_code_search is registered via the plugin contract
     registry.register({
-      type: 'find_dead_code',
-      patterns: ['dead code', 'unused function', 'orphan method'],
-      tools: ['memtrace_find_dead_code'],
+      type: 'custom_code_search',
+      patterns: ['code search', 'search function'],
+      tools: [{ name: 'custom_search_tool', argKey: 'query' }],
     });
     // Then: total count increases by 1, all original intents remain
     const after = registry.list();
     expect(after.length).toBe(beforeCount + 1);
-    expect(after.find((d) => d.type === 'find_dead_code')).toBeDefined();
+    expect(after.find((d) => d.type === 'custom_code_search')).toBeDefined();
     expect(after.find((d) => d.type === 'find_code')).toBeDefined();
     expect(after.find((d) => d.type === 'get_symbol_context')).toBeDefined();
     expect(after.find((d) => d.type === 'get_impact')).toBeDefined();

@@ -1,0 +1,546 @@
+[
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "find function authenticateUser in auth module" } }
+    },
+    "expected_intent": "find_code",
+    "description": "find function pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "search for the login handler" } }
+    },
+    "expected_intent": "find_code",
+    "description": "search for pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "locate the PaymentService class definition" } }
+    },
+    "expected_intent": "find_code",
+    "description": "locate pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "where is the configuration module" } }
+    },
+    "expected_intent": "find_code",
+    "description": "where is pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "find class UserRepository implementation" } }
+    },
+    "expected_intent": "find_code",
+    "description": "find class pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what calls the validateToken function" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "what calls pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "context of the authenticate function" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "context of pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "callers of the processPayment method" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "callers of pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "callees of the shutdown handler" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "callees of pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "symbol context for the dispatcher" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "symbol context pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what is the blast radius of changing processPayment" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "blast radius pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "impact of modifying the router module" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "impact of pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what breaks if I rename this function" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "what breaks pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what depends on the logger module" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "what depends on pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "upstream dependencies of the CLI" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "upstream pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "review this PR for the auth module changes" } }
+    },
+    "expected_intent": "review_code",
+    "description": "review pattern match on PR phrase"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "code review for the middleware changes" } }
+    },
+    "expected_intent": "review_code",
+    "description": "code review pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": {
+        "arguments": { "query": "find AST issues in this code related to error handling" }
+      }
+    },
+    "expected_intent": "review_code",
+    "description": "AST issues pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "run a lint check on the router module" } }
+    },
+    "expected_intent": "review_code",
+    "description": "lint check pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "perform static analysis on the degrade module" } }
+    },
+    "expected_intent": "review_code",
+    "description": "static analysis pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what code style does this project use" } }
+    },
+    "expected_intent": "get_style_fingerprint",
+    "description": "code style pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "project conventions for this codebase" } }
+    },
+    "expected_intent": "get_style_fingerprint",
+    "description": "project conventions pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "naming patterns in this TypeScript project" } }
+    },
+    "expected_intent": "get_style_fingerprint",
+    "description": "naming patterns match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "find dead code in the router" } }
+    },
+    "expected_intent": "find_dead_code",
+    "description": "dead code pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "show unused function in the backend" } }
+    },
+    "expected_intent": "find_dead_code",
+    "description": "unused function pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "orphan method detection in the interface" } }
+    },
+    "expected_intent": "find_dead_code",
+    "description": "orphan method pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what changed since yesterday in the router" } }
+    },
+    "expected_intent": "get_evolution",
+    "description": "evolution pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "show the code evolution over the last sprint" } }
+    },
+    "expected_intent": "get_evolution",
+    "description": "code evolution pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "recent changes in the classification engine" } }
+    },
+    "expected_intent": "get_evolution",
+    "description": "recent changes pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "trace the process flow for message dispatch" } }
+    },
+    "expected_intent": "get_process_flow",
+    "description": "process flow pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what is the execution path for login" } }
+    },
+    "expected_intent": "get_process_flow",
+    "description": "execution path pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "show me the pipeline for request handling" } }
+    },
+    "expected_intent": "get_process_flow",
+    "description": "pipeline pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "API topology for all services" } }
+    },
+    "expected_intent": "get_api_topology",
+    "description": "API topology pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "service dependency map across repos" } }
+    },
+    "expected_intent": "get_api_topology",
+    "description": "service dependency pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "http call graph for the middleware" } }
+    },
+    "expected_intent": "get_api_topology",
+    "description": "http call graph pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "find bridge symbols in the infrastructure" } }
+    },
+    "expected_intent": "find_bridge_symbols",
+    "description": "bridge symbols pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "architectural chokepoint analysis" } }
+    },
+    "expected_intent": "find_bridge_symbols",
+    "description": "chokepoint pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "find central symbols in the router" } }
+    },
+    "expected_intent": "find_central_symbols",
+    "description": "central symbols pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "most important functions by PageRank" } }
+    },
+    "expected_intent": "find_central_symbols",
+    "description": "PageRank pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "find dependency path from classify to dispatch" } }
+    },
+    "expected_intent": "find_dependency_path",
+    "description": "dependency path pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "shortest call chain between init and shutdown" } }
+    },
+    "expected_intent": "find_dependency_path",
+    "description": "shortest call chain pattern match"
+  },
+  {
+    "message": { "method": "tools/call", "params": { "arguments": { "query": "processPayment" } } },
+    "expected_intent": "unknown",
+    "description": "false positive: processPayment should not match any intent"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "preview the changes" } }
+    },
+    "expected_intent": "unknown",
+    "description": "false positive: preview should not trigger review_code"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "allocate memory" } }
+    },
+    "expected_intent": "unknown",
+    "description": "false positive: allocate should not trigger find_code via locate"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "contextualize this query" } }
+    },
+    "expected_intent": "unknown",
+    "description": "false positive: contextualize should not trigger get_symbol_context"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "impactful changes to consider" } }
+    },
+    "expected_intent": "unknown",
+    "description": "false positive: impactful should not trigger get_impact"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "how is the weather today" } }
+    },
+    "expected_intent": "unknown",
+    "description": "non-intent message should passthrough"
+  },
+  {
+    "message": { "method": "tools/call", "params": { "arguments": { "query": "hello world" } } },
+    "expected_intent": "unknown",
+    "description": "generic greeting should passthrough"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what is the capital of France" } }
+    },
+    "expected_intent": "unknown",
+    "description": "non-technical query should passthrough"
+  },
+  {
+    "message": { "method": "tools/call", "params": { "arguments": { "query": "" } } },
+    "expected_intent": "unknown",
+    "description": "edge case: empty query should passthrough"
+  },
+  {
+    "message": { "method": "tools/call", "params": { "arguments": {} } },
+    "expected_intent": "unknown",
+    "description": "edge case: missing query field should passthrough"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "downstream callers of the interface module" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "downstream pattern match for get_impact"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "reviewer patterns for this pull request" } }
+    },
+    "expected_intent": "review_code",
+    "description": "reviewer patterns + pull request match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "dependencies of the fusion engine" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "dependencies of pattern match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "match the style of the existing code" } }
+    },
+    "expected_intent": "get_style_fingerprint",
+    "description": "match the style pattern"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "where is the UserService class" } }
+    },
+    "expected_intent": "find_code",
+    "description": "where is pattern match (variant)"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "callers of the authHandler" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "callers of pattern match (variant)"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "blast radius of refactoring the router" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "blast radius pattern match (variant)"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "search for the find_code implementation" } }
+    },
+    "expected_intent": "find_code",
+    "description": "search for pattern match (variant)"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "symbol context for AuthService" } }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "symbol context pattern match (variant)"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": { "arguments": { "query": "what depends on the degrade module" } }
+    },
+    "expected_intent": "get_impact",
+    "description": "what depends on pattern match (variant)"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": {
+        "name": "memtrace_find_code",
+        "arguments": { "query": "find the authentication logic" }
+      }
+    },
+    "expected_intent": "find_code",
+    "description": "tool-bonus: find_code via memtrace_find_code tool + keyword match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": {
+        "name": "memtrace_get_symbol_context",
+        "arguments": { "query": "what calls this function" }
+      }
+    },
+    "expected_intent": "get_symbol_context",
+    "description": "tool-bonus: get_symbol_context via tool name + keyword match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": {
+        "name": "memtrace_get_impact",
+        "arguments": { "query": "blast radius of the change" }
+      }
+    },
+    "expected_intent": "get_impact",
+    "description": "tool-bonus: get_impact via tool name + keyword match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": {
+        "name": "find_ast_review_issues",
+        "arguments": { "query": "review the pull request" }
+      }
+    },
+    "expected_intent": "review_code",
+    "description": "tool-bonus: review_code via find_ast_review_issues tool + keyword match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": {
+        "name": "get_style_fingerprint",
+        "arguments": { "query": "code style of the project" }
+      }
+    },
+    "expected_intent": "get_style_fingerprint",
+    "description": "tool-bonus: get_style_fingerprint via tool name + keyword match"
+  },
+  {
+    "message": {
+      "method": "tools/call",
+      "params": {
+        "name": "memtrace_find_code",
+        "arguments": { "query": "random gibberish text" }
+      }
+    },
+    "expected_intent": "find_code",
+    "description": "tool-bonus: find_code via tool name only, no keyword match"
+  }
+]
