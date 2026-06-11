@@ -197,53 +197,53 @@ describe('plugin contract — IntentRegistry', () => {
 
   // AC 1.3a-3 — register new intent without affecting existing ones
   it('[P0] registers a new intent type without modifying any existing intent definitions', () => {
-    // Given: a fresh IntentRegistry with 12 defaults
+    // Given: a fresh IntentRegistry with 12 defaults (post-Growth)
     const registry = new IntentRegistry();
     const beforeCount = registry.list().length;
-    // When: a new intent type custom_code_search is registered via the plugin contract
+    // When: a new intent type test_plugin_intent is registered via the plugin contract
     registry.register({
-      type: 'custom_code_search',
-      patterns: ['code search', 'search function'],
-      tools: [{ name: 'custom_search_tool', argKey: 'query' }],
+      type: 'test_plugin_intent',
+      patterns: ['test plugin', 'plugin probe'],
+      tools: [{ name: 'memtrace_test_plugin', argKey: 'query' }],
     });
     // Then: total count increases by 1, all original intents remain
     const after = registry.list();
     expect(after.length).toBe(beforeCount + 1);
-    expect(after.find((d) => d.type === 'custom_code_search')).toBeDefined();
+    expect(after.find((d) => d.type === 'test_plugin_intent')).toBeDefined();
     expect(after.find((d) => d.type === 'find_code')).toBeDefined();
-    expect(after.find((d) => d.type === 'get_symbol_context')).toBeDefined();
     expect(after.find((d) => d.type === 'get_impact')).toBeDefined();
+    expect(after.find((d) => d.type === 'find_dead_code')).toBeDefined();
   });
 
   // AC 1.3a-3 — newly registered intent recognized via singleton registry
   it('[P1] classifies newly registered intent type through the singleton registry', () => {
     // Given: a new intent type registered on the singleton
     getRegistry().register({
-      type: 'find_dead_code',
-      patterns: ['dead code', 'unused function'],
-      tools: ['memtrace_find_dead_code'],
+      type: 'test_plugin_intent',
+      patterns: ['test plugin', 'plugin probe'],
+      tools: [{ name: 'memtrace_test_plugin', argKey: 'query' }],
     });
     // When: a message matching the new intent is classified
     const msg = {
       method: 'tools/call',
-      params: { arguments: { query: 'show me dead code in this function' } },
+      params: { arguments: { query: 'run a test plugin probe for this symbol' } },
     };
     const result = classify(msg, mockCapabilities);
-    // Then: it is correctly classified as find_dead_code
+    // Then: it is correctly classified as test_plugin_intent
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.intent_type).toBe('find_dead_code');
+    expect(result.value.intent_type).toBe('test_plugin_intent');
   });
 
   // AC 1.3a-7 — backward compat: existing intents unaffected by new registration
-  it('[P0] preserves backward compatibility — all 3 MVP intents still classify correctly after new registration', () => {
+  it('[P0] preserves backward compatibility — existing intents still classify correctly after new registration', () => {
     // Given: a new intent type registered via plugin contract
     getRegistry().register({
-      type: 'find_dead_code',
-      patterns: ['dead code', 'unused function'],
-      tools: ['memtrace_find_dead_code'],
+      type: 'test_plugin_intent',
+      patterns: ['test plugin', 'plugin probe'],
+      tools: [{ name: 'memtrace_test_plugin', argKey: 'query' }],
     });
-    // When: MVP intent messages are classified
+    // When: existing intent messages are classified
     const fcMsg = {
       method: 'tools/call',
       params: { arguments: { query: 'find function authenticateUser' } },

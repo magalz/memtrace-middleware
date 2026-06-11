@@ -1,8 +1,15 @@
 import {
   CLASSIFICATION_CONFIDENCE_THRESHOLD,
   MCP_TOOL_FIND_AST_REVIEW_ISSUES,
+  MCP_TOOL_FIND_BRIDGE_SYMBOLS,
+  MCP_TOOL_FIND_CENTRAL_SYMBOLS,
   MCP_TOOL_FIND_CODE,
+  MCP_TOOL_FIND_DEAD_CODE,
+  MCP_TOOL_FIND_DEPENDENCY_PATH,
+  MCP_TOOL_GET_API_TOPOLOGY,
+  MCP_TOOL_GET_EVOLUTION,
   MCP_TOOL_GET_IMPACT,
+  MCP_TOOL_GET_PROCESS_FLOW,
   MCP_TOOL_GET_STYLE_FINGERPRINT,
   MCP_TOOL_GET_SYMBOL_CONTEXT,
 } from '../constants.js';
@@ -18,13 +25,36 @@ const registry = new IntentRegistry();
 const TOOL_BONUS = 4;
 const NO_TEXT_BONUS = 1;
 
-const TOOL_TO_INTENT: Record<string, string> = {
-  [MCP_TOOL_FIND_CODE]: 'find_code',
-  [MCP_TOOL_GET_SYMBOL_CONTEXT]: 'get_symbol_context',
-  [MCP_TOOL_GET_IMPACT]: 'get_impact',
-  [MCP_TOOL_FIND_AST_REVIEW_ISSUES]: 'review_code',
-  [MCP_TOOL_GET_STYLE_FINGERPRINT]: 'get_style_fingerprint',
-};
+const patternRegexCache = new Map<string, RegExp>();
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getPatternRegex(pattern: string): RegExp {
+  const key = pattern.toLowerCase();
+  let regex = patternRegexCache.get(key);
+  if (!regex) {
+    regex = new RegExp('\\b' + escapeRegex(pattern) + '\\b', 'i');
+    patternRegexCache.set(key, regex);
+  }
+  return regex;
+}
+
+const ALL_TOOLS = [
+  MCP_TOOL_FIND_CODE,
+  MCP_TOOL_GET_SYMBOL_CONTEXT,
+  MCP_TOOL_GET_IMPACT,
+  MCP_TOOL_FIND_AST_REVIEW_ISSUES,
+  MCP_TOOL_GET_STYLE_FINGERPRINT,
+  MCP_TOOL_FIND_DEAD_CODE,
+  MCP_TOOL_GET_EVOLUTION,
+  MCP_TOOL_GET_PROCESS_FLOW,
+  MCP_TOOL_GET_API_TOPOLOGY,
+  MCP_TOOL_FIND_BRIDGE_SYMBOLS,
+  MCP_TOOL_FIND_CENTRAL_SYMBOLS,
+  MCP_TOOL_FIND_DEPENDENCY_PATH,
+];
 
 export function classify(
   message: Record<string, unknown>,
@@ -43,7 +73,7 @@ export function classify(
 
   const availableTools = new Set(capabilities?.tools?.map((t) => t.name) ?? []);
 
-  for (const tool of Object.keys(TOOL_TO_INTENT)) {
+  for (const tool of ALL_TOOLS) {
     if (!availableTools.has(tool)) {
       logger.debug('tool_not_in_capabilities', { tool });
     }
@@ -59,16 +89,17 @@ export function classify(
     let score = 0;
 
     for (const pattern of def.patterns) {
-      if (messageText.toLowerCase().includes(pattern.toLowerCase())) {
+      if (!pattern || pattern.trim().length === 0) continue;
+      if (getPatternRegex(pattern).test(messageText)) {
         score += 1;
       }
     }
 
-    if (toolName && TOOL_TO_INTENT[toolName] === def.type) {
+    if (toolName && registry.getIntentForTool(toolName) === def.type) {
       score += TOOL_BONUS;
     }
 
-    if (!hasText && toolName && TOOL_TO_INTENT[toolName] === def.type) {
+    if (!hasText && toolName && registry.getIntentForTool(toolName) === def.type) {
       score += NO_TEXT_BONUS;
     }
 

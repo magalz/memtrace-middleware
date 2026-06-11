@@ -1,12 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-const INTENT_SHORT_CODES: Record<string, string> = {
-  find_code: 'fc',
-  get_symbol_context: 'gsc',
-  get_impact: 'gi',
-  review_code: 'rc',
-  get_style_fingerprint: 'gsf',
-};
+import { getRegistry } from '../router/classify.js';
 
 export interface TraceContext {
   trace_id: string;
@@ -15,7 +9,7 @@ export interface TraceContext {
 }
 
 export function generateTraceId(intentType: string): string {
-  const short = INTENT_SHORT_CODES[intentType] ?? (intentType.slice(0, 4) || 'unk');
+  const short = getRegistry().getTraceIdPrefix(intentType) ?? (intentType.slice(0, 4) || 'unk');
   const uuid = randomUUID();
   const first8 = uuid.split('-')[0] ?? uuid.slice(0, 8);
   return `${short}-${first8}`;
