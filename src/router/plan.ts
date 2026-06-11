@@ -74,9 +74,10 @@ function extractArgs(message: unknown): Record<string, string> {
   return {
     query: queryVal || nameVal || symbolVal,
     symbol: symbolVal || nameVal || queryVal,
-    target: (typeof args.target === 'string' && args.target !== '')
-      ? args.target
-      : symbolVal || nameVal || queryVal,
+    target:
+      typeof args.target === 'string' && args.target !== ''
+        ? args.target
+        : symbolVal || nameVal || queryVal,
     lang: langVal,
   };
 }
