@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { HYSTERESIS_PROBE_COUNT } from '../../../src/constants.js';
 import { degradationMachine } from '../../../src/degrade/machine.js';
 import { DegradationTier } from '../../../src/types.js';
 
 describe('DegradationMachine — force-tier', () => {
   beforeEach(() => {
     degradationMachine.reset();
+    degradationMachine.setHysteresisCount(3);
   });
 
   // Task 4.1: setForceTier → getCurrentTier returns forced tier
   it('setForceTier → getCurrentTier returns forced tier (not auto tier)', () => {
     // Given: machine degraded to IntentReduced
-    for (let i = 0; i < HYSTERESIS_PROBE_COUNT; i++) {
+    for (let i = 0; i < 3; i++) {
       degradationMachine.recordProbeResult(false);
     }
     expect(degradationMachine.getCurrentTier()).toBe(DegradationTier.IntentReduced);
@@ -30,7 +30,7 @@ describe('DegradationMachine — force-tier', () => {
     degradationMachine.setForceTier(DegradationTier.Full);
 
     // When: probe failures arrive
-    for (let i = 0; i < HYSTERESIS_PROBE_COUNT * 3; i++) {
+    for (let i = 0; i < 3 * 3; i++) {
       degradationMachine.recordProbeResult(false);
     }
 
@@ -41,14 +41,14 @@ describe('DegradationMachine — force-tier', () => {
   // Task 4.3: recordProbeResult ignores successes when force active
   it('recordProbeResult ignores successes when force is active — auto-recovery suspended', () => {
     // Given: machine degraded to Passthrough, force set to IntentReduced
-    for (let i = 0; i < HYSTERESIS_PROBE_COUNT * 2; i++) {
+    for (let i = 0; i < 3 * 2; i++) {
       degradationMachine.recordProbeResult(false);
     }
     expect(degradationMachine.getCurrentTier()).toBe(DegradationTier.Passthrough);
     degradationMachine.setForceTier(DegradationTier.IntentReduced);
 
     // When: probe successes arrive
-    for (let i = 0; i < HYSTERESIS_PROBE_COUNT * 2; i++) {
+    for (let i = 0; i < 3 * 2; i++) {
       degradationMachine.recordProbeResult(true);
     }
 
