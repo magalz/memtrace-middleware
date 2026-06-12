@@ -148,6 +148,16 @@ export interface TelemetryApiResponse {
   uptime_seconds: number;
   tier: DegradationTier;
   active_intents: string[];
+  pruning: PruningStats | null;
+}
+
+export interface PruningStats {
+  pruned_count: number;
+  retained_count: number;
+  recency_count: number;
+  structural_count: number;
+  memfleet_count: number;
+  tokens_saved_estimate: number;
 }
 
 export interface StatusSnapshot {
@@ -163,4 +173,5 @@ export interface StatusSnapshot {
   latency_stats?: LatencySnapshot;
   rate_limit?: RateLimitSnapshot;
   circuit?: CircuitSnapshot;
+  pruning: PruningStats | null;
 }

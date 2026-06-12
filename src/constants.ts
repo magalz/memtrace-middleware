@@ -25,3 +25,6 @@ export const MCP_TOOL_GET_API_TOPOLOGY = 'memtrace_get_api_topology';
 export const MCP_TOOL_FIND_BRIDGE_SYMBOLS = 'memtrace_find_bridge_symbols';
 export const MCP_TOOL_FIND_CENTRAL_SYMBOLS = 'memtrace_find_central_symbols';
 export const MCP_TOOL_FIND_DEPENDENCY_PATH = 'memtrace_find_dependency_path';
+
+export const DEFAULT_PRUNING_THRESHOLD = 20;
+export const DEFAULT_RECENCY_WINDOW = 5;

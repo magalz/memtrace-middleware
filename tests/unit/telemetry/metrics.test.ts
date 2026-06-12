@@ -229,3 +229,52 @@ describe('metrics — p50 history (Story 9.2)', () => {
     expect(metrics.getP50History()).toEqual([]);
   });
 });
+
+describe('metrics — pruning stats (Story 9.3)', () => {
+  beforeEach(() => {
+    metrics.reset();
+  });
+
+  it('[P1] getPruningStats returns null when no pruning recorded', () => {
+    expect(metrics.getPruningStats()).toBeNull();
+  });
+
+  it('[P1] recordPruning updates snapshot', () => {
+    const stats = {
+      pruned_count: 20,
+      retained_count: 5,
+      recency_count: 5,
+      structural_count: 0,
+      memfleet_count: 0,
+      tokens_saved_estimate: 120,
+    };
+    metrics.recordPruning(stats);
+    const snapshot = metrics.getPruningStats();
+    expect(snapshot).toEqual(stats);
+  });
+
+  it('[P1] recordPruning accumulates tokensSaved', () => {
+    metrics.recordPruning({ pruned_count: 10, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 50 });
+    metrics.recordPruning({ pruned_count: 10, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 30 });
+    expect(metrics.getTotalTokensSaved()).toBe(80);
+  });
+
+  it('[P1] getSnapshot includes pruning field', () => {
+    const stats = { pruned_count: 20, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 120 };
+    metrics.recordPruning(stats);
+    const snapshot = metrics.getSnapshot();
+    expect(snapshot.pruning).toEqual(stats);
+  });
+
+  it('[P1] getSnapshot pruning is null initially', () => {
+    const snapshot = metrics.getSnapshot();
+    expect(snapshot.pruning).toBeNull();
+  });
+
+  it('[P1] reset clears pruning stats', () => {
+    metrics.recordPruning({ pruned_count: 10, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 50 });
+    metrics.reset();
+    expect(metrics.getPruningStats()).toBeNull();
+    expect(metrics.getTotalTokensSaved()).toBe(0);
+  });
+});

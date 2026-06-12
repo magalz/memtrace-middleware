@@ -205,4 +205,56 @@ describe('startStatusDisplay', () => {
     expect(() => controller.addIntent('find_code')).not.toThrow();
     controller.stop();
   });
+
+  it('[P2] [Story 9.3] renderStatus TTY includes pruning line when active', () => {
+    const snapshot: StatusSnapshot = {
+      ...fullSnapshot,
+      pruning: {
+        pruned_count: 20,
+        retained_count: 5,
+        recency_count: 5,
+        structural_count: 2,
+        memfleet_count: 0,
+        tokens_saved_estimate: 120,
+      },
+    };
+    const result = renderStatus(snapshot, true);
+    expect(result).toContain('pruning: active');
+    expect(result).toContain('tokens_saved: 120');
+    expect(result).toContain('recency(5)');
+    expect(result).toContain('structural(2)');
+  });
+
+  it('[P2] [Story 9.3] renderStatus TTY omits pruning when null', () => {
+    const result = renderStatus(fullSnapshot, true);
+    expect(result).not.toContain('pruning:');
+  });
+
+  it('[P2] [Story 9.3] renderStatus non-TTY includes pruning object when active', () => {
+    const snapshot: StatusSnapshot = {
+      ...fullSnapshot,
+      pruning: {
+        pruned_count: 20,
+        retained_count: 5,
+        recency_count: 5,
+        structural_count: 2,
+        memfleet_count: 0,
+        tokens_saved_estimate: 120,
+      },
+    };
+    const result = renderStatus(snapshot, false);
+    const data = JSON.parse(result) as Record<string, unknown>;
+    expect(data.pruning).toBeDefined();
+    const p = data.pruning as Record<string, unknown>;
+    expect(p.enabled).toBe(true);
+    expect(p.tokens_saved).toBe(120);
+    expect(p.recency_count).toBe(5);
+    expect(p.structural_count).toBe(2);
+  });
+
+  it('[P2] [Story 9.3] renderStatus non-TTY omits pruning when null', () => {
+    const result = renderStatus(fullSnapshot, false);
+    const data = JSON.parse(result) as Record<string, unknown>;
+    expect(data.pruning).toBeUndefined();
+  });
 });

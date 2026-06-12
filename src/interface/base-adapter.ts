@@ -1,13 +1,14 @@
 import { type DispatchContext, cleanupContext, createDispatchContext } from './dispatch-context.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import type { MiddlewareConfig } from '../config/index.js';
-import { MAX_DISPATCH_TIMEOUT_MS, MAX_SUB_QUERY_TIMEOUT_MS } from '../constants.js';
+import { MAX_DISPATCH_TIMEOUT_MS, MAX_SUB_QUERY_TIMEOUT_MS, DEFAULT_PRUNING_THRESHOLD } from '../constants.js';
 import { degradationMachine, getRateLimiter, getCircuitBreaker } from '../degrade/index.js';
 import { MiddlewareError } from '../errors.js';
 import { fuse, validateContext } from '../fusion/index.js';
 import { createLogger } from '../logger.js';
 import type { AgentResponse, ContextBuilder, ToolProvider } from './traits.js';
-import { classify, plan } from '../router/index.js';
+import { classify, plan, pruneHistory } from '../router/index.js';
+import type { ConversationHistory } from '../router/index.js';
 import { coldStartRecordDispatch, isColdStart } from '../telemetry/cold-start.js';
 import { metrics } from '../telemetry/index.js';
 import { createTraceContext } from '../telemetry/tracer.js';
@@ -48,6 +49,7 @@ export class BaseAdapter implements ToolProvider {
   private readonly contextBuilder: ContextBuilder;
   private readonly sessions: Map<string, { id: string; created_at: string; intent_count: number }> =
     new Map();
+  private conversationHistory: ConversationHistory = [];
 
   constructor(backend: MemtraceBackend, config?: MiddlewareConfig) {
     this.backend = backend;
@@ -202,7 +204,8 @@ export class BaseAdapter implements ToolProvider {
       }
 
     if (tierAtEntry === DegradationTier.Passthrough) {
-      const classified = classify(message as unknown as Record<string, unknown>, { tools: [] });
+      const prunedHistory = this.pruneConversationHistory(message as Record<string, unknown>);
+      const classified = classify(message as unknown as Record<string, unknown>, { tools: [] }, prunedHistory);
       const intentType = classified.ok ? classified.value.intent_type : 'unknown';
 
       const cb = getCircuitBreaker();
@@ -235,6 +238,16 @@ export class BaseAdapter implements ToolProvider {
         const startupType = isColdStart() ? 'cold' : 'warm';
         coldStartRecordDispatch(ptElapsed);
         metrics.recordDispatch(true, intentType, 1.0, ptElapsed, startupType);
+        const turnSymbols = typeof toolName === 'string' && toolName.length > 0 ? [toolName] : [];
+        this.conversationHistory.push({
+          timestamp: new Date().toISOString(),
+          message_text: JSON.stringify(msg),
+          symbols: turnSymbols,
+        });
+        const maxCap = (this.config.pruning?.max_turn_threshold ?? DEFAULT_PRUNING_THRESHOLD) * 2;
+        if (this.conversationHistory.length > maxCap) {
+          this.conversationHistory = this.conversationHistory.slice(-maxCap);
+        }
         return {
           content: [{ type: 'text', text: JSON.stringify(result.data) }],
           metadata: {
@@ -317,9 +330,14 @@ export class BaseAdapter implements ToolProvider {
       };
     }
 
+    const prunedHistory = this.pruneConversationHistory(
+      validated.value as unknown as Record<string, unknown>
+    );
+
     const classified = classify(
       validated.value as unknown as Record<string, unknown>,
-      capabilities
+      capabilities,
+      prunedHistory
     );
     if (!classified.ok) {
       log.warn('classification_failed', { trace_id: traceId, error: classified.error });
@@ -616,12 +634,34 @@ export class BaseAdapter implements ToolProvider {
 
     metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed, startupType);
 
+    const turnSymbols = fusedContext.blocks.map((b) => b.symbol);
+    this.conversationHistory.push({
+      timestamp: new Date().toISOString(),
+      message_text: JSON.stringify(message),
+      symbols: turnSymbols,
+    });
+    const maxCapHist = (this.config.pruning?.max_turn_threshold ?? DEFAULT_PRUNING_THRESHOLD) * 2;
+    if (this.conversationHistory.length > maxCapHist) {
+      this.conversationHistory = this.conversationHistory.slice(-maxCapHist);
+    }
+
     return response;
     } finally {
       if (rateLimitSlotAcquired) {
         getRateLimiter()?.releaseSlot();
       }
     }
+  }
+
+  private pruneConversationHistory(message: Record<string, unknown>): ConversationHistory {
+    const pruningCfg = this.config.pruning;
+    if (!pruningCfg?.enabled || this.conversationHistory.length <= pruningCfg.max_turn_threshold) {
+      return this.conversationHistory;
+    }
+    const pruneResult = pruneHistory(this.conversationHistory, message, pruningCfg);
+    metrics.recordPruning(pruneResult.stats);
+    this.conversationHistory = pruneResult.pruned;
+    return pruneResult.pruned;
   }
 
   createSession(): string {
@@ -632,6 +672,7 @@ export class BaseAdapter implements ToolProvider {
 
   destroySession(id: string): void {
     this.sessions.delete(id);
+    this.conversationHistory = [];
   }
 
   getSession(id: string): { id: string; created_at: string; intent_count: number } | undefined {

@@ -54,6 +54,12 @@ export interface CircuitBreakerConfig {
   open_state_ms: number;
 }
 
+export interface PruningConfig {
+  enabled: boolean;
+  max_turn_threshold: number;
+  recency_window: number;
+}
+
 export interface MiddlewareConfig {
   memtrace_host: string;
   memtrace_token: string;
@@ -69,6 +75,7 @@ export interface MiddlewareConfig {
   rate_limiting: RateLimitingConfig;
   circuit_breaker: CircuitBreakerConfig;
   dashboard_warning_thresholds?: DashboardWarningThresholds;
+  pruning?: PruningConfig;
 }
 
 export const dashboardWarningThresholdsSchema: z.ZodType<DashboardWarningThresholds> = z.object({
@@ -97,6 +104,12 @@ export const circuitBreakerSchema = z.object({
   open_state_ms: z.number().int().positive(),
 });
 
+export const pruningConfigSchema: z.ZodType<PruningConfig> = z.object({
+  enabled: z.boolean(),
+  max_turn_threshold: z.number().int().positive(),
+  recency_window: z.number().int().positive(),
+});
+
 export const middlewareConfigSchema: z.ZodType<MiddlewareConfig> = z.object({
   memtrace_host: z.string().min(1),
   memtrace_token: z.string(),
@@ -112,6 +125,7 @@ export const middlewareConfigSchema: z.ZodType<MiddlewareConfig> = z.object({
   rate_limiting: rateLimitingSchema,
   circuit_breaker: circuitBreakerSchema,
   dashboard_warning_thresholds: dashboardWarningThresholdsSchema.optional(),
+  pruning: pruningConfigSchema.optional(),
 });
 
 export const DEFAULT_CONFIG: MiddlewareConfig = {
@@ -161,6 +175,11 @@ export const DEFAULT_CONFIG: MiddlewareConfig = {
     success_threshold: 3,
     half_open_max_calls: 3,
     open_state_ms: 30000,
+  },
+  pruning: {
+    enabled: true,
+    max_turn_threshold: 20,
+    recency_window: 5,
   },
 };
 

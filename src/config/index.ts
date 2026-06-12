@@ -9,4 +9,4 @@ export {
   DEGRADATION_FLOOR_VALUES,
   INTENT_TYPE_VALUES,
 } from './types.js';
-export type { MiddlewareConfig, ConfigDelta, DegradationFloor, IntentType, DashboardWarningThresholds } from './types.js';
+export type { MiddlewareConfig, ConfigDelta, DegradationFloor, IntentType, DashboardWarningThresholds, PruningConfig } from './types.js';

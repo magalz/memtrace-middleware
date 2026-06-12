@@ -86,5 +86,6 @@ export function buildTelemetryResponse(): TelemetryApiResponse {
     uptime_seconds: Math.floor(process.uptime()),
     tier: degradationMachine.getCurrentTier(),
     active_intents: snapshot.active_intents,
+    pruning: metrics.getPruningStats(),
   };
 }

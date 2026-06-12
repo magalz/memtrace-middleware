@@ -168,6 +168,19 @@ export function renderDashboard(
     lines.push(`${sparklineLine.padEnd(29)}│`);
   }
 
+  // Pruning panel
+  if (response.pruning) {
+    const p = response.pruning;
+    const pruningLine = `${ANSI_BOLD}pruning${ANSI_RESET}`;
+    const pruningDetails = `  kept: ${p.retained_count} (recency:${p.recency_count} + struct:${p.structural_count}) | ~${p.tokens_saved_estimate} tokens`;
+    lines.push(`─`.repeat(58));
+    lines.push(pruningLine);
+    lines.push(pruningDetails);
+  } else {
+    lines.push('─'.repeat(58));
+    lines.push(`${ANSI_BOLD}pruning${ANSI_RESET}${ANSI_DIM} standby (below threshold or disabled)${ANSI_RESET}`);
+  }
+
   lines.push('─'.repeat(58));
   lines.push(`${ANSI_DIM}[q] quit${ANSI_RESET}`);
 

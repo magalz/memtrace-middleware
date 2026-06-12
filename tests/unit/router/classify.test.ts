@@ -547,3 +547,34 @@ describe('sample-intents fixture', () => {
     expect(giParams.name).toBe('memtrace_get_impact');
   });
 });
+
+describe('classify — history parameter (Story 9.3)', () => {
+  it('[P1] classify works without history parameter (backward compat)', () => {
+    const msg = makeMessage('find authenticateUser', 'memtrace_find_code');
+    const result = classify(msg, mockCapabilities);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.intent_type).toBe('find_code');
+    }
+  });
+
+  it('[P1] classify works with empty history parameter', () => {
+    const msg = makeMessage('find authenticateUser', 'memtrace_find_code');
+    const result = classify(msg, mockCapabilities, []);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.intent_type).toBe('find_code');
+    }
+  });
+
+  it('[P1] classify with history returns same classification as without', () => {
+    const msg = makeMessage('find authenticateUser', 'memtrace_find_code');
+    const resultWithout = classify(msg, mockCapabilities);
+    const resultWith = classify(msg, mockCapabilities, [{ timestamp: new Date().toISOString(), message_text: 'prior turn', symbols: ['authenticateUser'] }]);
+    expect(resultWith.ok).toBe(resultWithout.ok);
+    if (resultWith.ok && resultWithout.ok) {
+      expect(resultWith.value.intent_type).toBe(resultWithout.value.intent_type);
+      expect(resultWith.value.passthrough).toBe(resultWithout.value.passthrough);
+    }
+  });
+});

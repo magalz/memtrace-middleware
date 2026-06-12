@@ -16,6 +16,7 @@ import {
 import { MiddlewareError } from '../errors.js';
 import { createLogger } from '../logger.js';
 import type { ClassifiedIntent, MemtraceCapabilities, Result } from '../types.js';
+import type { ConversationHistory } from './pruning.js';
 import { IntentRegistry } from './types.js';
 
 const logger = createLogger('router');
@@ -58,7 +59,8 @@ const ALL_TOOLS = [
 
 export function classify(
   message: Record<string, unknown>,
-  capabilities: MemtraceCapabilities
+  capabilities: MemtraceCapabilities,
+  history?: ConversationHistory
 ): Result<ClassifiedIntent> {
   if (!message || typeof message !== 'object') {
     return {
@@ -72,6 +74,10 @@ export function classify(
   }
 
   const availableTools = new Set(capabilities?.tools?.map((t) => t.name) ?? []);
+
+  if (history && history.length > 0) {
+    logger.debug('classify_with_history', { history_turns: history.length });
+  }
 
   for (const tool of ALL_TOOLS) {
     if (!availableTools.has(tool)) {

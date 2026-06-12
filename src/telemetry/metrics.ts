@@ -1,5 +1,5 @@
 import { DegradationTier } from '../types.js';
-import type { LatencySnapshot, LatencyStats, StatusSnapshot } from '../types.js';
+import type { LatencySnapshot, LatencyStats, PruningStats, StatusSnapshot } from '../types.js';
 import { getColdStartStats } from './cold-start.js';
 import { RingBuffer } from './ring-buffer.js';
 import { TELEMETRY_PROBE_RING_SIZE } from '../constants.js';
@@ -26,6 +26,9 @@ const latencyBuffers = new Map<string, RingBuffer<number>>();
 const coldStartLatencyBuffer = new RingBuffer<number>(LATENCY_BUFFER_CAPACITY);
 const steadyStateLatencyBuffer = new RingBuffer<number>(LATENCY_BUFFER_CAPACITY);
 const p50HistoryBuffer = new RingBuffer<number>(P50_HISTORY_CAPACITY);
+
+let pruningStats: PruningStats | null = null;
+let totalTokensSaved = 0;
 
 function computePercentile(sorted: number[], p: number): number {
   if (sorted.length === 0) {
@@ -229,11 +232,25 @@ export const metrics = {
       latency_stats: getLatencySnapshotImpl(),
       rate_limit: getRateLimiter()?.getRateLimitSnapshot(),
       circuit: getCircuitBreaker()?.getCircuitSnapshot(),
+      pruning: pruningStats,
     };
   },
 
   updateTier(newTier: DegradationTier): void {
     tier = newTier;
+  },
+
+  recordPruning(stats: PruningStats): void {
+    pruningStats = stats;
+    totalTokensSaved += stats.tokens_saved_estimate;
+  },
+
+  getPruningStats(): PruningStats | null {
+    return pruningStats;
+  },
+
+  getTotalTokensSaved(): number {
+    return totalTokensSaved;
   },
 
   reset(): void {
@@ -252,5 +269,7 @@ export const metrics = {
     probeBuffer.clear();
     confidenceBufferMap.clear();
     p50HistoryBuffer.clear();
+    pruningStats = null;
+    totalTokensSaved = 0;
   },
 };

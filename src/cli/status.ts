@@ -128,6 +128,16 @@ export function renderStatus(snapshot: StatusSnapshot | null, isTTY: boolean): s
       data.rate_limit_current = snapshot.rate_limit.current_count;
       data.rate_limit_max = snapshot.rate_limit.max_requests;
     }
+    if (snapshot.pruning) {
+      data.pruning = {
+        enabled: true,
+        tokens_saved: snapshot.pruning.tokens_saved_estimate,
+        pruned_count: snapshot.pruning.pruned_count,
+        retained_count: snapshot.pruning.retained_count,
+        recency_count: snapshot.pruning.recency_count,
+        structural_count: snapshot.pruning.structural_count,
+      };
+    }
     return JSON.stringify(data);
   }
 
@@ -145,6 +155,10 @@ export function renderStatus(snapshot: StatusSnapshot | null, isTTY: boolean): s
   parts.push(`uptime: ${snapshot.uptime_seconds}s`);
   if (snapshot.circuit?.last_state_change_at) {
     parts.push(`cb:${circuitAge(snapshot.circuit.last_state_change_at)}`);
+  }
+  if (snapshot.pruning) {
+    const p = snapshot.pruning;
+    parts.push(`pruning: active | tokens_saved: ${p.tokens_saved_estimate} | retention: recency(${p.recency_count}) + structural(${p.structural_count}) = ${p.retained_count}`);
   }
 
   return `\r\x1b[K${parts.join(' | ')}`;
