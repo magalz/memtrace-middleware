@@ -262,6 +262,11 @@ class McpClient {
       debugLog('[McpClient] spawn ok');
       resolvePromise();
     });
+    // spawn() wraps child_process.spawn in a withTimeout promise, but the timeout
+    // is intentionally a no-op for spawn alone — the child process itself is not
+    // the bottleneck. The real handshake timeout is enforced by handshake() which
+    // is called after spawn() and has its own withTimeout(…, TIMEOUT_MS) guard.
+    // withTimeout is kept here for interface consistency across all async phases.
     return withTimeout(spawnPromise, TIMEOUT_MS, 'spawn', this._activeTimers);
   }
 
@@ -270,6 +275,10 @@ class McpClient {
     debugLog(`[McpClient] request:${id} start`, method);
     const request = JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n';
     const requestPromise = new Promise((resolvePromise, reject) => {
+      if (!this.child || this.child.killed || this.child.exitCode !== null) {
+        reject(new Error('McpClient child process is not running'));
+        return;
+      }
       try {
         this.child.stdin.write(request);
       } catch (err) {
@@ -296,9 +305,11 @@ class McpClient {
         capabilities: {},
         clientInfo: { name: 'bmad-memtrace-adapter', version: '1.0.0' },
       });
-      this.child.stdin.write(
-        JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }) + '\n'
-      );
+      if (this.child && !this.child.killed && this.child.exitCode === null) {
+        this.child.stdin.write(
+          JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }) + '\n'
+        );
+      }
       debugLog('[McpClient] handshake ok');
       return capabilities;
     } catch (err) {
@@ -738,7 +749,7 @@ async function runSingleQuery(args, repoId, start) {
     client.kill();
     const elapsed = Date.now() - start;
 
-    if (err instanceof TimeoutError) {
+    if (err?.name === 'TimeoutError') {
       console.log(TIMEOUT_TOKEN);
       console.error(`ERROR: Query timed out after ${elapsed}ms`);
     } else {
@@ -752,6 +763,7 @@ async function runBatchQuery(args, repoId, start) {
   const results = [];
   let totalSucceeded = 0;
   let totalFailed = 0;
+  let timeouts = 0;
 
   for (const target of args.targets) {
     const targetStart = Date.now();
@@ -781,6 +793,17 @@ async function runBatchQuery(args, repoId, start) {
       totalSucceeded++;
     } catch (err) {
       batchClient.kill();
+      const elapsedMs = Date.now() - targetStart;
+      if (err?.name === 'TimeoutError') {
+        timeouts++;
+        console.error(
+          JSON.stringify({
+            batch_timeout: true,
+            target,
+            elapsed_ms: elapsedMs,
+          })
+        );
+      }
       results.push({ target, error: err?.message ?? String(err) });
       totalFailed++;
     }
@@ -792,6 +815,7 @@ async function runBatchQuery(args, repoId, start) {
     results,
     total_succeeded: totalSucceeded,
     total_failed: totalFailed,
+    timeouts,
     elapsed_ms: Date.now() - start,
   };
 

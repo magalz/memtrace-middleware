@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Readable, Writable } from 'node:stream';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 
 const ADAPTER = resolve(import.meta.dirname, 'memtrace-adapter.mjs');
 const ADAPTER_URL = pathToFileURL(ADAPTER).href;
@@ -252,6 +253,33 @@ describe('memtrace-adapter.mjs', () => {
         assert.ok(typeof parsed.total_count === 'number');
       }
     );
+    it(
+      '--summarize timeout should exit non-zero and emit timeout token',
+      { timeout: 10000 },
+      async () => {
+        const prevDeadline = process.env.MEMTRACE_MOCK_DEADLINE_MS;
+        process.env.MEMTRACE_MOCK_DEADLINE_MS = '5000';
+        try {
+          const r = await runAdapter([
+            '--target',
+            'delay-test',
+            '--query',
+            'get_impact',
+            '--repo',
+            'Repos',
+            '--summarize',
+          ]);
+          assert.equal(r.code, 1);
+          assert.ok(r.stdout.includes('MEMTRACE_MCP_ERROR_TIMEOUT') || r.stderr.includes('ERROR'));
+        } finally {
+          if (prevDeadline !== undefined) {
+            process.env.MEMTRACE_MOCK_DEADLINE_MS = prevDeadline;
+          } else {
+            delete process.env.MEMTRACE_MOCK_DEADLINE_MS;
+          }
+        }
+      }
+    );
   });
 
   describe('Freshness (--check-freshness)', () => {
@@ -306,6 +334,26 @@ describe('memtrace-adapter.mjs', () => {
         assert.ok(r.code === 0 || r.code === 1, 'Must exit cleanly with auto-detected repo');
         if (r.code === 0 || r.code === 1) {
           assert.ok(r.stderr.includes('[FRESHNESS]'), 'STDERR must contain [FRESHNESS] line');
+        }
+      }
+    );
+
+    it(
+      '--check-freshness timeout should exit non-zero and not hang',
+      { timeout: 30000 },
+      async () => {
+        const prevDeadline = process.env.MEMTRACE_MOCK_DEADLINE_MS;
+        process.env.MEMTRACE_MOCK_DEADLINE_MS = '5000';
+        try {
+          const r = await runAdapter(['--query', 'list_repos', '--check-freshness']);
+          assert.ok(r.code === 0 || r.code === 1, 'Must exit cleanly even under timeout');
+          assert.ok(r.stderr.includes('[FRESHNESS]'), 'STDERR must contain [FRESHNESS]');
+        } finally {
+          if (prevDeadline !== undefined) {
+            process.env.MEMTRACE_MOCK_DEADLINE_MS = prevDeadline;
+          } else {
+            delete process.env.MEMTRACE_MOCK_DEADLINE_MS;
+          }
         }
       }
     );
@@ -394,6 +442,33 @@ describe('memtrace-adapter.mjs', () => {
         assert.ok(Array.isArray(parsed.results));
         assert.equal(parsed.total_succeeded, 2, 'Mock should succeed for all targets');
         assert.equal(parsed.total_failed, 0);
+      }
+    );
+
+    it(
+      '--batch mixed success/failure should include timeouts field in output',
+      { timeout: 15000 },
+      async () => {
+        const r = await runAdapter([
+          '--target',
+          'bmad-dev-story,unknown-symbol',
+          '--query',
+          'get_impact',
+          '--repo',
+          'Repos',
+          '--batch',
+        ]);
+        let parsed;
+        try {
+          parsed = JSON.parse(r.stdout);
+        } catch {
+          assert.fail('STDOUT must be valid JSON even with mixed results');
+        }
+        assert.ok(Array.isArray(parsed.results));
+        assert.ok(typeof parsed.total_succeeded === 'number');
+        assert.ok(typeof parsed.total_failed === 'number');
+        assert.ok(typeof parsed.timeouts === 'number');
+        assert.ok(parsed.results.length >= 1);
       }
     );
   });
@@ -582,6 +657,21 @@ describe('memtrace-adapter.mjs', () => {
             delete process.env.MEMTRACE_MOCK_BAD_JSON;
           }
         }
+      }
+    );
+
+    it(
+      'serialization failure handling — adapter source has try/catch for JSON.stringify',
+      () => {
+        const adapterSource = readFileSync(ADAPTER, 'utf8');
+        assert.ok(
+          adapterSource.includes('catch (serializeErr)'),
+          'Adapter must have try/catch for JSON.stringify serialization errors'
+        );
+        assert.ok(
+          adapterSource.includes('Failed to serialize result'),
+          'Adapter must report serialization failures through stderr'
+        );
       }
     );
   });

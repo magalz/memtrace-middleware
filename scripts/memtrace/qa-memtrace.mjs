@@ -125,6 +125,14 @@ function normalizeCoverageData(raw) {
 function compute(rawBlastData, rawCoverageData, threshold) {
   const blastData = normalizeBlastData(rawBlastData);
   const coverageData = normalizeCoverageData(rawCoverageData);
+  let totalCountWarning = false;
+
+  if (blastData.totalCount !== undefined && blastData.totalCount !== blastData.symbols.length) {
+    console.error(
+      `WARNING: total_count mismatch: reported=${blastData.totalCount}, actual=${blastData.symbols.length}`
+    );
+    totalCountWarning = true;
+  }
 
   if (blastData.symbols.length === 0) {
     return {
@@ -139,6 +147,7 @@ function compute(rawBlastData, rawCoverageData, threshold) {
       elapsed_ms: 0,
       note: 'Empty blast radius — no nodes to intersect',
       total_count_reported: blastData.totalCount,
+      total_count_warning: totalCountWarning,
     };
   }
 
@@ -152,6 +161,7 @@ function compute(rawBlastData, rawCoverageData, threshold) {
     console.error(
       `WARNING: total_count mismatch: reported=${blastData.totalCount}, actual=${blastSet.size}`
     );
+    totalCountWarning = true;
   }
 
   const coveredSet = new Set();
@@ -200,6 +210,7 @@ function compute(rawBlastData, rawCoverageData, threshold) {
     uncovered_details: uncoveredDetails,
     elapsed_ms: 0,
     total_count_reported: blastData.totalCount,
+    total_count_warning: totalCountWarning,
   };
 }
 

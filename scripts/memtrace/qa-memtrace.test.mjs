@@ -5,13 +5,14 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { execFileSync, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 
 const SCRIPT_PATH = join(fileURLToPath(new URL('.', import.meta.url)), 'qa-memtrace.mjs');
 const TMP = tmpdir();
 
 function runScript(br, tc, threshold) {
-  const brPath = join(TMP, `br-${Date.now()}.json`);
-  const tcPath = join(TMP, `tc-${Date.now()}.json`);
+  const brPath = join(TMP, `br-${randomUUID()}.json`);
+  const tcPath = join(TMP, `tc-${randomUUID()}.json`);
   try {
     writeFileSync(brPath, JSON.stringify(br), 'utf8');
     writeFileSync(tcPath, JSON.stringify(tc), 'utf8');
@@ -222,7 +223,7 @@ test('threshold 100 strict mode', () => {
 
 test('missing --test-coverage arg → exit 1 and emit error', () => {
   const br = makeBr([{ name: 'foo', file: 'src/a.ts', depth: 1 }]);
-  const brPath = join(TMP, `br-err-${Date.now()}.json`);
+  const brPath = join(TMP, `br-err-${randomUUID()}.json`);
   writeFileSync(brPath, JSON.stringify(br), 'utf8');
   try {
     execFileSync(process.execPath, [SCRIPT_PATH, '--blast-radius', brPath], {
@@ -234,7 +235,7 @@ test('missing --test-coverage arg → exit 1 and emit error', () => {
     assert.ok(e.status === 1 || e.status === null, `expected 1 or null, got ${e.status}`);
     const stderr = Buffer.isBuffer(e.stderr) ? e.stderr.toString('utf8') : e.stderr || '';
     assert.ok(
-      stderr.includes('Missing') || (e.stdout || '').includes('TIMEOUT'),
+      stderr.includes('Missing'),
       `expected error about missing arg, got stderr: ${stderr}, stdout: ${e.stdout}`
     );
   } finally {
@@ -281,6 +282,7 @@ test('total_count mismatch logs warning and output includes field', () => {
   assert.equal(r.exitCode, 0);
   assert.equal(r.output.total_count_reported, 99);
   assert.equal(r.output.blast_radius_total, 1);
+  assert.equal(r.output.total_count_warning, true);
   assert.ok(
     r.stderr.includes('WARNING: total_count mismatch: reported=99, actual=1'),
     `expected mismatch warning in stderr, got: ${r.stderr}`

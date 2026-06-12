@@ -16,7 +16,7 @@ npm install -g k6
 |--------|---------|
 | `concurrent-dispatches.js` | Latency validation: p95 < 900ms, p50 < 300ms at 60 RPS |
 | `degradation-scenarios.js` | Degradation + recovery simulation under Memtrace failure |
-| `ring-buffer-stress.js` | Ring buffer stress test at 100k RPS |
+| `ring-buffer-stress.archival.js` | Ring buffer stress test at 100k RPS (ARCHIVAL — not actively wired) |
 
 ## Quickstart
 
@@ -34,8 +34,7 @@ MEMTRACE_TEST_MODE=1 node dist/test-server.js
 ```bash
 pnpm test:load:latency
 pnpm test:load:degradation
-pnpm test:load:ring-buffer
-pnpm test:load  # all three
+pnpm test:load  # both active tests
 ```
 
 ## Test Runner Scripts

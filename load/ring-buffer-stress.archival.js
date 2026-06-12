@@ -1,3 +1,11 @@
+// ARCHIVAL: Historical ring-buffer stress test — not actively wired.
+// This script targeted POST /api/ring-buffer/push which never existed as
+// a production endpoint. Retained for reference on k6 constant-arrival-rate
+// scenario configuration. The active load tests are:
+//   - concurrent-dispatches.js  (k6 run load/concurrent-dispatches.js)
+//   - degradation-scenarios.js  (k6 run load/degradation-scenarios.js)
+// Original date: circa Epic 7 stress-testing phase. Archived: 2026-06-12.
+//
 // k6 stress test for ring buffer
 // Run: k6 run load/ring-buffer-stress.js
 import { check } from 'k6';

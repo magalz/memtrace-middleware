@@ -179,6 +179,9 @@ export class DegradationMachine {
         reason: blockedReason,
         timestamp: this.lastTransitionAt,
       });
+      if (this.tierHistory.length > 100) {
+        this.tierHistory.shift();
+      }
       log.warn('upgrade_blocked_by_floor', { target: newTier, floor: this.floorTier });
       return;
     }
@@ -192,6 +195,9 @@ export class DegradationMachine {
       reason,
       timestamp: this.lastTransitionAt,
     });
+    if (this.tierHistory.length > 100) {
+      this.tierHistory.shift();
+    }
 
     if (newTier === DegradationTier.FailClosed) {
       log.error('tier_transition', { from: previousTier, to: newTier, reason });
