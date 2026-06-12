@@ -1,5 +1,7 @@
 import { degradationMachine, DegradationMachine } from './machine.js';
 import { ProbeTimer } from './probe-timer.js';
+import { RateLimiter } from './rate-limiter.js';
+import { CircuitBreaker } from './circuit-breaker.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import { normalizeFloor, type DegradationFloor, type MiddlewareConfig } from '../config/types.js';
 import { createLogger } from '../logger.js';
@@ -7,11 +9,23 @@ import { DegradationTier } from '../types.js';
 
 export { DegradationMachine, degradationMachine };
 export { ProbeTimer };
+export { RateLimiter };
+export { CircuitBreaker };
 
 const log = createLogger('degrade');
 
 let probeTimer: ProbeTimer | null = null;
 let lastProbeIntervalMs: number | null = null;
+let rateLimiter: RateLimiter | null = null;
+let circuitBreaker: CircuitBreaker | null = null;
+
+export function getRateLimiter(): RateLimiter | null {
+  return rateLimiter;
+}
+
+export function getCircuitBreaker(): CircuitBreaker | null {
+  return circuitBreaker;
+}
 
 export function setForceTier(tier: DegradationTier): void {
   if (probeTimer) {
@@ -74,6 +88,16 @@ export function onConfigChanged(delta: Partial<MiddlewareConfig>): void {
       });
     }
   }
+
+  if ('rate_limiting' in delta && delta.rate_limiting && rateLimiter) {
+    rateLimiter.onConfigChanged(delta.rate_limiting);
+    log.info('rate_limiter_config_updated', { rate_limiting: delta.rate_limiting });
+  }
+
+  if ('circuit_breaker' in delta && delta.circuit_breaker && circuitBreaker) {
+    circuitBreaker.onConfigChanged(delta.circuit_breaker);
+    log.info('circuit_breaker_config_updated', { circuit_breaker: delta.circuit_breaker });
+  }
 }
 
 export function initializeDegradation(backend: MemtraceBackend, config: MiddlewareConfig): void {
@@ -84,9 +108,14 @@ export function initializeDegradation(backend: MemtraceBackend, config: Middlewa
   degradationMachine.setFloorTier(normalizeFloor(config.degradation_floor));
   probeTimer.start(intervalMs);
 
+  rateLimiter = new RateLimiter(config.rate_limiting);
+  circuitBreaker = new CircuitBreaker(config.circuit_breaker);
+
   log.info('degradation_initialized', {
     floor: config.degradation_floor,
     probe_interval_ms: intervalMs,
+    rate_limiting_enabled: config.rate_limiting.enabled,
+    circuit_breaker_enabled: config.circuit_breaker.enabled,
   });
 }
 
@@ -95,6 +124,8 @@ export function shutdownDegradation(): void {
     probeTimer.stop();
     probeTimer = null;
   }
+  rateLimiter = null;
+  circuitBreaker = null;
   lastProbeIntervalMs = null;
   log.info('degradation_shutdown');
 }

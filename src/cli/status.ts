@@ -75,6 +75,31 @@ export function createFlashTracker(): {
   };
 }
 
+function circuitDot(state: string | undefined): string {
+  switch (state) {
+    case 'closed':
+      return `${ANSI_GREEN}●${ANSI_RESET}`;
+    case 'open':
+      return `${ANSI_RED}○${ANSI_RESET}`;
+    case 'half_open':
+      return `${ANSI_YELLOW}◐${ANSI_RESET}`;
+    default:
+      return '';
+  }
+}
+
+function rateLine(rl: StatusSnapshot['rate_limit']): string {
+  if (!rl) return '';
+  return `${rl.current_count}/${rl.max_requests}req c:${rl.current_concurrent}/${rl.max_concurrent}`;
+}
+
+function circuitAge(ts: number | undefined): string {
+  if (!ts) return '';
+  const seconds = Math.floor((Date.now() - ts) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s ago`;
+}
+
 export function renderStatus(snapshot: StatusSnapshot | null, isTTY: boolean): string {
   if (!snapshot) {
     if (isTTY) {
@@ -84,7 +109,7 @@ export function renderStatus(snapshot: StatusSnapshot | null, isTTY: boolean): s
   }
 
   if (!isTTY) {
-    const data = {
+    const data: Record<string, unknown> = {
       status: snapshot.tier === DegradationTier.FailClosed ? 'closed' : 'ok',
       tier: snapshot.tier,
       uptime_seconds: snapshot.uptime_seconds,
@@ -95,15 +120,32 @@ export function renderStatus(snapshot: StatusSnapshot | null, isTTY: boolean): s
       confidence_p50: snapshot.confidence_p50,
       confidence_p95: snapshot.confidence_p95,
     };
+    if (snapshot.circuit) {
+      data.circuit_state = snapshot.circuit.state;
+      data.circuit_failure_count = snapshot.circuit.failure_count;
+    }
+    if (snapshot.rate_limit) {
+      data.rate_limit_current = snapshot.rate_limit.current_count;
+      data.rate_limit_max = snapshot.rate_limit.max_requests;
+    }
     return JSON.stringify(data);
   }
 
   const parts: string[] = [];
   parts.push(tierDot(snapshot.tier));
+  if (snapshot.circuit) {
+    parts.push(`cb:${circuitDot(snapshot.circuit.state)}`);
+  }
+  if (snapshot.rate_limit) {
+    parts.push(`rl:${rateLine(snapshot.rate_limit)}`);
+  }
   parts.push(snapshot.active_intents.length > 0 ? snapshot.active_intents.join(', ') : 'idle');
   parts.push(`✓${snapshot.query_success} ✗${snapshot.query_failure}`);
   parts.push(`p50:${snapshot.confidence_p50.toFixed(2)} p95:${snapshot.confidence_p95.toFixed(2)}`);
   parts.push(`uptime: ${snapshot.uptime_seconds}s`);
+  if (snapshot.circuit?.last_state_change_at) {
+    parts.push(`cb:${circuitAge(snapshot.circuit.last_state_change_at)}`);
+  }
 
   return `\r\x1b[K${parts.join(' | ')}`;
 }

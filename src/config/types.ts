@@ -28,6 +28,21 @@ export const INTENT_TYPE_VALUES = [
 
 export type IntentType = (typeof INTENT_TYPE_VALUES)[number];
 
+export interface RateLimitingConfig {
+  enabled: boolean;
+  max_requests_per_window: number;
+  window_ms: number;
+  max_concurrent: number;
+}
+
+export interface CircuitBreakerConfig {
+  enabled: boolean;
+  failure_threshold: number;
+  success_threshold: number;
+  half_open_max_calls: number;
+  open_state_ms: number;
+}
+
 export interface MiddlewareConfig {
   memtrace_host: string;
   memtrace_token: string;
@@ -40,7 +55,24 @@ export interface MiddlewareConfig {
   degradation_floor: DegradationFloor;
   enabled_intents: IntentType[];
   classification_threshold: number;
+  rate_limiting: RateLimitingConfig;
+  circuit_breaker: CircuitBreakerConfig;
 }
+
+export const rateLimitingSchema = z.object({
+  enabled: z.boolean(),
+  max_requests_per_window: z.number().int().positive(),
+  window_ms: z.number().int().positive(),
+  max_concurrent: z.number().int().positive(),
+});
+
+export const circuitBreakerSchema = z.object({
+  enabled: z.boolean(),
+  failure_threshold: z.number().int().positive(),
+  success_threshold: z.number().int().positive(),
+  half_open_max_calls: z.number().int().positive(),
+  open_state_ms: z.number().int().positive(),
+});
 
 export const middlewareConfigSchema: z.ZodType<MiddlewareConfig> = z.object({
   memtrace_host: z.string().min(1),
@@ -54,6 +86,8 @@ export const middlewareConfigSchema: z.ZodType<MiddlewareConfig> = z.object({
   degradation_floor: z.enum(DEGRADATION_FLOOR_VALUES),
   enabled_intents: z.array(z.enum(INTENT_TYPE_VALUES)).min(1),
   classification_threshold: z.number().min(0).max(1),
+  rate_limiting: rateLimitingSchema,
+  circuit_breaker: circuitBreakerSchema,
 });
 
 export const DEFAULT_CONFIG: MiddlewareConfig = {
@@ -81,6 +115,19 @@ export const DEFAULT_CONFIG: MiddlewareConfig = {
     'find_dependency_path',
   ],
   classification_threshold: 0.95,
+  rate_limiting: {
+    enabled: true,
+    max_requests_per_window: 100,
+    window_ms: 60000,
+    max_concurrent: 10,
+  },
+  circuit_breaker: {
+    enabled: true,
+    failure_threshold: 5,
+    success_threshold: 3,
+    half_open_max_calls: 3,
+    open_state_ms: 30000,
+  },
 };
 
 export type ConfigDelta = Partial<MiddlewareConfig>;

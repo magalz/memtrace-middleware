@@ -2,7 +2,7 @@ import { type DispatchContext, cleanupContext, createDispatchContext } from './d
 import type { MemtraceBackend } from '../backend/trait.js';
 import type { MiddlewareConfig } from '../config/index.js';
 import { MAX_DISPATCH_TIMEOUT_MS, MAX_SUB_QUERY_TIMEOUT_MS } from '../constants.js';
-import { degradationMachine } from '../degrade/index.js';
+import { degradationMachine, getRateLimiter, getCircuitBreaker } from '../degrade/index.js';
 import { MiddlewareError } from '../errors.js';
 import { fuse, validateContext } from '../fusion/index.js';
 import { createLogger } from '../logger.js';
@@ -63,6 +63,8 @@ export class BaseAdapter implements ToolProvider {
       degradation_floor: 'Passthrough',
       enabled_intents: ['find_code', 'get_symbol_context', 'get_impact'],
       classification_threshold: 0.95,
+      rate_limiting: { enabled: true, max_requests_per_window: 100, window_ms: 60000, max_concurrent: 10 },
+      circuit_breaker: { enabled: true, failure_threshold: 5, success_threshold: 3, half_open_max_calls: 3, open_state_ms: 30000 },
     };
     this.contextBuilder = defaultContextBuilder;
   }
@@ -132,29 +134,89 @@ export class BaseAdapter implements ToolProvider {
   ): Promise<AgentResponse> {
     const traceId = trace.trace_id;
     const dispatchStart = ctx.dispatchStart;
+    let rateLimitSlotAcquired = false;
 
     const tierAtEntry = degradationMachine.getCurrentTier();
 
-    if (tierAtEntry === DegradationTier.FailClosed) {
-      const error = new MiddlewareError({
-        cause: 'memtrace_unavailable',
-        recoverable: false,
-        suggested_action: 'run_memtrace_start',
-        tier: DegradationTier.FailClosed,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(error.toShape()) }],
-        metadata: {
+    try {
+      if (tierAtEntry === DegradationTier.FailClosed) {
+        const error = new MiddlewareError({
+          cause: 'memtrace_unavailable',
+          recoverable: false,
+          suggested_action: 'run_memtrace_start',
           tier: DegradationTier.FailClosed,
-          trace_id: error.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(error.toShape()) }],
+          metadata: {
+            tier: DegradationTier.FailClosed,
+            trace_id: error.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
+      }
+
+      const rl = getRateLimiter();
+      if (rl) {
+        if (!rl.acquireSlot()) {
+          const error = new MiddlewareError({
+            cause: 'rate_limited',
+            recoverable: true,
+            suggested_action: 'retry_with_backoff',
+          });
+          return {
+            content: [{ type: 'text', text: JSON.stringify(error.toShape()) }],
+            metadata: {
+              tier: tierAtEntry,
+              trace_id: traceId,
+              elapsed_ms: Date.now() - dispatchStart,
+            },
+          };
+        }
+        rateLimitSlotAcquired = true;
+        const rateCheck = rl.checkRateLimit();
+        if (!rateCheck.ok) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify(rateCheck.error.toShape()) }],
+            metadata: {
+              tier: tierAtEntry,
+              trace_id: traceId,
+              elapsed_ms: Date.now() - dispatchStart,
+            },
+          };
+        }
+      }
+
+      const cb = getCircuitBreaker();
+      if (cb && !cb.allowRequest()) {
+        const cbError = new MiddlewareError({
+          cause: 'circuit_open',
+          recoverable: true,
+          suggested_action: 'wait_and_retry',
+          tier: tierAtEntry,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
+          metadata: { tier: tierAtEntry, trace_id: traceId, elapsed_ms: Date.now() - dispatchStart },
+        };
+      }
 
     if (tierAtEntry === DegradationTier.Passthrough) {
       const classified = classify(message as unknown as Record<string, unknown>, { tools: [] });
       const intentType = classified.ok ? classified.value.intent_type : 'unknown';
+
+      const cb = getCircuitBreaker();
+      if (cb && !cb.allowRequest()) {
+        const cbError = new MiddlewareError({
+          cause: 'circuit_open',
+          recoverable: true,
+          suggested_action: 'wait_and_retry',
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
+          metadata: { tier: DegradationTier.Passthrough, trace_id: traceId, elapsed_ms: Date.now() - dispatchStart, passthrough: true, degradation_tier: DegradationTier.Passthrough },
+        };
+      }
 
       const msg = message as Record<string, unknown>;
       const params = (msg.params ?? {}) as Record<string, unknown>;
@@ -344,14 +406,29 @@ export class BaseAdapter implements ToolProvider {
 
     if (isIntentReduced) {
       for (const q of queries) {
+        const cb = getCircuitBreaker();
+        if (cb && !cb.allowRequest()) {
+          results.push({
+            status: 'rejected',
+            reason: new MiddlewareError({
+              cause: 'circuit_open',
+              recoverable: true,
+              suggested_action: 'wait_and_retry',
+            }),
+          });
+          continue;
+        }
+
         const controller = new AbortController();
         ctx.activeControllers.add(controller);
         const timer = setTimeout(() => controller.abort(), subQueryTimeout);
         ctx.activeTimers.add(timer);
         try {
           const value = await this.backend.execute(q as GraphQuery, controller.signal);
+          cb?.recordSuccess();
           results.push({ status: 'fulfilled', value });
         } catch (reason: unknown) {
+          cb?.recordFailure();
           results.push({ status: 'rejected', reason });
         } finally {
           clearTimeout(timer);
@@ -362,15 +439,36 @@ export class BaseAdapter implements ToolProvider {
     } else {
       const settled = await Promise.allSettled(
         queries.map((q: GraphQuery) => {
+          const cb = getCircuitBreaker();
+          if (cb && !cb.allowRequest()) {
+            return Promise.reject(
+              new MiddlewareError({
+                cause: 'circuit_open',
+                recoverable: true,
+                suggested_action: 'wait_and_retry',
+              })
+            );
+          }
+
           const controller = new AbortController();
           ctx.activeControllers.add(controller);
           const timer = setTimeout(() => controller.abort(), subQueryTimeout);
           ctx.activeTimers.add(timer);
-          return this.backend.execute(q, controller.signal).finally(() => {
-            clearTimeout(timer);
-            ctx.activeTimers.delete(timer);
-            ctx.activeControllers.delete(controller);
-          });
+          return this.backend
+            .execute(q, controller.signal)
+            .then((value) => {
+              cb?.recordSuccess();
+              return value;
+            })
+            .catch((reason: unknown) => {
+              cb?.recordFailure();
+              throw reason;
+            })
+            .finally(() => {
+              clearTimeout(timer);
+              ctx.activeTimers.delete(timer);
+              ctx.activeControllers.delete(controller);
+            });
         })
       );
       results.push(...settled);
@@ -383,6 +481,7 @@ export class BaseAdapter implements ToolProvider {
     });
 
     const queryResults: QueryResult[] = [];
+    let circuitOpenBlocked = false;
 
     for (const r of results) {
       if (r.status === 'fulfilled') {
@@ -398,7 +497,27 @@ export class BaseAdapter implements ToolProvider {
           error: reason,
           error_trace_id: reasonTrace,
         });
+        if (r.reason instanceof MiddlewareError && r.reason.cause === 'circuit_open') {
+          circuitOpenBlocked = true;
+        }
       }
+    }
+
+    if (circuitOpenBlocked && queryResults.length === 0) {
+      const cbError = new MiddlewareError({
+        cause: 'circuit_open',
+        recoverable: true,
+        suggested_action: 'wait_and_retry',
+        tier: degradationMachine.getCurrentTier(),
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
+        metadata: {
+          tier: cbError.tier,
+          trace_id: cbError.trace_id,
+          elapsed_ms: Date.now() - dispatchStart,
+        },
+      };
     }
 
     const fusedResult = fuse({
@@ -498,6 +617,11 @@ export class BaseAdapter implements ToolProvider {
     metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed, startupType);
 
     return response;
+    } finally {
+      if (rateLimitSlotAcquired) {
+        getRateLimiter()?.releaseSlot();
+      }
+    }
   }
 
   createSession(): string {

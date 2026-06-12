@@ -32,7 +32,8 @@ function parseEnvInt(key: string, fallback: number): number {
   const val = process.env[key];
   if (val === undefined) return fallback;
   const parsed = Number.parseInt(val, 10);
-  return Number.isNaN(parsed) ? fallback : parsed;
+  if (Number.isNaN(parsed)) return fallback;
+  return Math.max(1, parsed);
 }
 
 function parseEnvFloat(key: string, fallback: number): number {
@@ -103,6 +104,52 @@ function readEnvOverrides(): Partial<MiddlewareConfig> {
     overrides.classification_threshold = threshold;
   }
 
+  const rateLimitMax = parseEnvInt(
+    'MEMTRACE_RATE_LIMIT_MAX_REQUESTS',
+    DEFAULT_CONFIG.rate_limiting.max_requests_per_window
+  );
+  const rateLimitWindow = parseEnvInt(
+    'MEMTRACE_RATE_LIMIT_WINDOW_MS',
+    DEFAULT_CONFIG.rate_limiting.window_ms
+  );
+  const rateLimitConcurrent = parseEnvInt(
+    'MEMTRACE_RATE_LIMIT_MAX_CONCURRENT',
+    DEFAULT_CONFIG.rate_limiting.max_concurrent
+  );
+  if (
+    rateLimitMax !== DEFAULT_CONFIG.rate_limiting.max_requests_per_window ||
+    rateLimitWindow !== DEFAULT_CONFIG.rate_limiting.window_ms ||
+    rateLimitConcurrent !== DEFAULT_CONFIG.rate_limiting.max_concurrent
+  ) {
+    overrides.rate_limiting = {
+      enabled: DEFAULT_CONFIG.rate_limiting.enabled,
+      max_requests_per_window: rateLimitMax,
+      window_ms: rateLimitWindow,
+      max_concurrent: rateLimitConcurrent,
+    };
+  }
+
+  const cbFailureThreshold = parseEnvInt(
+    'MEMTRACE_CIRCUIT_BREAKER_FAILURE_THRESHOLD',
+    DEFAULT_CONFIG.circuit_breaker.failure_threshold
+  );
+  const cbOpenStateMs = parseEnvInt(
+    'MEMTRACE_CIRCUIT_BREAKER_OPEN_STATE_MS',
+    DEFAULT_CONFIG.circuit_breaker.open_state_ms
+  );
+  if (
+    cbFailureThreshold !== DEFAULT_CONFIG.circuit_breaker.failure_threshold ||
+    cbOpenStateMs !== DEFAULT_CONFIG.circuit_breaker.open_state_ms
+  ) {
+    overrides.circuit_breaker = {
+      enabled: DEFAULT_CONFIG.circuit_breaker.enabled,
+      failure_threshold: cbFailureThreshold,
+      success_threshold: DEFAULT_CONFIG.circuit_breaker.success_threshold,
+      half_open_max_calls: DEFAULT_CONFIG.circuit_breaker.half_open_max_calls,
+      open_state_ms: cbOpenStateMs,
+    };
+  }
+
   return overrides;
 }
 
@@ -116,6 +163,16 @@ function applyOverrides(
       result.timeout_budgets = {
         ...result.timeout_budgets,
         ...(value as typeof result.timeout_budgets),
+      };
+    } else if (key === 'rate_limiting' && value !== undefined) {
+      result.rate_limiting = {
+        ...result.rate_limiting,
+        ...(value as typeof result.rate_limiting),
+      };
+    } else if (key === 'circuit_breaker' && value !== undefined) {
+      result.circuit_breaker = {
+        ...result.circuit_breaker,
+        ...(value as typeof result.circuit_breaker),
       };
     } else if (value !== undefined) {
       (result as Record<string, unknown>)[key] = value;

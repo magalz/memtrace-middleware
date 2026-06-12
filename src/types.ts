@@ -12,7 +12,9 @@ export type ErrorCause =
   | 'classification_failed'
   | 'query_execution_failed'
   | 'fusion_validation_failed'
-  | 'config_invalid';
+  | 'config_invalid'
+  | 'rate_limited'
+  | 'circuit_open';
 
 export interface MiddlewareErrorShape {
   tier: DegradationTier;
@@ -93,6 +95,38 @@ export interface TelemetryEvent {
   timestamp: string;
 }
 
+export interface LatencyStats {
+  p50: number;
+  p95: number;
+  p99: number;
+  count: number;
+}
+
+export interface LatencySnapshot {
+  per_intent: Record<string, LatencyStats>;
+  cold_start: LatencyStats;
+  steady_state: LatencyStats;
+}
+
+export interface RateLimitSnapshot {
+  window_ms: number;
+  max_requests: number;
+  current_count: number;
+  current_concurrent: number;
+  max_concurrent: number;
+  reset_at: number;
+  limited_count: number;
+}
+
+export interface CircuitSnapshot {
+  state: 'closed' | 'open' | 'half_open';
+  failure_count: number;
+  success_count: number;
+  last_failure_at: number | null;
+  last_state_change_at: number;
+  open_until: number | null;
+}
+
 export interface StatusSnapshot {
   tier: DegradationTier;
   uptime_seconds: number;
@@ -103,4 +137,7 @@ export interface StatusSnapshot {
   confidence_p95: number;
   last_dispatch_result: 'success' | 'failure' | null;
   cold_start?: { count: number; p50_ms: number };
+  latency_stats?: LatencySnapshot;
+  rate_limit?: RateLimitSnapshot;
+  circuit?: CircuitSnapshot;
 }
