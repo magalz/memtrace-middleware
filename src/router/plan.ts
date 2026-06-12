@@ -1,6 +1,7 @@
 import { createLogger } from '../logger.js';
 import type { ClassifiedIntent, GraphQuery, MemtraceCapabilities, Result } from '../types.js';
 import { getRegistry } from './classify.js';
+import { buildCacheKey, planCache } from './plan-cache.js';
 
 const logger = createLogger('router');
 
@@ -18,10 +19,36 @@ export function plan(
     return { ok: true, value: [{ tool: toolName, arguments: toolArgs }] };
   }
 
+  const params = originalMsg?.params as Record<string, unknown> | undefined;
+  const rawArgs = params?.arguments ?? {};
+  const cacheKey = buildCacheKey(intent.intent_type, rawArgs);
+
+  const cached = planCache.get(cacheKey);
+  if (cached) {
+    const availableTools = new Set(capabilities?.tools?.map((t) => t.name) ?? []);
+    const allToolsAvailable = cached.every((q) => availableTools.has(q.tool));
+    if (allToolsAvailable) {
+      const s = planCache.stats();
+      logger.info('plan_cache_hit', {
+        intent_type: intent.intent_type,
+        cache_key: cacheKey,
+        cache_size: s.size,
+      });
+      return { ok: true, value: cached };
+    }
+    planCache.invalidate(cacheKey);
+  }
+
+  const s = planCache.stats();
+  logger.info('plan_cache_miss', {
+    intent_type: intent.intent_type,
+    cache_key: cacheKey,
+    cache_size: s.size,
+  });
+
   const intentDef = getRegistry().get(intent.intent_type);
   if (!intentDef) {
     logger.warn('unknown_intent_type', { intent_type: intent.intent_type });
-    const params = originalMsg?.params as Record<string, unknown> | undefined;
     const toolName = typeof params?.name === 'string' ? params.name : 'unknown';
     const toolArgs = (params?.arguments ?? {}) as Record<string, unknown>;
     return { ok: true, value: [{ tool: toolName, arguments: toolArgs }] };
@@ -50,6 +77,10 @@ export function plan(
       tool: td.name,
       arguments: args,
     });
+  }
+
+  if (queries.length > 0) {
+    planCache.set(cacheKey, queries);
   }
 
   logger.info('plan_result', {

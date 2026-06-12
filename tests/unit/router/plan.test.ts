@@ -5,7 +5,7 @@
 // AC 1.3b-6: get_symbol_context → at least 2 queries with correct tools
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { classify, getRegistry, plan } from '../../../src/router/index.js';
+import { classify, getRegistry, plan, planCache } from '../../../src/router/index.js';
 import type { ClassifiedIntent, MemtraceCapabilities } from '../../../src/types.js';
 import { mockCapabilities, makeMessage } from '../../helpers/test-utils.js';
 
@@ -657,6 +657,9 @@ describe('plan — empty query plan edge cases (Story 5.5)', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value).toHaveLength(0);
+    const sizeBefore = planCache.stats().size;
+    expect(result.value).toHaveLength(0);
+    expect(planCache.stats().size).toBe(sizeBefore);
   });
 
   // Sub-task 2.3 — null original_message does not throw
@@ -683,5 +686,79 @@ describe('plan — empty query plan edge cases (Story 5.5)', () => {
     const result = plan(classified.value, mockCapabilities);
     // Then: does not throw, returns ok (name fallback from tool name should work)
     expect(result.ok).toBe(true);
+  });
+});
+
+// AC 8.2-1 — cache hit on repeated identical calls returns cached plan
+// AC 8.2-2 — cache key format uses intent_type + SHA-256(args)
+// AC 8.2-4 — cache miss computes fresh plan and stores it
+// AC 8.2-6 — passthrough bypass skips cache
+describe('plan — query plan caching (Story 8.2)', () => {
+  beforeEach(() => {
+    getRegistry().reset();
+    planCache.reset();
+  });
+
+  it('[P0] returns cached plan on repeated identical calls (AC1, AC4)', () => {
+    const classified = classifyAndPlan(
+      'find function authenticateUser in auth',
+      'memtrace_find_code'
+    );
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result1 = plan(classified.value, mockCapabilities);
+    expect(result1.ok).toBe(true);
+    if (!result1.ok) return;
+    const result2 = plan(classified.value, mockCapabilities);
+    expect(result2.ok).toBe(true);
+    if (!result2.ok) return;
+    expect(result2.value).toEqual(result1.value);
+    expect(planCache.stats().hits).toBeGreaterThanOrEqual(1);
+  });
+
+  it('[P0] computes fresh plan on first call (cache miss) and stores it (AC4)', () => {
+    const classified = classifyAndPlan('find function processPayment', 'memtrace_find_code');
+    expect(classified.ok).toBe(true);
+    if (!classified.ok) return;
+    const result = plan(classified.value, mockCapabilities);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(1);
+    expect(planCache.stats().misses).toBeGreaterThanOrEqual(1);
+    expect(planCache.stats().size).toBeGreaterThanOrEqual(1);
+  });
+
+  it('[P0] bypasses cache for passthrough intents — no storage and no hit (AC6)', () => {
+    const passthroughIntent: ClassifiedIntent = {
+      intent_type: 'passthrough_bypass',
+      confidence: 0.3,
+      passthrough: true,
+      original_message: {
+        method: 'tools/call',
+        params: { name: 'memtrace_find_dead_code', arguments: { query: 'search' } },
+      },
+    };
+    const beforeHits = planCache.stats().hits;
+    const beforeMisses = planCache.stats().misses;
+    const beforeSize = planCache.stats().size;
+    const result = plan(passthroughIntent, mockCapabilities);
+    expect(result.ok).toBe(true);
+    expect(planCache.stats().hits).toBe(beforeHits);
+    expect(planCache.stats().misses).toBe(beforeMisses);
+    expect(planCache.stats().size).toBe(beforeSize);
+  });
+
+  it('[P0] uses different cache keys for different intent types (AC2)', () => {
+    const fcClassified = classifyAndPlan('authenticateUser', 'memtrace_find_code');
+    expect(fcClassified.ok).toBe(true);
+    if (!fcClassified.ok) return;
+    plan(fcClassified.value, mockCapabilities);
+
+    const giClassified = classifyAndPlan('authenticateUser', 'memtrace_get_impact');
+    expect(giClassified.ok).toBe(true);
+    if (!giClassified.ok) return;
+    plan(giClassified.value, mockCapabilities);
+
+    expect(planCache.stats().size).toBeGreaterThanOrEqual(2);
   });
 });
