@@ -10,6 +10,9 @@ export const MIDDLEWARE_VERSION = '2.0.0';
 export const COLD_START_DISPATCH_COUNT = 5;
 export const COLD_START_IDLE_THRESHOLD_MS = 30000;
 
+export const TELEMETRY_PROBE_RING_SIZE = 20;
+export const TELEMETRY_RING_CAPACITY = 10000;
+
 export const MCP_TOOL_FIND_CODE = 'memtrace_find_code';
 export const MCP_TOOL_GET_SYMBOL_CONTEXT = 'memtrace_get_symbol_context';
 export const MCP_TOOL_GET_IMPACT = 'memtrace_get_impact';

@@ -60,11 +60,13 @@ describe('MCP server roundtrip', () => {
 
     // Given: a mock backend that returns 2 known tools
     // When: the client sends tools/list
-    // Then: the server returns exactly those 2 tools (not a hardcoded list)
+    // Then: the server returns those 2 tools plus the built-in telemetry tool
     const result = await client.listTools();
-    expect(result.tools).toHaveLength(2);
-    expect(result.tools[0].name).toBe('memtrace_find_code');
-    expect(result.tools[1].name).toBe('memtrace_get_symbol_context');
+    expect(result.tools).toHaveLength(3);
+    const toolNames = result.tools.map((t: { name: string }) => t.name);
+    expect(toolNames).toContain('memtrace_telemetry');
+    expect(toolNames[0]).toBe('memtrace_find_code');
+    expect(toolNames[1]).toBe('memtrace_get_symbol_context');
 
     await instance.close();
     await clientTransport.close();

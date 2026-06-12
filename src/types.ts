@@ -127,6 +127,28 @@ export interface CircuitSnapshot {
   open_until: number | null;
 }
 
+export interface TelemetryApiResponse {
+  schema_version: '1.0';
+  cold_start: boolean;
+  timestamp: string;
+  query_success_rate: Record<string, { success: number; failure: number; total: number; rate: number }>;
+  override_frequency: { total_overrides: number };
+  latency_percentiles: {
+    global: { p50_ms: number; p95_ms: number; p99_ms: number };
+    per_intent: Record<string, { p50_ms: number; p95_ms: number; p99_ms: number }>;
+  };
+  memtrace_uptime: {
+    probe_success_rate: number;
+    total_probes: number;
+    successful_probes: number;
+  };
+  confidence_distribution: Record<string, { p50: number; p95: number; sample_count: number }>;
+  buffer_utilization_pct: number;
+  uptime_seconds: number;
+  tier: DegradationTier;
+  active_intents: string[];
+}
+
 export interface StatusSnapshot {
   tier: DegradationTier;
   uptime_seconds: number;

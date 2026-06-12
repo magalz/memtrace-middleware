@@ -2,6 +2,7 @@ import { DegradationTier } from '../types.js';
 import type { LatencySnapshot, LatencyStats, StatusSnapshot } from '../types.js';
 import { getColdStartStats } from './cold-start.js';
 import { RingBuffer } from './ring-buffer.js';
+import { TELEMETRY_PROBE_RING_SIZE } from '../constants.js';
 import { getRateLimiter, getCircuitBreaker } from '../degrade/index.js';
 
 const CONFIDENCE_CAPACITY = 100;
@@ -13,6 +14,12 @@ let successCount = 0;
 let failureCount = 0;
 const confidenceBuffer = new RingBuffer<number>(CONFIDENCE_CAPACITY);
 let lastResult: 'success' | 'failure' | null = null;
+
+const intentSuccessCounts = new Map<string, number>();
+const intentFailureCounts = new Map<string, number>();
+let forceTierOverrideCount = 0;
+const probeBuffer = new RingBuffer<boolean>(TELEMETRY_PROBE_RING_SIZE);
+const confidenceBufferMap = new Map<string, RingBuffer<number>>();
 
 const latencyBuffers = new Map<string, RingBuffer<number>>();
 const coldStartLatencyBuffer = new RingBuffer<number>(LATENCY_BUFFER_CAPACITY);
@@ -92,6 +99,19 @@ function getLatencySnapshotImpl(): LatencySnapshot {
   };
 }
 
+function getConfidenceBuffer(intentType: string): RingBuffer<number> {
+  let buffer = confidenceBufferMap.get(intentType);
+  if (buffer) {
+    return buffer;
+  }
+  if (confidenceBufferMap.size >= MAX_INTENT_BUFFERS) {
+    return confidenceBuffer;
+  }
+  buffer = new RingBuffer<number>(CONFIDENCE_CAPACITY);
+  confidenceBufferMap.set(intentType, buffer);
+  return buffer;
+}
+
 export const metrics = {
   recordDispatch(
     success: boolean,
@@ -102,13 +122,16 @@ export const metrics = {
   ): void {
     if (success) {
       successCount++;
+      intentSuccessCounts.set(intentType, (intentSuccessCounts.get(intentType) ?? 0) + 1);
     } else {
       failureCount++;
+      intentFailureCounts.set(intentType, (intentFailureCounts.get(intentType) ?? 0) + 1);
     }
     lastResult = success ? 'success' : 'failure';
     intentSet.add(intentType);
     if (Number.isFinite(confidence)) {
       confidenceBuffer.push(confidence);
+      getConfidenceBuffer(intentType).push(confidence);
     }
     recordLatencyImpl(intentType, elapsedMs, startupType === 'cold');
   },
@@ -116,6 +139,65 @@ export const metrics = {
   recordLatency: recordLatencyImpl,
 
   getLatencySnapshot: getLatencySnapshotImpl,
+
+  recordForceTierOverride(_tier: DegradationTier): void {
+    forceTierOverrideCount++;
+  },
+
+  recordProbe(success: boolean): void {
+    probeBuffer.push(success);
+  },
+
+  getForceTierOverrideCount(): number {
+    return forceTierOverrideCount;
+  },
+
+  getIntentSuccessCounts(): Map<string, number> {
+    return new Map(intentSuccessCounts);
+  },
+
+  getIntentFailureCounts(): Map<string, number> {
+    return new Map(intentFailureCounts);
+  },
+
+  getProbeSuccessRate(): number {
+    const values = probeBuffer.toArray();
+    if (values.length === 0) {
+      return 0;
+    }
+    const successes = values.filter(Boolean).length;
+    return (successes / values.length) * 100;
+  },
+
+  getProbeBufferSnapshot(): { total_probes: number; successful_probes: number } {
+    const values = probeBuffer.toArray();
+    const successes = values.filter(Boolean).length;
+    return { total_probes: values.length, successful_probes: successes };
+  },
+
+  getConfidenceBufferMap(): Map<string, RingBuffer<number>> {
+    return new Map(confidenceBufferMap);
+  },
+
+  getBufferUtilizationPct(): number {
+    const all: number[] = [];
+    all.push(confidenceBuffer.getCount() / confidenceBuffer.getCapacity());
+    for (const buf of confidenceBufferMap.values()) {
+      all.push(buf.getCount() / buf.getCapacity());
+    }
+    for (const buf of latencyBuffers.values()) {
+      all.push(buf.getCount() / buf.getCapacity());
+    }
+    all.push(coldStartLatencyBuffer.getCount() / coldStartLatencyBuffer.getCapacity());
+    all.push(steadyStateLatencyBuffer.getCount() / steadyStateLatencyBuffer.getCapacity());
+    all.push(probeBuffer.getCount() / probeBuffer.getCapacity());
+    const finite = all.filter((v) => Number.isFinite(v));
+    if (finite.length === 0) {
+      return 0;
+    }
+    const maxUtil = Math.max(...finite);
+    return Math.round(maxUtil * 100 * 10) / 10;
+  },
 
   getSnapshot(): StatusSnapshot {
     const percentiles = getConfidencePercentiles();
@@ -149,5 +231,10 @@ export const metrics = {
     latencyBuffers.clear();
     coldStartLatencyBuffer.clear();
     steadyStateLatencyBuffer.clear();
+    intentSuccessCounts.clear();
+    intentFailureCounts.clear();
+    forceTierOverrideCount = 0;
+    probeBuffer.clear();
+    confidenceBufferMap.clear();
   },
 };

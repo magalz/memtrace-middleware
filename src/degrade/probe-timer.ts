@@ -2,6 +2,7 @@ import type { MemtraceBackend } from '../backend/trait.js';
 import { PROBE_INTERVAL_MS } from '../constants.js';
 import { createLogger } from '../logger.js';
 import { type DegradationMachine } from './machine.js';
+import { metrics } from '../telemetry/metrics.js';
 
 const log = createLogger('degrade');
 
@@ -26,6 +27,7 @@ export class ProbeTimer {
       try {
         const result = await this.backend.probe();
         this.machine.recordProbeResult(result);
+        metrics.recordProbe(result);
         if (result) {
           log.debug('probe_success');
         } else {
@@ -33,6 +35,7 @@ export class ProbeTimer {
         }
       } catch (err: unknown) {
         this.machine.recordProbeResult(false);
+        metrics.recordProbe(false);
         log.warn('probe_failure', {
           reason: err instanceof Error ? err.message : String(err),
         });

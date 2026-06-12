@@ -162,8 +162,19 @@ export function createMcpServer(
 
     async start(transport?: Transport) {
       const toolCount = await registerTools();
+      mcpServer.registerTool(
+        'memtrace_telemetry',
+        {
+          description: 'Returns structured telemetry data with 5 core KPIs: query success rate, override frequency, latency percentiles, Memtrace uptime, and confidence distribution.',
+          inputSchema: z.object({}).passthrough(),
+        },
+        async () => {
+          const { buildTelemetryResponse } = await import('../telemetry/api.js');
+          return { content: [{ type: 'text' as const, text: JSON.stringify(buildTelemetryResponse()) }] };
+        }
+      );
       await connectToTransport(mcpServer, transport);
-      log.info('mcp_server_started', { tool_count: toolCount });
+      log.info('mcp_server_started', { tool_count: toolCount + 1 });
     },
 
     async close() {
@@ -183,6 +194,17 @@ export function createDegradedMcpServer(): McpServerInstance {
     server: mcpServer,
 
     async start(transport?: Transport) {
+      mcpServer.registerTool(
+        'memtrace_telemetry',
+        {
+          description: 'Returns structured telemetry data with 5 core KPIs: query success rate, override frequency, latency percentiles, Memtrace uptime, and confidence distribution.',
+          inputSchema: z.object({}).passthrough(),
+        },
+        async () => {
+          const { buildTelemetryResponse } = await import('../telemetry/api.js');
+          return { content: [{ type: 'text' as const, text: JSON.stringify(buildTelemetryResponse()) }] };
+        }
+      );
       await connectToTransport(mcpServer, transport);
       log.warn('degraded_mode_started');
     },

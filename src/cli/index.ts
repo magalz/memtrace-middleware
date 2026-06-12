@@ -24,6 +24,7 @@ import {
 import { createLogger } from '../logger.js';
 import { createDegradedMcpServer, createMcpServer, type McpServerInstance } from './mcp-server.js';
 import { startStatusDisplay } from './status.js';
+import { metrics } from '../telemetry/index.js';
 import { DegradationTier } from '../types.js';
 
 const log = createLogger('cli');
@@ -33,7 +34,7 @@ let activeBackend: MemtraceBackend | null = null;
 
 function printUsage(): void {
   process.stderr.write(
-    'usage: memtrace --status | init [--force] | start [--force-tier <tier>] [--degradation-floor <tier>]\n'
+    'usage: memtrace --status | init [--force] | start [--force-tier <tier>] [--degradation-floor <tier>] | telemetry [--compact]\n'
   );
 }
 
@@ -72,6 +73,7 @@ export async function startServer(config: StartConfig = DEFAULT_CONFIG): Promise
     initializeDegradation(transport, config);
     if (config.force_tier) {
       setForceTier(config.force_tier);
+      metrics.recordForceTierOverride(config.force_tier);
       process.stderr.write(
         `Force tier active: ${config.force_tier} — auto-degradation suspended\n`
       );
@@ -103,6 +105,7 @@ export async function startServer(config: StartConfig = DEFAULT_CONFIG): Promise
     initializeDegradation(noop, config);
     if (config.force_tier) {
       setForceTier(config.force_tier);
+      metrics.recordForceTierOverride(config.force_tier);
       process.stderr.write(
         `Force tier active: ${config.force_tier} — auto-degradation suspended\n`
       );
@@ -249,6 +252,17 @@ async function main(): Promise<void> {
     }
 
     await startServer(config);
+    return;
+  }
+
+  if (args[0] === 'telemetry') {
+    const isCompact = args.includes('--compact');
+    const { buildTelemetryResponse } = await import('../telemetry/api.js');
+    const response = buildTelemetryResponse();
+    const output = isCompact
+      ? JSON.stringify(response)
+      : JSON.stringify(response, null, 2);
+    process.stdout.write(output + '\n');
     return;
   }
 
