@@ -29,7 +29,10 @@
     "lint": "eslint src/ tests/ && prettier --check .",
     "lint:fix": "eslint src/ tests/ --fix && prettier --write .",
     "typecheck": "tsc --noEmit",
-    "test:load": "k6 run load/ring-buffer-stress.js"
+    "test:load:ring-buffer": "k6 run load/ring-buffer-stress.js",
+    "test:load:latency": "k6 run load/concurrent-dispatches.js",
+    "test:load:degradation": "k6 run load/degradation-scenarios.js",
+    "test:load": "k6 run load/ring-buffer-stress.js && k6 run load/concurrent-dispatches.js && k6 run load/degradation-scenarios.js"
   },
   "engines": {
     "node": ">=20"

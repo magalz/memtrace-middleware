@@ -102,6 +102,10 @@ export class DegradationMachine {
     return this.floorTier;
   }
 
+  getTierHistory(): TierTransition[] {
+    return [...this.tierHistory];
+  }
+
   getTransitionReason(): {
     reason: string;
     from: DegradationTier;

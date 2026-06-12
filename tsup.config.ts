@@ -21,4 +21,11 @@ export default defineConfig([
       };
     },
   },
+  {
+    entry: { 'test-server': 'load/test-server.ts' },
+    format: ['esm'],
+    clean: false,
+    sourcemap: true,
+    splitting: false,
+  },
 ]);

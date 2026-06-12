@@ -106,3 +106,62 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install
       - run: pnpm build
+
+  load-test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '>=20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
+      - name: Install k6
+        run: |
+          if command -v k6 >/dev/null 2>&1; then
+            echo "k6 already installed: $(k6 version)"
+            exit 0
+          fi
+          curl -s https://dl.k6.io/rpm/repo.rpm | sudo rpm --import - 2>/dev/null || true
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 2>/dev/null || true
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y k6
+          echo "k6 installed: $(k6 version)"
+      - name: Start test server
+        run: |
+          MEMTRACE_TEST_MODE=1 node dist/test-server.js &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:3000/status >/dev/null 2>&1; then
+              echo "test server ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "test server failed to start after 30s" >&2
+          exit 1
+      - name: Run k6 latency tests
+        id: k6-latency
+        run: |
+          mkdir -p load/results
+          BASE_URL=http://localhost:3000 k6 run load/concurrent-dispatches.js
+        continue-on-error: true
+      - name: Run k6 degradation tests
+        id: k6-degradation
+        run: |
+          mkdir -p load/results
+          BASE_URL=http://localhost:3000 k6 run load/degradation-scenarios.js
+        continue-on-error: true
+      - name: Stop test server
+        if: always()
+        run: kill $SERVER_PID 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results
+          path: load/results/
