@@ -28,6 +28,17 @@ export const INTENT_TYPE_VALUES = [
 
 export type IntentType = (typeof INTENT_TYPE_VALUES)[number];
 
+export interface DashboardWarningThresholds {
+  success_rate_warn: number;
+  success_rate_crit: number;
+  latency_p95_warn_ms: number;
+  latency_p95_crit_ms: number;
+  uptime_warn_pct: number;
+  uptime_crit_pct: number;
+  confidence_median_warn: number;
+  confidence_median_crit: number;
+}
+
 export interface RateLimitingConfig {
   enabled: boolean;
   max_requests_per_window: number;
@@ -57,7 +68,19 @@ export interface MiddlewareConfig {
   classification_threshold: number;
   rate_limiting: RateLimitingConfig;
   circuit_breaker: CircuitBreakerConfig;
+  dashboard_warning_thresholds?: DashboardWarningThresholds;
 }
+
+export const dashboardWarningThresholdsSchema: z.ZodType<DashboardWarningThresholds> = z.object({
+  success_rate_warn: z.number().min(0).max(1),
+  success_rate_crit: z.number().min(0).max(1),
+  latency_p95_warn_ms: z.number().positive(),
+  latency_p95_crit_ms: z.number().positive(),
+  uptime_warn_pct: z.number().min(0).max(100),
+  uptime_crit_pct: z.number().min(0).max(100),
+  confidence_median_warn: z.number().min(0).max(1),
+  confidence_median_crit: z.number().min(0).max(1),
+});
 
 export const rateLimitingSchema = z.object({
   enabled: z.boolean(),
@@ -88,6 +111,7 @@ export const middlewareConfigSchema: z.ZodType<MiddlewareConfig> = z.object({
   classification_threshold: z.number().min(0).max(1),
   rate_limiting: rateLimitingSchema,
   circuit_breaker: circuitBreakerSchema,
+  dashboard_warning_thresholds: dashboardWarningThresholdsSchema.optional(),
 });
 
 export const DEFAULT_CONFIG: MiddlewareConfig = {
@@ -115,6 +139,16 @@ export const DEFAULT_CONFIG: MiddlewareConfig = {
     'find_dependency_path',
   ],
   classification_threshold: 0.95,
+  dashboard_warning_thresholds: {
+    success_rate_warn: 0.95,
+    success_rate_crit: 0.80,
+    latency_p95_warn_ms: 600,
+    latency_p95_crit_ms: 900,
+    uptime_warn_pct: 90,
+    uptime_crit_pct: 70,
+    confidence_median_warn: 0.9,
+    confidence_median_crit: 0.7,
+  },
   rate_limiting: {
     enabled: true,
     max_requests_per_window: 100,

@@ -197,3 +197,35 @@ describe('metrics — enhanced tracking (Story 9.1)', () => {
     expect(metrics.getProbeBufferSnapshot().total_probes).toBe(0);
   });
 });
+
+describe('metrics — p50 history (Story 9.2)', () => {
+  beforeEach(() => {
+    metrics.reset();
+  });
+
+  it('[P0] getP50History returns empty array when no dispatches recorded', () => {
+    const history = metrics.getP50History();
+    expect(history).toEqual([]);
+  });
+
+  it('[P0] getP50History returns values after dispatches', () => {
+    metrics.recordDispatch(true, 'find_code', 0.95, 100, 'warm');
+    const history = metrics.getP50History();
+    expect(history.length).toBe(1);
+    expect(history[0]).toBeGreaterThan(0);
+  });
+
+  it('[P1] p50HistoryBuffer capacity is bounded at 60', () => {
+    for (let i = 0; i < 100; i++) {
+      metrics.recordDispatch(true, 'find_code', 0.9, 50 + i, 'warm');
+    }
+    const history = metrics.getP50History();
+    expect(history.length).toBeLessThanOrEqual(60);
+  });
+
+  it('[P1] reset clears p50 history', () => {
+    metrics.recordDispatch(true, 'find_code', 0.95, 100, 'warm');
+    metrics.reset();
+    expect(metrics.getP50History()).toEqual([]);
+  });
+});

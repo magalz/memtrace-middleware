@@ -34,7 +34,7 @@ let activeBackend: MemtraceBackend | null = null;
 
 function printUsage(): void {
   process.stderr.write(
-    'usage: memtrace --status | init [--force] | start [--force-tier <tier>] [--degradation-floor <tier>] | telemetry [--compact]\n'
+    'usage: memtrace --status | init [--force] | start [--force-tier <tier>] [--degradation-floor <tier>] | telemetry [--compact] | dashboard [--watch] [--set-baseline]\n'
   );
 }
 
@@ -252,6 +252,27 @@ async function main(): Promise<void> {
     }
 
     await startServer(config);
+    return;
+  }
+
+  if (args[0] === 'dashboard') {
+    const { saveBaseline } = await import('../telemetry/baseline.js');
+    const { startDashboard } = await import('./dashboard.js');
+
+    const setBaseline = args.includes('--set-baseline');
+    const watch = args.includes('--watch');
+
+    if (setBaseline) {
+      const saved = saveBaseline();
+      if (saved) {
+        process.stdout.write('Baseline saved to ~/.memtrace/baseline.json\n');
+      } else {
+        process.stderr.write('Error: failed to save baseline — check file permissions and disk space\n');
+      }
+      return;
+    }
+
+    startDashboard({ watch });
     return;
   }
 

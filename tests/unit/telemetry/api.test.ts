@@ -102,4 +102,17 @@ describe('buildTelemetryResponse', () => {
     expect(response.memtrace_uptime.successful_probes).toBe(2);
     expect(response.memtrace_uptime.probe_success_rate).toBeGreaterThan(0);
   });
+
+  it('[P1] [Story 9.2] includes p50_history field after dispatches', () => {
+    metrics.recordDispatch(true, 'find_code', 0.95, 100, 'warm');
+
+    const response = buildTelemetryResponse();
+    expect(response).toHaveProperty('p50_history');
+    expect(Array.isArray(response.p50_history)).toBe(true);
+  });
+
+  it('[P1] [Story 9.2] p50_history is empty array before any dispatches', () => {
+    const response = buildTelemetryResponse();
+    expect(response.p50_history).toEqual([]);
+  });
 });

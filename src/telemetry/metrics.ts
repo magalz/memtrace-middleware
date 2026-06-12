@@ -7,6 +7,7 @@ import { getRateLimiter, getCircuitBreaker } from '../degrade/index.js';
 
 const CONFIDENCE_CAPACITY = 100;
 const LATENCY_BUFFER_CAPACITY = 500;
+const P50_HISTORY_CAPACITY = 60;
 
 let tier: DegradationTier = DegradationTier.Full;
 const intentSet = new Set<string>();
@@ -24,6 +25,7 @@ const confidenceBufferMap = new Map<string, RingBuffer<number>>();
 const latencyBuffers = new Map<string, RingBuffer<number>>();
 const coldStartLatencyBuffer = new RingBuffer<number>(LATENCY_BUFFER_CAPACITY);
 const steadyStateLatencyBuffer = new RingBuffer<number>(LATENCY_BUFFER_CAPACITY);
+const p50HistoryBuffer = new RingBuffer<number>(P50_HISTORY_CAPACITY);
 
 function computePercentile(sorted: number[], p: number): number {
   if (sorted.length === 0) {
@@ -46,6 +48,12 @@ function computeLatencyStats(buffer: RingBuffer<number>): LatencyStats {
     p99: computePercentile(sorted, 0.99),
     count: values.length,
   };
+}
+
+function computeP50(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  return computePercentile(sorted, 0.5);
 }
 
 const MAX_INTENT_BUFFERS = 50;
@@ -134,6 +142,9 @@ export const metrics = {
       getConfidenceBuffer(intentType).push(confidence);
     }
     recordLatencyImpl(intentType, elapsedMs, startupType === 'cold');
+    const steadyValues = steadyStateLatencyBuffer.toArray();
+    const combined = [...coldStartLatencyBuffer.toArray(), ...steadyValues];
+    p50HistoryBuffer.push(computeP50(combined));
   },
 
   recordLatency: recordLatencyImpl,
@@ -150,6 +161,10 @@ export const metrics = {
 
   getForceTierOverrideCount(): number {
     return forceTierOverrideCount;
+  },
+
+  getP50History(): number[] {
+    return p50HistoryBuffer.toArray();
   },
 
   getIntentSuccessCounts(): Map<string, number> {
@@ -236,5 +251,6 @@ export const metrics = {
     forceTierOverrideCount = 0;
     probeBuffer.clear();
     confidenceBufferMap.clear();
+    p50HistoryBuffer.clear();
   },
 };

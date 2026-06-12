@@ -144,6 +144,7 @@ export interface TelemetryApiResponse {
   };
   confidence_distribution: Record<string, { p50: number; p95: number; sample_count: number }>;
   buffer_utilization_pct: number;
+  p50_history: number[];
   uptime_seconds: number;
   tier: DegradationTier;
   active_intents: string[];

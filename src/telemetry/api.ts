@@ -81,6 +81,7 @@ export function buildTelemetryResponse(): TelemetryApiResponse {
       successful_probes: probeSnapshot.successful_probes,
     },
     confidence_distribution: confidenceDistribution,
+    p50_history: metrics.getP50History(),
     buffer_utilization_pct: metrics.getBufferUtilizationPct(),
     uptime_seconds: Math.floor(process.uptime()),
     tier: degradationMachine.getCurrentTier(),
