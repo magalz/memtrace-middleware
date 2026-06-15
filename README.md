@@ -75,6 +75,47 @@ pnpm start
 ╚══════════════════════════════════╝
 ```
 
+## Telemetry API
+
+Export the 5 core KPIs as structured JSON:
+
+```bash
+mtm telemetry                 # pretty-printed JSON
+mtm telemetry --compact       # single-line JSON
+```
+
+Returns `schema_version: "1.0"` with: query success rates per intent, force-tier override count, latency percentiles (p50/p95/p99), Memtrace probe uptime, classification confidence distribution, buffer utilization, and pruning stats.
+
+The `memtrace_telemetry` MCP tool exposes the same data to agents.
+
+## Telemetry Dashboard
+
+Live-updating terminal dashboard with sparkline latency history and per-release drift detection:
+
+```bash
+mtm dashboard                 # live TUI (500ms refresh, press 'q' to quit)
+mtm dashboard --watch         # hot-reload thresholds on config change
+mtm dashboard --set-baseline  # save current KPIs as baseline for drift comparison
+```
+
+Shows: health dot (green/yellow/red), current tier, uptime, 5 KPI panels with threshold coloring, latency sparkline (last 60 data points), per-release drift arrows, and pruning stats.
+
+## Context Pruning
+
+Long-running agent sessions automatically prune stale conversation history to stay within token budget. Configurable via `middleware.json`:
+
+```json
+{
+  "pruning": {
+    "enabled": true,
+    "max_turn_threshold": 20,
+    "recency_window": 5
+  }
+}
+```
+
+Retains: last N turns (recency) + structurally-relevant turns (symbol overlap with current query) + MemFleet-annotated turns. Tokens saved reported in `--status` and dashboard.
+
 ## Troubleshooting
 
 ### Memtrace not found
