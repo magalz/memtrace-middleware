@@ -2,7 +2,11 @@ import { degradationMachine } from '../degrade/machine.js';
 import type { TelemetryApiResponse } from '../types.js';
 import { metrics } from './metrics.js';
 
-function computeTelemetryPercentiles(values: number[]): { p50_ms: number; p95_ms: number; p99_ms: number } {
+function computeTelemetryPercentiles(values: number[]): {
+  p50_ms: number;
+  p95_ms: number;
+  p99_ms: number;
+} {
   if (values.length === 0) {
     return { p50_ms: 0, p95_ms: 0, p99_ms: 0 };
   }
@@ -74,9 +78,11 @@ export function buildTelemetryResponse(): TelemetryApiResponse {
       per_intent: latencyPerIntent,
     },
     memtrace_uptime: {
-      probe_success_rate: probeSnapshot.total_probes > 0
-        ? Math.round((probeSnapshot.successful_probes / probeSnapshot.total_probes) * 100 * 10) / 10
-        : 0,
+      probe_success_rate:
+        probeSnapshot.total_probes > 0
+          ? Math.round((probeSnapshot.successful_probes / probeSnapshot.total_probes) * 100 * 10) /
+            10
+          : 0,
       total_probes: probeSnapshot.total_probes,
       successful_probes: probeSnapshot.successful_probes,
     },

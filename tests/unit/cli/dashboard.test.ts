@@ -2,12 +2,20 @@ import { describe, it, expect, beforeEach, vi, afterEach, beforeAll } from 'vite
 import { DegradationTier } from '../../../src/types.js';
 import type { TelemetryApiResponse } from '../../../src/types.js';
 import { metrics } from '../../../src/telemetry/metrics.js';
-import { renderDashboard, renderSparkline, renderCompactJson, startDashboard, driftArrow, panelColor, healthDot } from '../../../src/cli/dashboard.js';
+import {
+  renderDashboard,
+  renderSparkline,
+  renderCompactJson,
+  startDashboard,
+  driftArrow,
+  panelColor,
+  healthDot,
+} from '../../../src/cli/dashboard.js';
 import type { DashboardWarningThresholds } from '../../../src/config/types.js';
 
 const defaultThresholds: DashboardWarningThresholds = {
   success_rate_warn: 0.95,
-  success_rate_crit: 0.80,
+  success_rate_crit: 0.8,
   latency_p95_warn_ms: 600,
   latency_p95_crit_ms: 900,
   uptime_warn_pct: 90,
@@ -88,7 +96,7 @@ describe('renderDashboard', () => {
 
   it('[P2] warning threshold colors success_rate correctly', () => {
     const response = makeTelemetryResponse({
-      query_success_rate: { find_code: { success: 90, failure: 10, total: 100, rate: 0.90 } },
+      query_success_rate: { find_code: { success: 90, failure: 10, total: 100, rate: 0.9 } },
     });
     const lines = renderDashboard(response, defaultThresholds, 0, null, 0);
     const joined = lines.join('\n');
@@ -99,7 +107,7 @@ describe('renderDashboard', () => {
 
   it('[P2] warning threshold colors success_rate critical', () => {
     const response = makeTelemetryResponse({
-      query_success_rate: { find_code: { success: 50, failure: 50, total: 100, rate: 0.50 } },
+      query_success_rate: { find_code: { success: 50, failure: 50, total: 100, rate: 0.5 } },
     });
     const lines = renderDashboard(response, defaultThresholds, 0, null, 0);
     const joined = lines.join('\n');
@@ -194,17 +202,17 @@ describe('driftArrow', () => {
 
 describe('panelColor', () => {
   it('[P0] returns green when value within warn threshold (higher is better)', () => {
-    const result = panelColor(0.98, 0.95, 0.80, true);
+    const result = panelColor(0.98, 0.95, 0.8, true);
     expect(result).toContain('\x1b[32m');
   });
 
   it('[P0] returns yellow when value between warn and crit (higher is better)', () => {
-    const result = panelColor(0.90, 0.95, 0.80, true);
+    const result = panelColor(0.9, 0.95, 0.8, true);
     expect(result).toContain('\x1b[33m');
   });
 
   it('[P0] returns red when value below crit (higher is better)', () => {
-    const result = panelColor(0.70, 0.95, 0.80, true);
+    const result = panelColor(0.7, 0.95, 0.8, true);
     expect(result).toContain('\x1b[31m');
   });
 
@@ -224,7 +232,7 @@ describe('panelColor', () => {
   });
 
   it('[P1] returns yellow for NaN (does not mask broken metrics)', () => {
-    const result = panelColor(NaN, 0.95, 0.80, true);
+    const result = panelColor(NaN, 0.95, 0.8, true);
     expect(result).toContain('\x1b[33m');
   });
 

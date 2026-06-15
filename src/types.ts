@@ -131,7 +131,10 @@ export interface TelemetryApiResponse {
   schema_version: '1.0';
   cold_start: boolean;
   timestamp: string;
-  query_success_rate: Record<string, { success: number; failure: number; total: number; rate: number }>;
+  query_success_rate: Record<
+    string,
+    { success: number; failure: number; total: number; rate: number }
+  >;
   override_frequency: { total_overrides: number };
   latency_percentiles: {
     global: { p50_ms: number; p95_ms: number; p99_ms: number };

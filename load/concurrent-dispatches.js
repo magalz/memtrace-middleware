@@ -11,17 +11,45 @@ const dispatchFailure = new Counter('dispatch_failure');
 
 const INTENTS = [
   { name: 'find_code', tool: 'memtrace_find_code', args: { query: 'auth', file_path: 'src/' } },
-  { name: 'get_symbol_context', tool: 'memtrace_get_symbol_context', args: { symbol: 'validateToken', repo_id: 'my-repo' } },
-  { name: 'get_impact', tool: 'memtrace_get_impact', args: { target: 'validateToken', repo_id: 'my-repo' } },
+  {
+    name: 'get_symbol_context',
+    tool: 'memtrace_get_symbol_context',
+    args: { symbol: 'validateToken', repo_id: 'my-repo' },
+  },
+  {
+    name: 'get_impact',
+    tool: 'memtrace_get_impact',
+    args: { target: 'validateToken', repo_id: 'my-repo' },
+  },
   { name: 'review_code', tool: 'find_ast_review_issues', args: { diff: '', repo_root: '.' } },
   { name: 'get_style_fingerprint', tool: 'get_style_fingerprint', args: { repo_id: 'my-repo' } },
   { name: 'find_dead_code', tool: 'memtrace_find_dead_code', args: { repo_id: 'my-repo' } },
-  { name: 'get_evolution', tool: 'memtrace_get_evolution', args: { repo_id: 'my-repo', from: '7d ago' } },
-  { name: 'get_process_flow', tool: 'memtrace_get_process_flow', args: { process: 'login', repo_id: 'my-repo' } },
+  {
+    name: 'get_evolution',
+    tool: 'memtrace_get_evolution',
+    args: { repo_id: 'my-repo', from: '7d ago' },
+  },
+  {
+    name: 'get_process_flow',
+    tool: 'memtrace_get_process_flow',
+    args: { process: 'login', repo_id: 'my-repo' },
+  },
   { name: 'get_api_topology', tool: 'memtrace_get_api_topology', args: {} },
-  { name: 'find_bridge_symbols', tool: 'memtrace_find_bridge_symbols', args: { repo_id: 'my-repo' } },
-  { name: 'find_central_symbols', tool: 'memtrace_find_central_symbols', args: { repo_id: 'my-repo' } },
-  { name: 'find_dependency_path', tool: 'memtrace_find_dependency_path', args: { source: 'login', target: 'db', repo_id: 'my-repo' } },
+  {
+    name: 'find_bridge_symbols',
+    tool: 'memtrace_find_bridge_symbols',
+    args: { repo_id: 'my-repo' },
+  },
+  {
+    name: 'find_central_symbols',
+    tool: 'memtrace_find_central_symbols',
+    args: { repo_id: 'my-repo' },
+  },
+  {
+    name: 'find_dependency_path',
+    tool: 'memtrace_find_dependency_path',
+    args: { source: 'login', target: 'db', repo_id: 'my-repo' },
+  },
 ];
 
 export const options = {
@@ -154,8 +182,8 @@ export function handleSummary(data) {
   const summary = {
     test: 'concurrent-dispatches',
     scenario: 'latency-validation',
-    thresholds_met: Object.values(data.metrics).every(
-      (m) => (m.thresholds ?? []).every((t) => t.ok)
+    thresholds_met: Object.values(data.metrics).every((m) =>
+      (m.thresholds ?? []).every((t) => t.ok)
     ),
     cold_start: coldResults,
     steady_state: warmResults,

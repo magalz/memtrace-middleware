@@ -660,20 +660,17 @@ describe('memtrace-adapter.mjs', () => {
       }
     );
 
-    it(
-      'serialization failure handling — adapter source has try/catch for JSON.stringify',
-      () => {
-        const adapterSource = readFileSync(ADAPTER, 'utf8');
-        assert.ok(
-          adapterSource.includes('catch (serializeErr)'),
-          'Adapter must have try/catch for JSON.stringify serialization errors'
-        );
-        assert.ok(
-          adapterSource.includes('Failed to serialize result'),
-          'Adapter must report serialization failures through stderr'
-        );
-      }
-    );
+    it('serialization failure handling — adapter source has try/catch for JSON.stringify', () => {
+      const adapterSource = readFileSync(ADAPTER, 'utf8');
+      assert.ok(
+        adapterSource.includes('catch (serializeErr)'),
+        'Adapter must have try/catch for JSON.stringify serialization errors'
+      );
+      assert.ok(
+        adapterSource.includes('Failed to serialize result'),
+        'Adapter must report serialization failures through stderr'
+      );
+    });
   });
 
   describe('Timeout detection accuracy', () => {

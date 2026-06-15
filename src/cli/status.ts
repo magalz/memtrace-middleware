@@ -158,7 +158,9 @@ export function renderStatus(snapshot: StatusSnapshot | null, isTTY: boolean): s
   }
   if (snapshot.pruning) {
     const p = snapshot.pruning;
-    parts.push(`pruning: active | tokens_saved: ${p.tokens_saved_estimate} | retention: recency(${p.recency_count}) + structural(${p.structural_count}) = ${p.retained_count}`);
+    parts.push(
+      `pruning: active | tokens_saved: ${p.tokens_saved_estimate} | retention: recency(${p.recency_count}) + structural(${p.structural_count}) = ${p.retained_count}`
+    );
   }
 
   return `\r\x1b[K${parts.join(' | ')}`;

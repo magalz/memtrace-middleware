@@ -77,7 +77,11 @@ describe('pruneHistory', () => {
     const history: ConversationHistory = Array.from({ length: 25 }, (_, i) =>
       makeTurn(`turn ${i + 1}`, i === 2 ? ['processPayment'] : [])
     );
-    const result = pruneHistory(history, makeMessage('find processPayment implementation'), DEFAULT_CONFIG);
+    const result = pruneHistory(
+      history,
+      makeMessage('find processPayment implementation'),
+      DEFAULT_CONFIG
+    );
     // Turn 3 (index 2) is outside recency (only turns 21-25, indices 20-24, are recency)
     // Turn 3 has symbol 'processPayment' which matches query
     expect(result.pruned.find((t) => t.message_text === 'turn 3')).toBeDefined();
@@ -88,7 +92,11 @@ describe('pruneHistory', () => {
     const history: ConversationHistory = Array.from({ length: 25 }, (_, i) =>
       makeTurn(`turn ${i + 1}`, i === 3 ? ['AUTHENTICATEUSER'] : [])
     );
-    const result = pruneHistory(history, makeMessage('find authenticateUser in auth module'), DEFAULT_CONFIG);
+    const result = pruneHistory(
+      history,
+      makeMessage('find authenticateUser in auth module'),
+      DEFAULT_CONFIG
+    );
     expect(result.pruned.find((t) => t.message_text === 'turn 4')).toBeDefined();
   });
 

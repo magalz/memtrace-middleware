@@ -570,7 +570,13 @@ describe('classify — history parameter (Story 9.3)', () => {
   it('[P1] classify with history returns same classification as without', () => {
     const msg = makeMessage('find authenticateUser', 'memtrace_find_code');
     const resultWithout = classify(msg, mockCapabilities);
-    const resultWith = classify(msg, mockCapabilities, [{ timestamp: new Date().toISOString(), message_text: 'prior turn', symbols: ['authenticateUser'] }]);
+    const resultWith = classify(msg, mockCapabilities, [
+      {
+        timestamp: new Date().toISOString(),
+        message_text: 'prior turn',
+        symbols: ['authenticateUser'],
+      },
+    ]);
     expect(resultWith.ok).toBe(resultWithout.ok);
     if (resultWith.ok && resultWithout.ok) {
       expect(resultWith.value.intent_type).toBe(resultWithout.value.intent_type);

@@ -160,8 +160,8 @@ describe('metrics — enhanced tracking (Story 9.1)', () => {
   });
 
   it('[P1] recordDispatch stores per-intent confidence in separate buffers', () => {
-    metrics.recordDispatch(true, 'find_code', 0.80, 100, 'warm');
-    metrics.recordDispatch(true, 'find_code', 0.90, 100, 'warm');
+    metrics.recordDispatch(true, 'find_code', 0.8, 100, 'warm');
+    metrics.recordDispatch(true, 'find_code', 0.9, 100, 'warm');
     metrics.recordDispatch(true, 'get_impact', 0.99, 100, 'warm');
 
     const confidenceMap = metrics.getConfidenceBufferMap();
@@ -254,13 +254,34 @@ describe('metrics — pruning stats (Story 9.3)', () => {
   });
 
   it('[P1] recordPruning accumulates tokensSaved', () => {
-    metrics.recordPruning({ pruned_count: 10, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 50 });
-    metrics.recordPruning({ pruned_count: 10, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 30 });
+    metrics.recordPruning({
+      pruned_count: 10,
+      retained_count: 5,
+      recency_count: 5,
+      structural_count: 0,
+      memfleet_count: 0,
+      tokens_saved_estimate: 50,
+    });
+    metrics.recordPruning({
+      pruned_count: 10,
+      retained_count: 5,
+      recency_count: 5,
+      structural_count: 0,
+      memfleet_count: 0,
+      tokens_saved_estimate: 30,
+    });
     expect(metrics.getTotalTokensSaved()).toBe(80);
   });
 
   it('[P1] getSnapshot includes pruning field', () => {
-    const stats = { pruned_count: 20, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 120 };
+    const stats = {
+      pruned_count: 20,
+      retained_count: 5,
+      recency_count: 5,
+      structural_count: 0,
+      memfleet_count: 0,
+      tokens_saved_estimate: 120,
+    };
     metrics.recordPruning(stats);
     const snapshot = metrics.getSnapshot();
     expect(snapshot.pruning).toEqual(stats);
@@ -272,7 +293,14 @@ describe('metrics — pruning stats (Story 9.3)', () => {
   });
 
   it('[P1] reset clears pruning stats', () => {
-    metrics.recordPruning({ pruned_count: 10, retained_count: 5, recency_count: 5, structural_count: 0, memfleet_count: 0, tokens_saved_estimate: 50 });
+    metrics.recordPruning({
+      pruned_count: 10,
+      retained_count: 5,
+      recency_count: 5,
+      structural_count: 0,
+      memfleet_count: 0,
+      tokens_saved_estimate: 50,
+    });
     metrics.reset();
     expect(metrics.getPruningStats()).toBeNull();
     expect(metrics.getTotalTokensSaved()).toBe(0);
