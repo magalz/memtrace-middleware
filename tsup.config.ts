@@ -11,10 +11,13 @@ export default defineConfig([
   },
   {
     entry: { cli: 'src/cli/index.ts' },
-    format: ['esm'],
+    format: ['cjs'],
     clean: false,
     sourcemap: true,
     splitting: false,
+    outExtension() {
+      return { js: '.cjs' };
+    },
     esbuildOptions(options) {
       options.banner = {
         js: '#!/usr/bin/env node',
