@@ -10,7 +10,7 @@ A structured middleware for AI agent frameworks that routes intents to Memtrace'
 
 ```bash
 npm install -g @memtrace/middleware
-memtrace init
+mtm init
 ```
 
 ### Local Development Install
@@ -23,7 +23,7 @@ pnpm build
 pnpm link --global .
 ```
 
-Then `memtrace` is available globally from the local build.
+Then `mtm` is available globally from the local build.
 
 To uninstall:
 
