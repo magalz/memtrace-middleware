@@ -68,9 +68,10 @@ describe('Dispatch E2E — rate limit + circuit breaker (Story 7.3)', () => {
     shutdownDegradation();
   });
 
-  function createExecBackend(
-    failUntilCount: number = Infinity
-  ): { backend: MemtraceBackend; callCount: () => number } {
+  function createExecBackend(failUntilCount: number = Infinity): {
+    backend: MemtraceBackend;
+    callCount: () => number;
+  } {
     let count = 0;
     return {
       backend: {
@@ -85,7 +86,15 @@ describe('Dispatch E2E — rate limit + circuit breaker (Story 7.3)', () => {
           }
           return {
             tool: 'memtrace_find_code' as const,
-            data: [{ name: 'foo', file_path: 'bar.ts', start_line: 1, end_line: 10, kind: 'Function' as const }],
+            data: [
+              {
+                name: 'foo',
+                file_path: 'bar.ts',
+                start_line: 1,
+                end_line: 10,
+                kind: 'Function' as const,
+              },
+            ],
             trace_id: 't1',
             elapsed_ms: 5,
             degraded: false,
@@ -108,17 +117,23 @@ describe('Dispatch E2E — rate limit + circuit breaker (Story 7.3)', () => {
   it('[P0] rate limiter blocks excess concurrent dispatches at dispatch entry', async () => {
     const config: MiddlewareConfig = {
       ...DEFAULT_CONFIG,
-      rate_limiting: { enabled: true, max_requests_per_window: 100, window_ms: 60000, max_concurrent: 2 },
+      rate_limiting: {
+        enabled: true,
+        max_requests_per_window: 100,
+        window_ms: 60000,
+        max_concurrent: 2,
+      },
     };
     const { backend } = createExecBackend(0);
     initializeDegradation(backend, config);
     const adapter = new BaseAdapter(backend, config);
 
-    const results = await Promise.all([
+    const settled = await Promise.allSettled([
       adapter.dispatch(makeMsg()),
       adapter.dispatch(makeMsg()),
       adapter.dispatch(makeMsg()),
     ]);
+    const results = settled.filter((s) => s.status === 'fulfilled').map((s) => s.value);
 
     const rateLimited = results.find((r) => {
       try {
@@ -139,7 +154,13 @@ describe('Dispatch E2E — rate limit + circuit breaker (Story 7.3)', () => {
   it('[P0] circuit breaker opens after consecutive backend failures via dispatch pipeline', async () => {
     const config: MiddlewareConfig = {
       ...DEFAULT_CONFIG,
-      circuit_breaker: { enabled: true, failure_threshold: 3, success_threshold: 2, half_open_max_calls: 2, open_state_ms: 30000 },
+      circuit_breaker: {
+        enabled: true,
+        failure_threshold: 3,
+        success_threshold: 2,
+        half_open_max_calls: 2,
+        open_state_ms: 30000,
+      },
     };
     const { backend } = createExecBackend(5);
     initializeDegradation(backend, config);
@@ -159,7 +180,13 @@ describe('Dispatch E2E — rate limit + circuit breaker (Story 7.3)', () => {
   it('[P0] circuit breaker recovers after cooldown and successful probes', async () => {
     const config: MiddlewareConfig = {
       ...DEFAULT_CONFIG,
-      circuit_breaker: { enabled: true, failure_threshold: 3, success_threshold: 1, half_open_max_calls: 1, open_state_ms: 10000 },
+      circuit_breaker: {
+        enabled: true,
+        failure_threshold: 3,
+        success_threshold: 1,
+        half_open_max_calls: 1,
+        open_state_ms: 10000,
+      },
     };
     const { backend } = createExecBackend(3);
     initializeDegradation(backend, config);

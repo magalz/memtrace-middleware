@@ -20,7 +20,14 @@ export interface BaselineDrift {
 
 const DRIFT_THRESHOLD = 0.05;
 
-function compareDelta(current: number, baseline: number, higherIsBetter: boolean): 'up' | 'down' | 'stable' {
+// Returns drift relative to baseline: 'up' = value increased (may be good or bad),
+// 'down' = value decreased (may be good or bad). The caller (driftArrow) maps
+// these to red/green arrows based on whether higher-is-better for that metric.
+function compareDelta(
+  current: number,
+  baseline: number,
+  higherIsBetter: boolean
+): 'up' | 'down' | 'stable' {
   const ratio = baseline > 0 ? current / baseline : current > 0 ? 2 : 1;
   if (ratio > 1 + DRIFT_THRESHOLD) {
     return higherIsBetter ? 'down' : 'up';
@@ -38,12 +45,14 @@ function computePerIntentDrift(
   const currentKeys = Object.keys(current);
   const baselineKeys = Object.keys(baseline);
   if (currentKeys.length === 0 && baselineKeys.length === 0) return 'stable';
-  const avgCurrent = currentKeys.length > 0
-    ? Object.values(current).reduce((s, v) => s + v.rate, 0) / currentKeys.length
-    : 0;
-  const avgBaseline = baselineKeys.length > 0
-    ? Object.values(baseline).reduce((s, v) => s + v.rate, 0) / baselineKeys.length
-    : 0;
+  const avgCurrent =
+    currentKeys.length > 0
+      ? Object.values(current).reduce((s, v) => s + v.rate, 0) / currentKeys.length
+      : 0;
+  const avgBaseline =
+    baselineKeys.length > 0
+      ? Object.values(baseline).reduce((s, v) => s + v.rate, 0) / baselineKeys.length
+      : 0;
   return compareDelta(avgCurrent, avgBaseline, true);
 }
 
@@ -75,12 +84,14 @@ function computeConfidenceDrift(
   const currentKeys = Object.keys(current);
   const baselineKeys = Object.keys(baseline);
   if (currentKeys.length === 0 && baselineKeys.length === 0) return 'stable';
-  const avgCurrent = currentKeys.length > 0
-    ? Object.values(current).reduce((s, v) => s + v.p50, 0) / currentKeys.length
-    : 0;
-  const avgBaseline = baselineKeys.length > 0
-    ? Object.values(baseline).reduce((s, v) => s + v.p50, 0) / baselineKeys.length
-    : 0;
+  const avgCurrent =
+    currentKeys.length > 0
+      ? Object.values(current).reduce((s, v) => s + v.p50, 0) / currentKeys.length
+      : 0;
+  const avgBaseline =
+    baselineKeys.length > 0
+      ? Object.values(baseline).reduce((s, v) => s + v.p50, 0) / baselineKeys.length
+      : 0;
   return compareDelta(avgCurrent, avgBaseline, true);
 }
 
@@ -95,7 +106,10 @@ export function saveBaseline(): boolean {
     log.info('baseline_saved', { path: BASELINE_FILE });
     return true;
   } catch (err: unknown) {
-    log.error('baseline_save_failed', { path: BASELINE_FILE, error: err instanceof Error ? err.message : String(err) });
+    log.error('baseline_save_failed', {
+      path: BASELINE_FILE,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return false;
   }
 }
@@ -141,9 +155,15 @@ export function computeDrift(
   baseline: TelemetryApiResponse
 ): BaselineDrift {
   return {
-    query_success_rate: computePerIntentDrift(current.query_success_rate, baseline.query_success_rate),
+    query_success_rate: computePerIntentDrift(
+      current.query_success_rate,
+      baseline.query_success_rate
+    ),
     latency_p95: computeLatencyDrift(current.latency_percentiles, baseline.latency_percentiles),
-    confidence_median: computeConfidenceDrift(current.confidence_distribution, baseline.confidence_distribution),
+    confidence_median: computeConfidenceDrift(
+      current.confidence_distribution,
+      baseline.confidence_distribution
+    ),
     uptime_probe_rate: computeUptimeDrift(current.memtrace_uptime, baseline.memtrace_uptime),
     override_count: computeOverrideDrift(current.override_frequency, baseline.override_frequency),
   };

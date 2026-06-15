@@ -1,7 +1,7 @@
-import { MiddlewareError } from '../errors.js';
-import type { RateLimitSnapshot, Result } from '../types.js';
 import type { MiddlewareConfig } from '../config/types.js';
+import { MiddlewareError } from '../errors.js';
 import { createLogger } from '../logger.js';
+import type { RateLimitSnapshot, Result } from '../types.js';
 
 const log = createLogger('rate-limiter');
 
@@ -26,9 +26,11 @@ export class RateLimiter {
       if (!config.enabled && this.enabled) this.reset();
       this.enabled = config.enabled;
     }
-    if (config.max_requests_per_window !== undefined) this.maxRequests = Math.max(1, config.max_requests_per_window);
+    if (config.max_requests_per_window !== undefined)
+      this.maxRequests = Math.max(1, config.max_requests_per_window);
     if (config.window_ms !== undefined) this.windowMs = Math.max(1, config.window_ms);
-    if (config.max_concurrent !== undefined) this.maxConcurrent = Math.max(1, config.max_concurrent);
+    if (config.max_concurrent !== undefined)
+      this.maxConcurrent = Math.max(1, config.max_concurrent);
   }
 
   checkRateLimit(_intentType?: string): Result<void, MiddlewareError> {
@@ -86,7 +88,8 @@ export class RateLimiter {
       current_count: this.timestamps.length,
       current_concurrent: this.concurrent,
       max_concurrent: this.maxConcurrent,
-      reset_at: this.timestamps.length > 0 ? this.timestamps[0]! + this.windowMs : now + this.windowMs,
+      reset_at:
+        this.timestamps.length > 0 ? this.timestamps[0]! + this.windowMs : now + this.windowMs,
       limited_count: this.limitedCount,
     };
   }

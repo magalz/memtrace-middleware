@@ -1,6 +1,6 @@
-import type { CircuitSnapshot } from '../types.js';
 import type { MiddlewareConfig } from '../config/types.js';
 import { createLogger } from '../logger.js';
+import type { CircuitSnapshot } from '../types.js';
 
 const log = createLogger('circuit-breaker');
 
@@ -35,9 +35,12 @@ export class CircuitBreaker {
       if (!config.enabled && this.enabled) this.reset();
       this.enabled = config.enabled;
     }
-    if (config.failure_threshold !== undefined) this.failureThreshold = Math.max(1, config.failure_threshold);
-    if (config.success_threshold !== undefined) this.successThreshold = Math.max(1, config.success_threshold);
-    if (config.half_open_max_calls !== undefined) this.halfOpenMaxCalls = Math.max(1, config.half_open_max_calls);
+    if (config.failure_threshold !== undefined)
+      this.failureThreshold = Math.max(1, config.failure_threshold);
+    if (config.success_threshold !== undefined)
+      this.successThreshold = Math.max(1, config.success_threshold);
+    if (config.half_open_max_calls !== undefined)
+      this.halfOpenMaxCalls = Math.max(1, config.half_open_max_calls);
     if (config.open_state_ms !== undefined) this.openStateMs = Math.max(1, config.open_state_ms);
   }
 

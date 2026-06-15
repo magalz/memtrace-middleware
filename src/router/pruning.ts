@@ -1,3 +1,5 @@
+import type { PruningStats } from '../types.js';
+
 export interface ConversationTurn {
   timestamp: string;
   message_text: string;
@@ -13,14 +15,7 @@ export interface PruningConfig {
   enabled: boolean;
 }
 
-export interface PruningStats {
-  pruned_count: number;
-  retained_count: number;
-  recency_count: number;
-  structural_count: number;
-  memfleet_count: number;
-  tokens_saved_estimate: number;
-}
+export type { PruningStats };
 
 function getQueryText(message: Record<string, unknown>): string {
   const params = message.params as Record<string, unknown> | undefined;

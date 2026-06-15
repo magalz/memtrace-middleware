@@ -1,6 +1,6 @@
 import { DegradationTier } from '../types.js';
 import type { LatencySnapshot, LatencyStats, PruningStats, StatusSnapshot } from '../types.js';
-import { getColdStartStats } from './cold-start.js';
+import { getColdStartStats, resetColdStartDetector } from './cold-start.js';
 import { RingBuffer } from './ring-buffer.js';
 import { TELEMETRY_PROBE_RING_SIZE } from '../constants.js';
 import { getRateLimiter, getCircuitBreaker } from '../degrade/index.js';
@@ -65,7 +65,7 @@ function getLatencyBuffer(intentType: string): RingBuffer<number> {
   let buffer = latencyBuffers.get(intentType);
   if (!buffer) {
     if (latencyBuffers.size >= MAX_INTENT_BUFFERS) {
-      return new RingBuffer<number>(0); // dummy — silently discard
+      return steadyStateLatencyBuffer; // overflow — merge into steady-state pool
     }
     buffer = new RingBuffer<number>(LATENCY_BUFFER_CAPACITY);
     latencyBuffers.set(intentType, buffer);
@@ -271,5 +271,6 @@ export const metrics = {
     p50HistoryBuffer.clear();
     pruningStats = null;
     totalTokensSaved = 0;
+    resetColdStartDetector();
   },
 };

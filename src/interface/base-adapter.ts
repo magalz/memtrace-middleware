@@ -1,7 +1,11 @@
 import { type DispatchContext, cleanupContext, createDispatchContext } from './dispatch-context.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import type { MiddlewareConfig } from '../config/index.js';
-import { MAX_DISPATCH_TIMEOUT_MS, MAX_SUB_QUERY_TIMEOUT_MS, DEFAULT_PRUNING_THRESHOLD } from '../constants.js';
+import {
+  MAX_DISPATCH_TIMEOUT_MS,
+  MAX_SUB_QUERY_TIMEOUT_MS,
+  DEFAULT_PRUNING_THRESHOLD,
+} from '../constants.js';
 import { degradationMachine, getRateLimiter, getCircuitBreaker } from '../degrade/index.js';
 import { MiddlewareError } from '../errors.js';
 import { fuse, validateContext } from '../fusion/index.js';
@@ -65,8 +69,19 @@ export class BaseAdapter implements ToolProvider {
       degradation_floor: 'Passthrough',
       enabled_intents: ['find_code', 'get_symbol_context', 'get_impact'],
       classification_threshold: 0.95,
-      rate_limiting: { enabled: true, max_requests_per_window: 100, window_ms: 60000, max_concurrent: 10 },
-      circuit_breaker: { enabled: true, failure_threshold: 5, success_threshold: 3, half_open_max_calls: 3, open_state_ms: 30000 },
+      rate_limiting: {
+        enabled: true,
+        max_requests_per_window: 100,
+        window_ms: 60000,
+        max_concurrent: 10,
+      },
+      circuit_breaker: {
+        enabled: true,
+        failure_threshold: 5,
+        success_threshold: 3,
+        half_open_max_calls: 3,
+        open_state_ms: 30000,
+      },
     };
     this.contextBuilder = defaultContextBuilder;
   }
@@ -199,453 +214,462 @@ export class BaseAdapter implements ToolProvider {
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
-          metadata: { tier: tierAtEntry, trace_id: traceId, elapsed_ms: Date.now() - dispatchStart },
-        };
-      }
-
-    if (tierAtEntry === DegradationTier.Passthrough) {
-      const prunedHistory = this.pruneConversationHistory(message as Record<string, unknown>);
-      const classified = classify(message as unknown as Record<string, unknown>, { tools: [] }, prunedHistory);
-      const intentType = classified.ok ? classified.value.intent_type : 'unknown';
-
-      const cb = getCircuitBreaker();
-      if (cb && !cb.allowRequest()) {
-        const cbError = new MiddlewareError({
-          cause: 'circuit_open',
-          recoverable: true,
-          suggested_action: 'wait_and_retry',
-        });
-        return {
-          content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
-          metadata: { tier: DegradationTier.Passthrough, trace_id: traceId, elapsed_ms: Date.now() - dispatchStart, passthrough: true, degradation_tier: DegradationTier.Passthrough },
-        };
-      }
-
-      const msg = message as Record<string, unknown>;
-      const params = (msg.params ?? {}) as Record<string, unknown>;
-      const toolName = (params.name as string) ?? 'memtrace_find_code';
-      const toolArgs = (params.arguments as Record<string, unknown>) ?? {};
-      const query: GraphQuery = { tool: toolName, arguments: toolArgs };
-
-      const controller = new AbortController();
-      ctx.activeControllers.add(controller);
-      const timer = setTimeout(() => controller.abort(), this.config.timeout_budgets.dispatch_ms);
-      ctx.activeTimers.add(timer);
-
-      try {
-        const result = await this.backend.execute(query, controller.signal);
-        const ptElapsed = Date.now() - dispatchStart;
-        const startupType = isColdStart() ? 'cold' : 'warm';
-        coldStartRecordDispatch(ptElapsed);
-        metrics.recordDispatch(true, intentType, 1.0, ptElapsed, startupType);
-        const turnSymbols = typeof toolName === 'string' && toolName.length > 0 ? [toolName] : [];
-        this.conversationHistory.push({
-          timestamp: new Date().toISOString(),
-          message_text: JSON.stringify(msg),
-          symbols: turnSymbols,
-        });
-        const maxCap = (this.config.pruning?.max_turn_threshold ?? DEFAULT_PRUNING_THRESHOLD) * 2;
-        if (this.conversationHistory.length > maxCap) {
-          this.conversationHistory = this.conversationHistory.slice(-maxCap);
-        }
-        return {
-          content: [{ type: 'text', text: JSON.stringify(result.data) }],
           metadata: {
-            tier: DegradationTier.Passthrough,
-            trace_id: traceId,
-            elapsed_ms: ptElapsed,
-            passthrough: true,
-            degradation_tier: DegradationTier.Passthrough,
-            startup_type: startupType,
-          },
-        };
-      } catch (err: unknown) {
-        metrics.recordDispatch(
-          false,
-          intentType,
-          0,
-          Date.now() - dispatchStart,
-          isColdStart() ? 'cold' : 'warm'
-        );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(err instanceof Error ? err.message : String(err)),
-            },
-          ],
-          metadata: {
-            tier: DegradationTier.Passthrough,
+            tier: tierAtEntry,
             trace_id: traceId,
             elapsed_ms: Date.now() - dispatchStart,
-            passthrough: true,
-            degradation_tier: DegradationTier.Passthrough,
           },
         };
-      } finally {
-        clearTimeout(timer);
-        ctx.activeTimers.delete(timer);
-        ctx.activeControllers.delete(controller);
       }
-    }
 
-    const validated = validateToolCall(message);
-    if (!validated.ok) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(validated.error) }],
-        metadata: {
-          tier: validated.error.tier,
-          trace_id: validated.error.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
+      if (tierAtEntry === DegradationTier.Passthrough) {
+        const prunedHistory = this.pruneConversationHistory(message as Record<string, unknown>);
+        const classified = classify(
+          message as unknown as Record<string, unknown>,
+          { tools: [] },
+          prunedHistory
+        );
+        const intentType = classified.ok ? classified.value.intent_type : 'unknown';
 
-    let capabilities: MemtraceCapabilities;
-    try {
-      const tools = await this.backend.listTools();
-      capabilities = { tools };
-    } catch (err: unknown) {
-      const originalMessage = err instanceof Error ? err.message : String(err);
-      const mwErr =
-        err instanceof MiddlewareError
-          ? err
-          : new MiddlewareError({
-              cause: 'memtrace_unavailable',
-              recoverable: true,
-              suggested_action: 'retry_connection',
-            });
-      log.error('capabilities_fetch_failed', {
-        trace_id: traceId,
-        error: mwErr.message,
-        original_error: originalMessage,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(mwErr.toShape()) }],
-        metadata: {
-          tier: mwErr.tier,
-          trace_id: mwErr.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
-
-    const prunedHistory = this.pruneConversationHistory(
-      validated.value as unknown as Record<string, unknown>
-    );
-
-    const classified = classify(
-      validated.value as unknown as Record<string, unknown>,
-      capabilities,
-      prunedHistory
-    );
-    if (!classified.ok) {
-      log.warn('classification_failed', { trace_id: traceId, error: classified.error });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(classified.error) }],
-        metadata: {
-          tier: classified.error.tier,
-          trace_id: classified.error.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
-
-    const intent = classified.value;
-    log.info('phase_complete', {
-      trace_id: traceId,
-      phase: 'classify',
-      elapsed_ms: Date.now() - dispatchStart,
-    });
-
-    const planned = plan(intent, capabilities);
-    if (!planned.ok) {
-      log.warn('planning_failed', { trace_id: traceId, error: planned.error });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(planned.error) }],
-        metadata: {
-          tier: planned.error.tier,
-          trace_id: planned.error.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
-    log.info('phase_complete', {
-      trace_id: traceId,
-      phase: 'plan',
-      elapsed_ms: Date.now() - dispatchStart,
-    });
-
-    const queries = planned.value;
-    const subQueryTimeout = this.config.timeout_budgets.sub_query_ms;
-
-    if (queries.length === 0) {
-      const elapsed = Date.now() - dispatchStart;
-      log.warn('empty_query_plan', { trace_id: traceId, intent_type: intent.intent_type });
-      const clampedConfidence = Number.isFinite(intent.confidence)
-        ? Math.max(0, Math.min(1, intent.confidence))
-        : 0;
-      const intentType = intent.intent_type ?? 'unknown';
-      const fusedContext: FusedContext = {
-        blocks: [],
-        partial: true,
-        trace_id: traceId,
-        provenance: [],
-      };
-      const validatedEmpty = validateContext(fusedContext);
-      if (!validatedEmpty.ok) {
-        log.warn('empty_query_plan_validation_failed', {
-          trace_id: traceId,
-          error: validatedEmpty.error,
-        });
-      }
-      const response = this.contextBuilder.buildContext(fusedContext);
-      response.metadata = {
-        ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
-        tier: DegradationTier.IntentReduced,
-        trace_id: traceId,
-        elapsed_ms: elapsed,
-      };
-      try {
-        metrics.recordDispatch(true, intentType, clampedConfidence, elapsed);
-      } catch (err: unknown) {
-        log.warn('empty_query_plan_metrics_failed', {
-          trace_id: traceId,
-          intent_type: intentType,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-      return response;
-    }
-
-    const isIntentReduced = degradationMachine.getCurrentTier() === DegradationTier.IntentReduced;
-
-    const results: PromiseSettledResult<QueryResult>[] = [];
-
-    if (isIntentReduced) {
-      for (const q of queries) {
         const cb = getCircuitBreaker();
         if (cb && !cb.allowRequest()) {
-          results.push({
-            status: 'rejected',
-            reason: new MiddlewareError({
-              cause: 'circuit_open',
-              recoverable: true,
-              suggested_action: 'wait_and_retry',
-            }),
+          const cbError = new MiddlewareError({
+            cause: 'circuit_open',
+            recoverable: true,
+            suggested_action: 'wait_and_retry',
           });
-          continue;
+          return {
+            content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
+            metadata: {
+              tier: DegradationTier.Passthrough,
+              trace_id: traceId,
+              elapsed_ms: Date.now() - dispatchStart,
+              passthrough: true,
+              degradation_tier: DegradationTier.Passthrough,
+            },
+          };
         }
+
+        const msg = message as Record<string, unknown>;
+        const params = (msg.params ?? {}) as Record<string, unknown>;
+        const toolName = (params.name as string) ?? 'memtrace_find_code';
+        const toolArgs = (params.arguments as Record<string, unknown>) ?? {};
+        const query: GraphQuery = { tool: toolName, arguments: toolArgs };
 
         const controller = new AbortController();
         ctx.activeControllers.add(controller);
-        const timer = setTimeout(() => controller.abort(), subQueryTimeout);
+        const timer = setTimeout(() => controller.abort(), this.config.timeout_budgets.dispatch_ms);
         ctx.activeTimers.add(timer);
+
         try {
-          const value = await this.backend.execute(q as GraphQuery, controller.signal);
-          cb?.recordSuccess();
-          results.push({ status: 'fulfilled', value });
-        } catch (reason: unknown) {
-          cb?.recordFailure();
-          results.push({ status: 'rejected', reason });
+          const result = await this.backend.execute(query, controller.signal);
+          const ptElapsed = Date.now() - dispatchStart;
+          const startupType = isColdStart() ? 'cold' : 'warm';
+          coldStartRecordDispatch(ptElapsed);
+          metrics.recordDispatch(true, intentType, 1.0, ptElapsed, startupType);
+          const turnSymbols = typeof toolName === 'string' && toolName.length > 0 ? [toolName] : [];
+          this.conversationHistory.push({
+            timestamp: new Date().toISOString(),
+            message_text: JSON.stringify(msg),
+            symbols: turnSymbols,
+          });
+          const maxCap = (this.config.pruning?.max_turn_threshold ?? DEFAULT_PRUNING_THRESHOLD) * 2;
+          if (this.conversationHistory.length > maxCap) {
+            this.conversationHistory = this.conversationHistory.slice(-maxCap);
+          }
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result.data) }],
+            metadata: {
+              tier: DegradationTier.Passthrough,
+              trace_id: traceId,
+              elapsed_ms: ptElapsed,
+              passthrough: true,
+              degradation_tier: DegradationTier.Passthrough,
+              startup_type: startupType,
+            },
+          };
+        } catch (err: unknown) {
+          metrics.recordDispatch(
+            false,
+            intentType,
+            0,
+            Date.now() - dispatchStart,
+            isColdStart() ? 'cold' : 'warm'
+          );
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(err instanceof Error ? err.message : String(err)),
+              },
+            ],
+            metadata: {
+              tier: DegradationTier.Passthrough,
+              trace_id: traceId,
+              elapsed_ms: Date.now() - dispatchStart,
+              passthrough: true,
+              degradation_tier: DegradationTier.Passthrough,
+            },
+          };
         } finally {
           clearTimeout(timer);
           ctx.activeTimers.delete(timer);
           ctx.activeControllers.delete(controller);
         }
       }
-    } else {
-      const settled = await Promise.allSettled(
-        queries.map((q: GraphQuery) => {
+
+      const validated = validateToolCall(message);
+      if (!validated.ok) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify(validated.error) }],
+          metadata: {
+            tier: validated.error.tier,
+            trace_id: validated.error.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
+      }
+
+      let capabilities: MemtraceCapabilities;
+      try {
+        const tools = await this.backend.listTools();
+        capabilities = { tools };
+      } catch (err: unknown) {
+        const originalMessage = err instanceof Error ? err.message : String(err);
+        const mwErr =
+          err instanceof MiddlewareError
+            ? err
+            : new MiddlewareError({
+                cause: 'memtrace_unavailable',
+                recoverable: true,
+                suggested_action: 'retry_connection',
+              });
+        log.error('capabilities_fetch_failed', {
+          trace_id: traceId,
+          error: mwErr.message,
+          original_error: originalMessage,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(mwErr.toShape()) }],
+          metadata: {
+            tier: mwErr.tier,
+            trace_id: mwErr.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
+      }
+
+      const prunedHistory = this.pruneConversationHistory(
+        validated.value as unknown as Record<string, unknown>
+      );
+
+      const classified = classify(
+        validated.value as unknown as Record<string, unknown>,
+        capabilities,
+        prunedHistory
+      );
+      if (!classified.ok) {
+        log.warn('classification_failed', { trace_id: traceId, error: classified.error });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(classified.error) }],
+          metadata: {
+            tier: classified.error.tier,
+            trace_id: classified.error.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
+      }
+
+      const intent = classified.value;
+      log.info('phase_complete', {
+        trace_id: traceId,
+        phase: 'classify',
+        elapsed_ms: Date.now() - dispatchStart,
+      });
+
+      const planned = plan(intent, capabilities);
+      if (!planned.ok) {
+        log.warn('planning_failed', { trace_id: traceId, error: planned.error });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(planned.error) }],
+          metadata: {
+            tier: planned.error.tier,
+            trace_id: planned.error.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
+      }
+      log.info('phase_complete', {
+        trace_id: traceId,
+        phase: 'plan',
+        elapsed_ms: Date.now() - dispatchStart,
+      });
+
+      const queries = planned.value;
+      const subQueryTimeout = this.config.timeout_budgets.sub_query_ms;
+
+      if (queries.length === 0) {
+        const elapsed = Date.now() - dispatchStart;
+        log.warn('empty_query_plan', { trace_id: traceId, intent_type: intent.intent_type });
+        const clampedConfidence = Number.isFinite(intent.confidence)
+          ? Math.max(0, Math.min(1, intent.confidence))
+          : 0;
+        const intentType = intent.intent_type ?? 'unknown';
+        const fusedContext: FusedContext = {
+          blocks: [],
+          partial: true,
+          trace_id: traceId,
+          provenance: [],
+        };
+        const validatedEmpty = validateContext(fusedContext);
+        if (!validatedEmpty.ok) {
+          log.warn('empty_query_plan_validation_failed', {
+            trace_id: traceId,
+            error: validatedEmpty.error,
+          });
+        }
+        const response = this.contextBuilder.buildContext(fusedContext);
+        response.metadata = {
+          ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
+          tier: DegradationTier.IntentReduced,
+          trace_id: traceId,
+          elapsed_ms: elapsed,
+        };
+        try {
+          metrics.recordDispatch(true, intentType, clampedConfidence, elapsed);
+        } catch (err: unknown) {
+          log.warn('empty_query_plan_metrics_failed', {
+            trace_id: traceId,
+            intent_type: intentType,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+        return response;
+      }
+
+      const isIntentReduced = degradationMachine.getCurrentTier() === DegradationTier.IntentReduced;
+
+      const results: PromiseSettledResult<QueryResult>[] = [];
+
+      if (isIntentReduced) {
+        for (const q of queries) {
           const cb = getCircuitBreaker();
           if (cb && !cb.allowRequest()) {
-            return Promise.reject(
-              new MiddlewareError({
+            results.push({
+              status: 'rejected',
+              reason: new MiddlewareError({
                 cause: 'circuit_open',
                 recoverable: true,
                 suggested_action: 'wait_and_retry',
-              })
-            );
+              }),
+            });
+            continue;
           }
 
           const controller = new AbortController();
           ctx.activeControllers.add(controller);
           const timer = setTimeout(() => controller.abort(), subQueryTimeout);
           ctx.activeTimers.add(timer);
-          return this.backend
-            .execute(q, controller.signal)
-            .then((value) => {
+          try {
+            const value = await this.backend.execute(q as GraphQuery, controller.signal);
+            cb?.recordSuccess();
+            results.push({ status: 'fulfilled', value });
+          } catch (reason: unknown) {
+            cb?.recordFailure();
+            results.push({ status: 'rejected', reason });
+          } finally {
+            clearTimeout(timer);
+            ctx.activeTimers.delete(timer);
+            ctx.activeControllers.delete(controller);
+          }
+        }
+      } else {
+        const settled = await Promise.allSettled(
+          queries.map(async (q: GraphQuery) => {
+            const cb = getCircuitBreaker();
+            if (cb && !cb.allowRequest()) {
+              throw new MiddlewareError({
+                cause: 'circuit_open',
+                recoverable: true,
+                suggested_action: 'wait_and_retry',
+              });
+            }
+
+            const controller = new AbortController();
+            ctx.activeControllers.add(controller);
+            const timer = setTimeout(() => controller.abort(), subQueryTimeout);
+            ctx.activeTimers.add(timer);
+            try {
+              const value = await this.backend.execute(q, controller.signal);
               cb?.recordSuccess();
               return value;
-            })
-            .catch((reason: unknown) => {
+            } catch (reason: unknown) {
               cb?.recordFailure();
               throw reason;
-            })
-            .finally(() => {
+            } finally {
               clearTimeout(timer);
               ctx.activeTimers.delete(timer);
               ctx.activeControllers.delete(controller);
-            });
-        })
-      );
-      results.push(...settled);
-    }
+            }
+          })
+        );
+        results.push(...settled);
+      }
 
-    log.info('phase_complete', {
-      trace_id: traceId,
-      phase: 'execute',
-      elapsed_ms: Date.now() - dispatchStart,
-    });
+      log.info('phase_complete', {
+        trace_id: traceId,
+        phase: 'execute',
+        elapsed_ms: Date.now() - dispatchStart,
+      });
 
-    const queryResults: QueryResult[] = [];
-    let circuitOpenBlocked = false;
+      const queryResults: QueryResult[] = [];
+      let circuitOpenBlocked = false;
 
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        queryResults.push(r.value);
-        if (r.value.degraded) ctx.hasDegraded = true;
-      } else {
-        ctx.hasDegraded = true;
-        const reason = r.reason instanceof Error ? r.reason.message : String(r.reason);
-        const reasonTrace = r.reason instanceof MiddlewareError ? r.reason.trace_id : undefined;
-        ctx.errors.push(reason);
-        log.warn('query_rejected', {
-          trace_id: traceId,
-          error: reason,
-          error_trace_id: reasonTrace,
-        });
-        if (r.reason instanceof MiddlewareError && r.reason.cause === 'circuit_open') {
-          circuitOpenBlocked = true;
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          queryResults.push(r.value);
+          if (r.value.degraded) ctx.hasDegraded = true;
+        } else {
+          ctx.hasDegraded = true;
+          const reason = r.reason instanceof Error ? r.reason.message : String(r.reason);
+          const reasonTrace = r.reason instanceof MiddlewareError ? r.reason.trace_id : undefined;
+          ctx.errors.push(reason);
+          log.warn('query_rejected', {
+            trace_id: traceId,
+            error: reason,
+            error_trace_id: reasonTrace,
+          });
+          if (r.reason instanceof MiddlewareError && r.reason.cause === 'circuit_open') {
+            circuitOpenBlocked = true;
+          }
         }
       }
-    }
 
-    if (circuitOpenBlocked && queryResults.length === 0) {
-      const cbError = new MiddlewareError({
-        cause: 'circuit_open',
-        recoverable: true,
-        suggested_action: 'wait_and_retry',
-        tier: degradationMachine.getCurrentTier(),
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
-        metadata: {
-          tier: cbError.tier,
-          trace_id: cbError.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
-
-    const fusedResult = fuse({
-      results: queryResults,
-      intent_type: intent.intent_type,
-    });
-
-    if (!fusedResult.ok) {
-      log.warn('fusion_failed', {
-        trace_id: traceId,
-        error: fusedResult.error,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(fusedResult.error) }],
-        metadata: {
-          tier: fusedResult.error.tier,
-          trace_id: fusedResult.error.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
-
-    log.info('phase_complete', {
-      trace_id: traceId,
-      phase: 'fuse',
-      elapsed_ms: Date.now() - dispatchStart,
-    });
-
-    let fusedContext = fusedResult.value;
-
-    if (isIntentReduced) {
-      fusedContext = {
-        blocks: [],
-        partial: true,
-        trace_id: traceId,
-        provenance: [],
-      };
-    }
-    fusedContext.trace_id = traceId;
-    if (ctx.hasDegraded || intent.passthrough) {
-      fusedContext.partial = true;
-    }
-
-    const fusionValidated = validateContext(fusedContext);
-    if (!fusionValidated.ok) {
-      log.warn('fusion_validation_failed', {
-        trace_id: traceId,
-        error: fusionValidated.error,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(fusionValidated.error) }],
-        metadata: {
-          tier: fusionValidated.error.tier,
-          trace_id: fusionValidated.error.trace_id,
-          elapsed_ms: Date.now() - dispatchStart,
-        },
-      };
-    }
-
-    const elapsed = Date.now() - dispatchStart;
-    const currentTier = degradationMachine.getCurrentTier();
-    const transitionReason = degradationMachine.getTransitionReason();
-    let tierTransition:
-      | { reason: string; from: DegradationTier; to: DegradationTier; timestamp: string }
-      | undefined;
-    if (transitionReason) {
-      const transitionAge = Date.now() - new Date(transitionReason.timestamp).getTime();
-      if (transitionAge < 30000) {
-        tierTransition = transitionReason;
+      if (circuitOpenBlocked && queryResults.length === 0) {
+        const cbError = new MiddlewareError({
+          cause: 'circuit_open',
+          recoverable: true,
+          suggested_action: 'wait_and_retry',
+          tier: degradationMachine.getCurrentTier(),
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(cbError.toShape()) }],
+          metadata: {
+            tier: cbError.tier,
+            trace_id: cbError.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
       }
-    }
 
-    const startupType = isColdStart() ? 'cold' : 'warm';
-    coldStartRecordDispatch(elapsed);
+      const fusedResult = fuse({
+        results: queryResults,
+        intent_type: intent.intent_type,
+      });
 
-    const response = this.contextBuilder.buildContext(fusedContext);
-    response.metadata = {
-      ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
-      elapsed_ms: elapsed,
-      degradation_tier: currentTier,
-      tier_transition: tierTransition,
-      startup_type: startupType,
-    };
+      if (!fusedResult.ok) {
+        log.warn('fusion_failed', {
+          trace_id: traceId,
+          error: fusedResult.error,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(fusedResult.error) }],
+          metadata: {
+            tier: fusedResult.error.tier,
+            trace_id: fusedResult.error.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
+      }
 
-    log.info('dispatch_complete', {
-      trace_id: traceId,
-      intent_type: intent.intent_type,
-      query_count: queries.length,
-      block_count: fusedContext.blocks.length,
-      partial: fusedContext.partial,
-      rejected_count: ctx.errors.length,
-      elapsed_ms: elapsed,
-      degradation_tier: degradationMachine.getCurrentTier(),
-      startup_type: startupType,
-    });
+      log.info('phase_complete', {
+        trace_id: traceId,
+        phase: 'fuse',
+        elapsed_ms: Date.now() - dispatchStart,
+      });
 
-    metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed, startupType);
+      let fusedContext = fusedResult.value;
 
-    const turnSymbols = fusedContext.blocks.map((b) => b.symbol);
-    this.conversationHistory.push({
-      timestamp: new Date().toISOString(),
-      message_text: JSON.stringify(message),
-      symbols: turnSymbols,
-    });
-    const maxCapHist = (this.config.pruning?.max_turn_threshold ?? DEFAULT_PRUNING_THRESHOLD) * 2;
-    if (this.conversationHistory.length > maxCapHist) {
-      this.conversationHistory = this.conversationHistory.slice(-maxCapHist);
-    }
+      if (isIntentReduced) {
+        fusedContext = {
+          blocks: [],
+          partial: true,
+          trace_id: traceId,
+          provenance: [],
+        };
+      }
+      fusedContext.trace_id = traceId;
+      if (ctx.hasDegraded || intent.passthrough) {
+        fusedContext.partial = true;
+      }
 
-    return response;
+      const fusionValidated = validateContext(fusedContext);
+      if (!fusionValidated.ok) {
+        log.warn('fusion_validation_failed', {
+          trace_id: traceId,
+          error: fusionValidated.error,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(fusionValidated.error) }],
+          metadata: {
+            tier: fusionValidated.error.tier,
+            trace_id: fusionValidated.error.trace_id,
+            elapsed_ms: Date.now() - dispatchStart,
+          },
+        };
+      }
+
+      const elapsed = Date.now() - dispatchStart;
+      const currentTier = degradationMachine.getCurrentTier();
+      const transitionReason = degradationMachine.getTransitionReason();
+      let tierTransition:
+        | { reason: string; from: DegradationTier; to: DegradationTier; timestamp: string }
+        | undefined;
+      if (transitionReason) {
+        const transitionAge = Date.now() - new Date(transitionReason.timestamp).getTime();
+        if (transitionAge < 30000) {
+          tierTransition = transitionReason;
+        }
+      }
+
+      const startupType = isColdStart() ? 'cold' : 'warm';
+      coldStartRecordDispatch(elapsed);
+
+      const response = this.contextBuilder.buildContext(fusedContext);
+      response.metadata = {
+        ...(response.metadata ?? ({} as NonNullable<AgentResponse['metadata']>)),
+        elapsed_ms: elapsed,
+        degradation_tier: currentTier,
+        tier_transition: tierTransition,
+        startup_type: startupType,
+      };
+
+      log.info('dispatch_complete', {
+        trace_id: traceId,
+        intent_type: intent.intent_type,
+        query_count: queries.length,
+        block_count: fusedContext.blocks.length,
+        partial: fusedContext.partial,
+        rejected_count: ctx.errors.length,
+        elapsed_ms: elapsed,
+        degradation_tier: degradationMachine.getCurrentTier(),
+        startup_type: startupType,
+      });
+
+      metrics.recordDispatch(true, intent.intent_type, intent.confidence, elapsed, startupType);
+
+      const turnSymbols = fusedContext.blocks.map((b) => b.symbol);
+      this.conversationHistory.push({
+        timestamp: new Date().toISOString(),
+        message_text: JSON.stringify(message),
+        symbols: turnSymbols,
+      });
+      const maxCapHist = (this.config.pruning?.max_turn_threshold ?? DEFAULT_PRUNING_THRESHOLD) * 2;
+      if (this.conversationHistory.length > maxCapHist) {
+        this.conversationHistory = this.conversationHistory.slice(-maxCapHist);
+      }
+
+      return response;
     } finally {
       if (rateLimitSlotAcquired) {
         getRateLimiter()?.releaseSlot();

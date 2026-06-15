@@ -78,16 +78,29 @@ export interface MiddlewareConfig {
   pruning?: PruningConfig;
 }
 
-export const dashboardWarningThresholdsSchema: z.ZodType<DashboardWarningThresholds> = z.object({
-  success_rate_warn: z.number().min(0).max(1),
-  success_rate_crit: z.number().min(0).max(1),
-  latency_p95_warn_ms: z.number().positive(),
-  latency_p95_crit_ms: z.number().positive(),
-  uptime_warn_pct: z.number().min(0).max(100),
-  uptime_crit_pct: z.number().min(0).max(100),
-  confidence_median_warn: z.number().min(0).max(1),
-  confidence_median_crit: z.number().min(0).max(1),
-});
+export const dashboardWarningThresholdsSchema: z.ZodType<DashboardWarningThresholds> = z
+  .object({
+    success_rate_warn: z.number().min(0).max(1),
+    success_rate_crit: z.number().min(0).max(1),
+    latency_p95_warn_ms: z.number().positive(),
+    latency_p95_crit_ms: z.number().positive(),
+    uptime_warn_pct: z.number().min(0).max(100),
+    uptime_crit_pct: z.number().min(0).max(100),
+    confidence_median_warn: z.number().min(0).max(1),
+    confidence_median_crit: z.number().min(0).max(1),
+  })
+  .refine((v) => v.success_rate_crit < v.success_rate_warn, {
+    message: 'success_rate_crit must be lower than success_rate_warn',
+  })
+  .refine((v) => v.latency_p95_crit_ms > v.latency_p95_warn_ms, {
+    message: 'latency_p95_crit_ms must be higher than latency_p95_warn_ms',
+  })
+  .refine((v) => v.uptime_crit_pct < v.uptime_warn_pct, {
+    message: 'uptime_crit_pct must be lower than uptime_warn_pct',
+  })
+  .refine((v) => v.confidence_median_crit < v.confidence_median_warn, {
+    message: 'confidence_median_crit must be lower than confidence_median_warn',
+  });
 
 export const rateLimitingSchema = z.object({
   enabled: z.boolean(),
@@ -155,7 +168,7 @@ export const DEFAULT_CONFIG: MiddlewareConfig = {
   classification_threshold: 0.95,
   dashboard_warning_thresholds: {
     success_rate_warn: 0.95,
-    success_rate_crit: 0.80,
+    success_rate_crit: 0.8,
     latency_p95_warn_ms: 600,
     latency_p95_crit_ms: 900,
     uptime_warn_pct: 90,

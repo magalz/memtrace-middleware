@@ -62,6 +62,10 @@ export async function startServer(config: StartConfig = DEFAULT_CONFIG): Promise
     return;
   }
 
+  // Reserve slot before any async work to prevent concurrent-call races
+  const placeholder = {} as McpServerInstance;
+  activeMcpServer = placeholder;
+
   log.info('server_starting', { version: MIDDLEWARE_VERSION });
 
   try {
@@ -97,6 +101,7 @@ export async function startServer(config: StartConfig = DEFAULT_CONFIG): Promise
       }
     }
     shutdownDegradation();
+    activeMcpServer = null;
 
     process.stderr.write(`Warning: Memtrace backend unavailable — starting in degraded mode\n`);
 
@@ -267,7 +272,9 @@ async function main(): Promise<void> {
       if (saved) {
         process.stdout.write('Baseline saved to ~/.memtrace/baseline.json\n');
       } else {
-        process.stderr.write('Error: failed to save baseline — check file permissions and disk space\n');
+        process.stderr.write(
+          'Error: failed to save baseline — check file permissions and disk space\n'
+        );
       }
       return;
     }
@@ -280,9 +287,7 @@ async function main(): Promise<void> {
     const isCompact = args.includes('--compact');
     const { buildTelemetryResponse } = await import('../telemetry/api.js');
     const response = buildTelemetryResponse();
-    const output = isCompact
-      ? JSON.stringify(response)
-      : JSON.stringify(response, null, 2);
+    const output = isCompact ? JSON.stringify(response) : JSON.stringify(response, null, 2);
     process.stdout.write(output + '\n');
     return;
   }

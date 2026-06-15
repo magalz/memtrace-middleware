@@ -1,7 +1,7 @@
+import { CircuitBreaker } from './circuit-breaker.js';
 import { degradationMachine, DegradationMachine } from './machine.js';
 import { ProbeTimer } from './probe-timer.js';
 import { RateLimiter } from './rate-limiter.js';
-import { CircuitBreaker } from './circuit-breaker.js';
 import type { MemtraceBackend } from '../backend/trait.js';
 import { normalizeFloor, type DegradationFloor, type MiddlewareConfig } from '../config/types.js';
 import { createLogger } from '../logger.js';
@@ -140,4 +140,3 @@ export function shutdownDegradation(): void {
   lastProbeIntervalMs = null;
   log.info('degradation_shutdown');
 }
-

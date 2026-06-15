@@ -29,7 +29,11 @@ export interface DashboardOptions {
   watch?: boolean;
 }
 
-export function healthDot(tier: DegradationTier, flashCounter: number, flashIsUpgrade?: boolean): string {
+export function healthDot(
+  tier: DegradationTier,
+  flashCounter: number,
+  flashIsUpgrade?: boolean
+): string {
   let suffix = '';
   if (flashCounter > 0) {
     suffix = flashIsUpgrade === false ? ' ✗' : ' ✓';
@@ -101,14 +105,13 @@ export function renderDashboard(
   uptimeSeconds: number,
   flashIsUpgrade?: boolean
 ): string[] {
-  const drift: BaselineDrift | null = baseline
-    ? computeDrift(response, baseline)
-    : null;
+  const drift: BaselineDrift | null = baseline ? computeDrift(response, baseline) : null;
 
   const lines: string[] = [];
 
   const tier = response.tier;
-  const healthLine = healthDot(tier, flashCounter, flashIsUpgrade) +
+  const healthLine =
+    healthDot(tier, flashCounter, flashIsUpgrade) +
     `  |  uptime: ${uptimeSeconds}s` +
     `  |  probes: ${response.memtrace_uptime.successful_probes}/${response.memtrace_uptime.total_probes} (${response.memtrace_uptime.probe_success_rate}%)`;
 
@@ -120,7 +123,8 @@ export function renderDashboard(
   if (intentCount === 0) {
     srLines.push(`  ${ANSI_DIM}no data${ANSI_RESET}`);
   } else {
-    const avgSr = Object.values(response.query_success_rate).reduce((avg, v) => avg + v.rate, 0) / intentCount;
+    const avgSr =
+      Object.values(response.query_success_rate).reduce((avg, v) => avg + v.rate, 0) / intentCount;
     const srColor = successRateColor(avgSr, thresholds);
     for (const [intentType, sr] of Object.entries(response.query_success_rate)) {
       srLines.push(`  ${intentType}: ${srColor}${(sr.rate * 100).toFixed(1)}%${ANSI_RESET}`);
@@ -145,6 +149,7 @@ export function renderDashboard(
   for (let i = 0; i < maxPanelLines; i++) {
     const left = leftPanels[i] ?? '';
     const right = rightPanels[i] ?? '';
+    // padEnd(29) may misalign with ANSI codes — cosmetic, two-column layout still functional
     const paddedLeft = left.padEnd(29);
     lines.push(`${paddedLeft}│  ${right}`);
   }
@@ -178,7 +183,9 @@ export function renderDashboard(
     lines.push(pruningDetails);
   } else {
     lines.push('─'.repeat(58));
-    lines.push(`${ANSI_BOLD}pruning${ANSI_RESET}${ANSI_DIM} standby (below threshold or disabled)${ANSI_RESET}`);
+    lines.push(
+      `${ANSI_BOLD}pruning${ANSI_RESET}${ANSI_DIM} standby (below threshold or disabled)${ANSI_RESET}`
+    );
   }
 
   lines.push('─'.repeat(58));
@@ -187,24 +194,18 @@ export function renderDashboard(
   return lines;
 }
 
-function successRateColor(
-  rate: number,
-  thresholds: DashboardWarningThresholds
-): string {
+function successRateColor(rate: number, thresholds: DashboardWarningThresholds): string {
   return panelColor(rate, thresholds.success_rate_warn, thresholds.success_rate_crit, true);
 }
 
-function latencyColor(
-  p95Ms: number,
-  thresholds: DashboardWarningThresholds
-): string {
+function latencyColor(p95Ms: number, thresholds: DashboardWarningThresholds): string {
   return panelColor(p95Ms, thresholds.latency_p95_warn_ms, thresholds.latency_p95_crit_ms, false);
 }
 
 export function renderCompactJson(response: TelemetryApiResponse): string {
-  const avgSuccessRate = Object.values(response.query_success_rate).reduce(
-    (avg, v) => avg + v.rate, 0
-  ) / Math.max(Object.keys(response.query_success_rate).length, 1);
+  const avgSuccessRate =
+    Object.values(response.query_success_rate).reduce((avg, v) => avg + v.rate, 0) /
+    Math.max(Object.keys(response.query_success_rate).length, 1);
   return JSON.stringify({
     status: response.tier === DegradationTier.FailClosed ? 'closed' : 'ok',
     tier: response.tier,
@@ -219,10 +220,10 @@ export function renderCompactJson(response: TelemetryApiResponse): string {
   });
 }
 
-export function startDashboard(options: DashboardOptions = {}): DashboardController {
-  const thresholds: DashboardWarningThresholds = {
+function resolveThresholds(): DashboardWarningThresholds {
+  const defaults: DashboardWarningThresholds = {
     success_rate_warn: 0.95,
-    success_rate_crit: 0.80,
+    success_rate_crit: 0.8,
     latency_p95_warn_ms: 600,
     latency_p95_crit_ms: 900,
     uptime_warn_pct: 90,
@@ -230,7 +231,111 @@ export function startDashboard(options: DashboardOptions = {}): DashboardControl
     confidence_median_warn: 0.9,
     confidence_median_crit: 0.7,
   };
+  try {
+    const cfg = getCurrentConfig();
+    if (cfg.dashboard_warning_thresholds) {
+      return { ...defaults, ...cfg.dashboard_warning_thresholds };
+    }
+  } catch {
+    // use defaults
+  }
+  return defaults;
+}
 
+function setupConfigWatcher(
+  options: DashboardOptions,
+  thresholds: DashboardWarningThresholds,
+  refreshBaseline: () => void
+): (() => void) | null {
+  if (!options.watch) return null;
+
+  const configEmitter = new EventEmitter();
+  let watcherCleanup: (() => void) | null = null;
+
+  try {
+    const configPath = getConfigPath();
+    const watcher = watchConfig(configPath, configEmitter);
+    watcherCleanup = () => watcher.close();
+  } catch {
+    // watch unavailable
+  }
+
+  configEmitter.on('config:changed', () => {
+    try {
+      const cfg = getCurrentConfig();
+      if (cfg.dashboard_warning_thresholds) {
+        Object.assign(thresholds, cfg.dashboard_warning_thresholds);
+      }
+      refreshBaseline();
+    } catch {
+      // keep previous thresholds
+    }
+  });
+
+  return watcherCleanup;
+}
+
+function setupTerminal(onQuit: () => void): {
+  stdinCleanup: (() => void) | null;
+  resizeCleanup: (() => void) | null;
+} {
+  let stdinCleanup: (() => void) | null = null;
+  let resizeCleanup: (() => void) | null = null;
+
+  if (process.stdin.isTTY) {
+    try {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      const handler = (key: Buffer) => {
+        if (key.toString() === 'q') onQuit();
+      };
+      process.stdin.on('data', handler);
+      stdinCleanup = () => {
+        process.stdin.off('data', handler);
+        try {
+          process.stdin.setRawMode(false);
+        } catch {
+          /* best-effort */
+        }
+        process.stdin.pause();
+      };
+    } catch {
+      // stdin setup failed
+    }
+  } else {
+    process.stdout.write(`${ANSI_DIM}[non-interactive mode — press Ctrl+C to exit]${ANSI_RESET}\n`);
+  }
+
+  const resizeHandler = () => {
+    /* re-render on next tick */
+  };
+  process.stdout.on('resize', resizeHandler);
+  resizeCleanup = () => process.stdout.off('resize', resizeHandler);
+
+  return { stdinCleanup, resizeCleanup };
+}
+
+function setupSignalHandlers(onQuit: () => void): (() => void) | null {
+  if (process.listenerCount('SIGINT') > 0 || process.listenerCount('SIGTERM') > 0) {
+    return null;
+  }
+  const sigint = () => {
+    onQuit();
+    process.exit(0);
+  };
+  const sigterm = () => {
+    onQuit();
+    process.exit(0);
+  };
+  process.on('SIGINT', sigint);
+  process.on('SIGTERM', sigterm);
+  return () => {
+    process.off('SIGINT', sigint);
+    process.off('SIGTERM', sigterm);
+  };
+}
+
+export function startDashboard(options: DashboardOptions = {}): DashboardController {
   const isTTY = process.stdout.isTTY ?? false;
 
   if (!isTTY) {
@@ -239,60 +344,45 @@ export function startDashboard(options: DashboardOptions = {}): DashboardControl
     return { stop() {} };
   }
 
-  // Load thresholds from config if available
-  try {
-    const cfg = getCurrentConfig();
-    if (cfg.dashboard_warning_thresholds) {
-      Object.assign(thresholds, cfg.dashboard_warning_thresholds);
-    }
-  } catch {
-    // use defaults
-  }
-
+  const thresholds = resolveThresholds();
   let baseline = loadBaseline();
   let currentTier: DegradationTier = DegradationTier.Full;
   let flashCounter = 0;
+  let flashIsUpgrade = true;
   let stopped = false;
 
-  const configEmitter = new EventEmitter();
-  let configWatchCleanup: (() => void) | null = null;
+  const refreshBaseline = () => {
+    baseline = loadBaseline();
+  };
+  const configWatchCleanup = setupConfigWatcher(options, thresholds, refreshBaseline);
 
-  if (options.watch) {
-    try {
-      const configPath = getConfigPath();
-      const watcher = watchConfig(configPath, configEmitter);
-      configWatchCleanup = () => watcher.close();
-    } catch {
-      // watch unavailable
-    }
-
-    configEmitter.on('config:changed', () => {
-      try {
-        const cfg = getCurrentConfig();
-        if (cfg.dashboard_warning_thresholds) {
-          Object.assign(thresholds, cfg.dashboard_warning_thresholds);
-        }
-      } catch {
-        // keep previous thresholds
-      }
-    });
-  }
-
-  let flashIsUpgrade = true;
+  const { stdinCleanup, resizeCleanup } = setupTerminal(() => {
+    if (!stopped) stop();
+  });
 
   function renderWith(response: TelemetryApiResponse): void {
     const uptimeSeconds = Math.floor(process.uptime());
-    const lines = renderDashboard(response, thresholds, flashCounter, baseline, uptimeSeconds, flashIsUpgrade);
-    const output = `\x1b[H\x1b[2J${lines.join('\n')}\n`;
-    process.stdout.write(output);
+    const lines = renderDashboard(
+      response,
+      thresholds,
+      flashCounter,
+      baseline,
+      uptimeSeconds,
+      flashIsUpgrade
+    );
+    process.stdout.write(`\x1b[H\x1b[2J${lines.join('\n')}\n`);
   }
 
   function tick(): void {
     if (stopped) return;
     const response = buildTelemetryResponse();
-    baseline = loadBaseline();
     if (response.tier !== currentTier) {
-      const tierOrder = [DegradationTier.FailClosed, DegradationTier.Passthrough, DegradationTier.IntentReduced, DegradationTier.Full];
+      const tierOrder = [
+        DegradationTier.FailClosed,
+        DegradationTier.Passthrough,
+        DegradationTier.IntentReduced,
+        DegradationTier.Full,
+      ];
       const oldIdx = tierOrder.indexOf(currentTier);
       const newIdx = tierOrder.indexOf(response.tier);
       flashIsUpgrade = newIdx > oldIdx;
@@ -300,110 +390,24 @@ export function startDashboard(options: DashboardOptions = {}): DashboardControl
       flashCounter = FLASH_DURATION;
     }
     renderWith(response);
-    if (flashCounter > 0) {
-      flashCounter--;
-    }
+    if (flashCounter > 0) flashCounter--;
   }
 
   const interval = setInterval(tick, STATUS_REFRESH_MS);
+  const signalCleanup = setupSignalHandlers(() => {
+    if (!stopped) stop();
+  });
 
-  let stdinHandler: ((key: Buffer) => void) | null = null;
-  let stdinCleanup: (() => void) | null = null;
-
-  function setupStdin(): void {
-    if (!process.stdin.isTTY) {
-      process.stdout.write(`${ANSI_DIM}[non-interactive mode — press Ctrl+C to exit]${ANSI_RESET}\n`);
-      return;
-    }
-    try {
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
-    } catch {
-      return;
-    }
-    stdinHandler = (key: Buffer) => {
-      if (key.toString() === 'q') {
-        stop();
-      }
-    };
-    process.stdin.on('data', stdinHandler);
-    stdinCleanup = () => {
-      if (stdinHandler) {
-        process.stdin.off('data', stdinHandler);
-        stdinHandler = null;
-      }
-      try {
-        process.stdin.setRawMode(false);
-      } catch {
-        // best-effort
-      }
-      process.stdin.pause();
-    };
-  }
-
-  setupStdin();
-
-  let resizeHandler: (() => void) | null = null;
-
-  function setupResizeHandler(): void {
-    resizeHandler = () => {
-      // re-render happens on next tick (500ms)
-    };
-    process.stdout.on('resize', resizeHandler);
-  }
-
-  setupResizeHandler();
-
-  let signalHandlerRegistered = false;
-  let sigintHandler: (() => void) | null = null;
-  let sigtermHandler: (() => void) | null = null;
-
-  function ensureSignalHandlers(): void {
-    if (signalHandlerRegistered) return;
-    if (process.listenerCount('SIGINT') > 0 || process.listenerCount('SIGTERM') > 0) {
-      return;
-    }
-    sigintHandler = () => {
-      stop();
-      process.exit(0);
-    };
-    sigtermHandler = () => {
-      stop();
-      process.exit(0);
-    };
-    process.on('SIGINT', sigintHandler);
-    process.on('SIGTERM', sigtermHandler);
-    signalHandlerRegistered = true;
-  }
-
-  ensureSignalHandlers();
-
-  // initial render
-  tick();
+  tick(); // initial render
 
   function stop(): void {
     if (stopped) return;
     stopped = true;
     clearInterval(interval);
-    if (stdinCleanup) {
-      stdinCleanup();
-      stdinCleanup = null;
-    }
-    if (resizeHandler) {
-      process.stdout.off('resize', resizeHandler);
-      resizeHandler = null;
-    }
-    if (signalHandlerRegistered) {
-      if (sigintHandler) process.off('SIGINT', sigintHandler);
-      if (sigtermHandler) process.off('SIGTERM', sigtermHandler);
-      sigintHandler = null;
-      sigtermHandler = null;
-      signalHandlerRegistered = false;
-    }
-    if (configWatchCleanup) {
-      configWatchCleanup();
-      configWatchCleanup = null;
-    }
+    stdinCleanup?.();
+    resizeCleanup?.();
+    signalCleanup?.();
+    configWatchCleanup?.();
     process.stdout.write('\n');
   }
 
