@@ -142,7 +142,7 @@ export const middlewareConfigSchema: z.ZodType<MiddlewareConfig> = z.object({
 });
 
 export const DEFAULT_CONFIG: MiddlewareConfig = {
-  memtrace_host: 'http://localhost:8080',
+  memtrace_host: 'http://localhost:3030',
   memtrace_token: '',
   timeout_budgets: {
     sub_query_ms: 200,

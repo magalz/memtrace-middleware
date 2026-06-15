@@ -7,6 +7,19 @@ import { createLogger } from '../logger.js';
 
 const log = createLogger('config-discovery');
 
+function readRuntimePort(): number | null {
+  try {
+    const runtimeFile = join(homedir(), '.memtrace', 'runtime.json');
+    if (!existsSync(runtimeFile)) return null;
+    const raw = readFileSync(runtimeFile, 'utf-8');
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof parsed.uiPort === 'number') return parsed.uiPort;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export interface EnvironmentInfo {
   project_root: string;
   has_package_json: boolean;
@@ -69,7 +82,7 @@ export function discoverEnvironment(
     }
   }
 
-  const host = memtraceHost ?? 'http://localhost:8080';
+  const host = memtraceHost ?? `http://localhost:${readRuntimePort() ?? 3030}`;
 
   const sync: EnvironmentInfo = {
     project_root: projectRoot,

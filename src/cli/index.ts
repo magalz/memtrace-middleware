@@ -136,7 +136,7 @@ export async function runInit(force: boolean): Promise<void> {
     sync.memtrace_indexed && sync.workspace_anchor
       ? (readWorkspaceConfig(sync.workspace_anchor)?.host as string | undefined)
       : undefined;
-  host = host ?? process.env['MEMTRACE_HOST'] ?? 'http://localhost:8080';
+  host = host ?? process.env['MEMTRACE_HOST'] ?? 'http://localhost:3030';
 
   let reachable = false;
   try {
