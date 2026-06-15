@@ -23,12 +23,14 @@ import { createLogger } from '../logger.js';
 import { createDegradedMcpServer, createMcpServer, type McpServerInstance } from './mcp-server.js';
 import { startStatusDisplay } from './status.js';
 import { metrics } from '../telemetry/index.js';
+import { exportTelemetrySnapshot } from '../telemetry/api.js';
 import { DegradationTier } from '../types.js';
 
 const log = createLogger('cli');
 
 let activeMcpServer: McpServerInstance | null = null;
 let activeBackend: MemtraceBackend | null = null;
+let telemetryDumpTimer: ReturnType<typeof setInterval> | null = null;
 
 function printUsage(): void {
   process.stderr.write(
@@ -85,6 +87,7 @@ export async function startServer(config: StartConfig = DEFAULT_CONFIG): Promise
     activeMcpServer = mcpServer;
 
     process.stderr.write(`memtrace-middleware v${MIDDLEWARE_VERSION} — MCP server started\n`);
+    telemetryDumpTimer = setInterval(() => exportTelemetrySnapshot(), STATUS_REFRESH_MS);
     await mcpServer.start();
   } catch (err: unknown) {
     log.warn('backend_connection_failed', {
@@ -117,6 +120,7 @@ export async function startServer(config: StartConfig = DEFAULT_CONFIG): Promise
     activeMcpServer = mcpServer;
 
     process.stderr.write(`memtrace-middleware v${MIDDLEWARE_VERSION} — degraded mode\n`);
+    telemetryDumpTimer = setInterval(() => exportTelemetrySnapshot(), STATUS_REFRESH_MS);
     await mcpServer.start();
   }
 }
@@ -283,8 +287,8 @@ async function main(): Promise<void> {
 
   if (args[0] === 'telemetry') {
     const isCompact = args.includes('--compact');
-    const { buildTelemetryResponse } = await import('../telemetry/api.js');
-    const response = buildTelemetryResponse();
+    const { buildTelemetryResponse, loadTelemetrySnapshot } = await import('../telemetry/api.js');
+    const response = loadTelemetrySnapshot() ?? buildTelemetryResponse();
     const output = isCompact ? JSON.stringify(response) : JSON.stringify(response, null, 2);
     process.stdout.write(output + '\n');
     return;
@@ -295,6 +299,12 @@ async function main(): Promise<void> {
 }
 
 export async function shutdown(): Promise<void> {
+  if (telemetryDumpTimer) {
+    clearInterval(telemetryDumpTimer);
+    telemetryDumpTimer = null;
+    // write one final snapshot so the last state is preserved
+    exportTelemetrySnapshot();
+  }
   if (activeMcpServer) {
     try {
       await activeMcpServer.close();
