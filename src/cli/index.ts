@@ -22,8 +22,8 @@ import {
 import { createLogger } from '../logger.js';
 import { createDegradedMcpServer, createMcpServer, type McpServerInstance } from './mcp-server.js';
 import { startStatusDisplay } from './status.js';
-import { metrics } from '../telemetry/index.js';
 import { exportTelemetrySnapshot } from '../telemetry/api.js';
+import { metrics } from '../telemetry/index.js';
 import { DegradationTier } from '../types.js';
 
 const log = createLogger('cli');
