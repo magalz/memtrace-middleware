@@ -4,7 +4,7 @@ import { getConfigPath } from '../config/loader.js';
 import type { DashboardWarningThresholds } from '../config/types.js';
 import { getCurrentConfig, watchConfig } from '../config/watcher.js';
 import { MIDDLEWARE_VERSION, STATUS_REFRESH_MS } from '../constants.js';
-import { buildTelemetryResponse } from '../telemetry/api.js';
+import { buildTelemetryResponse, loadTelemetrySnapshot } from '../telemetry/api.js';
 import { loadBaseline, computeDrift } from '../telemetry/baseline.js';
 import type { BaselineDrift } from '../telemetry/baseline.js';
 import { DegradationTier } from '../types.js';
@@ -339,7 +339,7 @@ export function startDashboard(options: DashboardOptions = {}): DashboardControl
   const isTTY = process.stdout.isTTY ?? false;
 
   if (!isTTY) {
-    const response = buildTelemetryResponse();
+    const response = loadTelemetrySnapshot() ?? buildTelemetryResponse();
     process.stdout.write(renderCompactJson(response) + '\n');
     return { stop() {} };
   }
@@ -375,7 +375,7 @@ export function startDashboard(options: DashboardOptions = {}): DashboardControl
 
   function tick(): void {
     if (stopped) return;
-    const response = buildTelemetryResponse();
+    const response = loadTelemetrySnapshot() ?? buildTelemetryResponse();
     if (response.tier !== currentTier) {
       const tierOrder = [
         DegradationTier.FailClosed,

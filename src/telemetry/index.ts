@@ -1,6 +1,6 @@
 import { metrics as metricsInstance } from './metrics.js';
 
-export { buildTelemetryResponse } from './api.js';
+export { buildTelemetryResponse, exportTelemetrySnapshot, loadTelemetrySnapshot } from './api.js';
 export { RingBuffer } from './ring-buffer.js';
 export { emit } from './emitter.js';
 export { metrics } from './metrics.js';

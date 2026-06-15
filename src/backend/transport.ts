@@ -18,6 +18,7 @@ const logger = createLogger('backend');
 
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000];
 const PROBE_TIMEOUT_MS = 5000;
+const MCP_PATH = '/mcp';
 
 export class MemtraceTransport implements MemtraceBackend {
   private client: Client | null = null;
@@ -39,7 +40,7 @@ export class MemtraceTransport implements MemtraceBackend {
     const config = this.customUrl
       ? ({ memtrace_host: this.customUrl, memtrace_token: '' } as MiddlewareConfig)
       : loadConfig();
-    this.url = new URL(config.memtrace_host);
+    this.url = new URL(MCP_PATH, config.memtrace_host);
     await this.establishConnection(config);
   }
 

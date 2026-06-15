@@ -1,6 +1,43 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
 import { degradationMachine } from '../degrade/machine.js';
 import type { TelemetryApiResponse } from '../types.js';
 import { metrics } from './metrics.js';
+
+const TELEMETRY_FILE = join(homedir(), '.memtrace', 'last-telemetry.json');
+
+function ensureTelemetryDir(): void {
+  const dir = join(homedir(), '.memtrace');
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
+export function exportTelemetrySnapshot(): void {
+  try {
+    ensureTelemetryDir();
+    const response = buildTelemetryResponse();
+    writeFileSync(TELEMETRY_FILE, JSON.stringify(response), 'utf-8');
+  } catch {
+    // best-effort — telemetry export failure must not crash the server
+  }
+}
+
+export function loadTelemetrySnapshot(): TelemetryApiResponse | null {
+  try {
+    if (!existsSync(TELEMETRY_FILE)) return null;
+    const raw = readFileSync(TELEMETRY_FILE, 'utf-8');
+    const parsed = JSON.parse(raw) as TelemetryApiResponse;
+    // reject stale snapshots (older than 10 seconds)
+    const age = Date.now() - new Date(parsed.timestamp).getTime();
+    if (age > 10_000) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 function computeTelemetryPercentiles(values: number[]): {
   p50_ms: number;
