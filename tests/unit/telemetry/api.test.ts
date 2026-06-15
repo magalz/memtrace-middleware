@@ -123,7 +123,14 @@ describe('buildTelemetryResponse', () => {
   });
 
   it('[P1] [Story 9.3] pruning field populated after recordPruning', () => {
-    const stats = { pruned_count: 15, retained_count: 7, recency_count: 5, structural_count: 2, memfleet_count: 0, tokens_saved_estimate: 90 };
+    const stats = {
+      pruned_count: 15,
+      retained_count: 7,
+      recency_count: 5,
+      structural_count: 2,
+      memfleet_count: 0,
+      tokens_saved_estimate: 90,
+    };
     metrics.recordPruning(stats);
     const response = buildTelemetryResponse();
     expect(response.pruning).toEqual(stats);

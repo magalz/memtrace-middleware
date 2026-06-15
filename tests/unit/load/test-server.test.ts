@@ -16,7 +16,18 @@ function createMockBackend(): MemtraceBackend {
     async execute(query: GraphQuery, _signal: AbortSignal): Promise<QueryResult> {
       return {
         tool: query.tool,
-        data: { blocks: [{ symbol: 'testSymbol', file_path: 'test/file.ts', start_line: 1, end_line: 10, centrality: 0.5, query_type: query.tool }] },
+        data: {
+          blocks: [
+            {
+              symbol: 'testSymbol',
+              file_path: 'test/file.ts',
+              start_line: 1,
+              end_line: 10,
+              centrality: 0.5,
+              query_type: query.tool,
+            },
+          ],
+        },
         trace_id: `mock-${Math.random().toString(36).slice(2, 6)}`,
         elapsed_ms: 45,
         degraded: false,
@@ -34,7 +45,10 @@ function createMockBackend(): MemtraceBackend {
   };
 }
 
-async function fetchJson(rawUrl: string, options?: http.RequestOptions & { body?: string }): Promise<{ status: number; body: unknown }> {
+async function fetchJson(
+  rawUrl: string,
+  options?: http.RequestOptions & { body?: string }
+): Promise<{ status: number; body: unknown }> {
   return new Promise((resolve, reject) => {
     const url = new URL(rawUrl);
     const reqOpts: http.RequestOptions = {
@@ -194,7 +208,10 @@ describe('test-server HTTP endpoints', () => {
     });
     expect(down.status).toBe(200);
     if (down.body && typeof down.body === 'object') {
-      expect((down.body as Record<string, unknown>)).toHaveProperty('status', 'memtrace_disconnected');
+      expect(down.body as Record<string, unknown>).toHaveProperty(
+        'status',
+        'memtrace_disconnected'
+      );
     }
 
     // Then reconnect
@@ -205,7 +222,7 @@ describe('test-server HTTP endpoints', () => {
     });
     expect(up.status).toBe(200);
     if (up.body && typeof up.body === 'object') {
-      expect((up.body as Record<string, unknown>)).toHaveProperty('status', 'memtrace_reconnected');
+      expect(up.body as Record<string, unknown>).toHaveProperty('status', 'memtrace_reconnected');
     }
   }, 15000);
 
@@ -228,16 +245,21 @@ describe('test-server HTTP endpoints', () => {
       await stopTestServer(handle);
     });
 
-    const { status, body } = await fetchJson(`http://localhost:${handle.port}/simulate/memtrace-up`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    });
+    const { status, body } = await fetchJson(
+      `http://localhost:${handle.port}/simulate/memtrace-up`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }
+    );
     expect(status).toBe(200);
     if (body && typeof body === 'object') {
       const obj = body as Record<string, unknown>;
       // already-connected guard returns 'already_connected', not 'memtrace_reconnected'
-      expect(obj.status === 'already_connected' || obj.status === 'memtrace_reconnected').toBe(true);
+      expect(obj.status === 'already_connected' || obj.status === 'memtrace_reconnected').toBe(
+        true
+      );
     }
   }, 15000);
 

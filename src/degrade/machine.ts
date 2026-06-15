@@ -208,4 +208,3 @@ export class DegradationMachine {
 }
 
 export const degradationMachine = new DegradationMachine();
-

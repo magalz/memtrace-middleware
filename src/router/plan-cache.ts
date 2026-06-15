@@ -22,10 +22,7 @@ export function buildCacheKey(intentType: string, args: unknown): string {
   } catch {
     return `${intentType}:${randomUUID().slice(0, 16)}`;
   }
-  const hash = createHash('sha256')
-    .update(serialized)
-    .digest('hex')
-    .slice(0, 16);
+  const hash = createHash('sha256').update(serialized).digest('hex').slice(0, 16);
   return `${intentType}:${hash}`;
 }
 

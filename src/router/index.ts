@@ -4,4 +4,9 @@ export { buildCacheKey, PlanCache, planCache } from './plan-cache.js';
 export { pruneHistory } from './pruning.js';
 export { IntentRegistry } from './types.js';
 export type { IntentType, IntentDefinition } from './types.js';
-export type { ConversationTurn, ConversationHistory, PruningConfig, PruningStats } from './pruning.js';
+export type {
+  ConversationTurn,
+  ConversationHistory,
+  PruningConfig,
+  PruningStats,
+} from './pruning.js';

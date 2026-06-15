@@ -4,10 +4,7 @@ import type { MemtraceBackend } from '../src/backend/trait.js';
 import { MemtraceTransport } from '../src/backend/transport.js';
 import { loadConfig } from '../src/config/index.js';
 import { DEFAULT_CONFIG, type MiddlewareConfig } from '../src/config/types.js';
-import {
-  initializeDegradation,
-  shutdownDegradation,
-} from '../src/degrade/index.js';
+import { initializeDegradation, shutdownDegradation } from '../src/degrade/index.js';
 import { degradationMachine } from '../src/degrade/machine.js';
 import { createLogger } from '../src/logger.js';
 import { metrics } from '../src/telemetry/metrics.js';
@@ -18,17 +15,49 @@ const log = createLogger('test-server');
 const DEFAULT_TEST_PORT = 3000;
 const INTENT_REGISTRY = [
   { name: 'find_code', tool: 'memtrace_find_code', args: { query: 'auth', file_path: 'src/' } },
-  { name: 'get_symbol_context', tool: 'memtrace_get_symbol_context', args: { symbol: 'validateToken', repo_id: 'my-repo' } },
-  { name: 'get_impact', tool: 'memtrace_get_impact', args: { target: 'validateToken', repo_id: 'my-repo' } },
-  { name: 'review_code', tool: 'memtrace_find_ast_review_issues', args: { diff: '', repo_root: '.' } },
+  {
+    name: 'get_symbol_context',
+    tool: 'memtrace_get_symbol_context',
+    args: { symbol: 'validateToken', repo_id: 'my-repo' },
+  },
+  {
+    name: 'get_impact',
+    tool: 'memtrace_get_impact',
+    args: { target: 'validateToken', repo_id: 'my-repo' },
+  },
+  {
+    name: 'review_code',
+    tool: 'memtrace_find_ast_review_issues',
+    args: { diff: '', repo_root: '.' },
+  },
   { name: 'get_style_fingerprint', tool: 'get_style_fingerprint', args: { repo_id: 'my-repo' } },
   { name: 'find_dead_code', tool: 'memtrace_find_dead_code', args: { repo_id: 'my-repo' } },
-  { name: 'get_evolution', tool: 'memtrace_get_evolution', args: { repo_id: 'my-repo', from: '7d ago' } },
-  { name: 'get_process_flow', tool: 'memtrace_get_process_flow', args: { process: 'login', repo_id: 'my-repo' } },
+  {
+    name: 'get_evolution',
+    tool: 'memtrace_get_evolution',
+    args: { repo_id: 'my-repo', from: '7d ago' },
+  },
+  {
+    name: 'get_process_flow',
+    tool: 'memtrace_get_process_flow',
+    args: { process: 'login', repo_id: 'my-repo' },
+  },
   { name: 'get_api_topology', tool: 'memtrace_get_api_topology', args: {} },
-  { name: 'find_bridge_symbols', tool: 'memtrace_find_bridge_symbols', args: { repo_id: 'my-repo' } },
-  { name: 'find_central_symbols', tool: 'memtrace_find_central_symbols', args: { repo_id: 'my-repo' } },
-  { name: 'find_dependency_path', tool: 'memtrace_find_dependency_path', args: { source: 'login', target: 'db', repo_id: 'my-repo' } },
+  {
+    name: 'find_bridge_symbols',
+    tool: 'memtrace_find_bridge_symbols',
+    args: { repo_id: 'my-repo' },
+  },
+  {
+    name: 'find_central_symbols',
+    tool: 'memtrace_find_central_symbols',
+    args: { repo_id: 'my-repo' },
+  },
+  {
+    name: 'find_dependency_path',
+    tool: 'memtrace_find_dependency_path',
+    args: { source: 'login', target: 'db', repo_id: 'my-repo' },
+  },
 ];
 
 function getRandomIntent(): { name: string; tool: string; args: Record<string, unknown> } {
@@ -95,14 +124,22 @@ export async function startTestServer(
     try {
       if (method === 'POST' && url === '/dispatch') {
         const body = await readBody(req);
-        let toolCall: { tool_call?: string; args?: Record<string, unknown>; startup?: string } | null;
+        let toolCall: {
+          tool_call?: string;
+          args?: Record<string, unknown>;
+          startup?: string;
+        } | null;
         try {
           const parsed = JSON.parse(body);
           if (parsed === null || typeof parsed !== 'object') {
             errorResponse(res, 400, 'JSON body must be an object');
             return;
           }
-          toolCall = parsed as { tool_call?: string; args?: Record<string, unknown>; startup?: string };
+          toolCall = parsed as {
+            tool_call?: string;
+            args?: Record<string, unknown>;
+            startup?: string;
+          };
         } catch {
           errorResponse(res, 400, 'invalid JSON body');
           return;
@@ -153,7 +190,10 @@ export async function startTestServer(
           }
           backendConnected = false;
           log.info('memtrace_disconnected_simulated');
-          jsonResponse(res, 200, { status: 'memtrace_disconnected', tier: degradationMachine.getCurrentTier() });
+          jsonResponse(res, 200, {
+            status: 'memtrace_disconnected',
+            tier: degradationMachine.getCurrentTier(),
+          });
         } catch (err: unknown) {
           log.error('disconnect_failed', { error: String(err) });
           errorResponse(res, 500, 'failed to disconnect');
@@ -163,7 +203,10 @@ export async function startTestServer(
 
       if (method === 'POST' && url === '/simulate/memtrace-up') {
         if (backendConnected) {
-          jsonResponse(res, 200, { status: 'already_connected', tier: degradationMachine.getCurrentTier() });
+          jsonResponse(res, 200, {
+            status: 'already_connected',
+            tier: degradationMachine.getCurrentTier(),
+          });
           return;
         }
         try {
@@ -172,7 +215,10 @@ export async function startTestServer(
           }
           backendConnected = true;
           log.info('memtrace_reconnected_simulated');
-          jsonResponse(res, 200, { status: 'memtrace_reconnected', tier: degradationMachine.getCurrentTier() });
+          jsonResponse(res, 200, {
+            status: 'memtrace_reconnected',
+            tier: degradationMachine.getCurrentTier(),
+          });
         } catch (err: unknown) {
           log.error('reconnect_failed', { error: String(err) });
           errorResponse(res, 500, 'failed to reconnect');

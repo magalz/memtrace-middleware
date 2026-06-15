@@ -8,14 +8,14 @@ pnpm install
 
 ## Test Commands
 
-| Command                              | Description              |
-| ------------------------------------ | ------------------------ |
-| `pnpm test`                          | Unit + integration tests |
-| `pnpm test -- --run tests/contract/` | Contract canary tests    |
-| `pnpm test:load:ring-buffer`         | k6 ring buffer stress    |
-| `pnpm test:load:latency`             | k6 latency validation    |
-| `pnpm test:load:degradation`         | k6 degradation simulation|
-| `pnpm test:load`                     | All k6 load tests        |
+| Command                              | Description               |
+| ------------------------------------ | ------------------------- |
+| `pnpm test`                          | Unit + integration tests  |
+| `pnpm test -- --run tests/contract/` | Contract canary tests     |
+| `pnpm test:load:ring-buffer`         | k6 ring buffer stress     |
+| `pnpm test:load:latency`             | k6 latency validation     |
+| `pnpm test:load:degradation`         | k6 degradation simulation |
+| `pnpm test:load`                     | All k6 load tests         |
 
 ## Lint & Build
 
