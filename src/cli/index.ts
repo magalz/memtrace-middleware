@@ -321,8 +321,7 @@ export async function shutdown(): Promise<void> {
   clearForceTier();
 }
 
-const isMainModule =
-  typeof require !== 'undefined' && require.main === module;
+const isMainModule = typeof require !== 'undefined' && require.main === module;
 if (isMainModule) {
   (async () => {
     try {
