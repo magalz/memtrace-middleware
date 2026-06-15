@@ -32,7 +32,7 @@ let activeBackend: MemtraceBackend | null = null;
 
 function printUsage(): void {
   process.stderr.write(
-    'usage: memtrace --status | init [--force] | start [--force-tier <tier>] [--degradation-floor <tier>] | telemetry [--compact] | dashboard [--watch] [--set-baseline]\n'
+    'usage: mtm --status | init [--force] | start [--force-tier <tier>] [--degradation-floor <tier>] | telemetry [--compact] | dashboard [--watch] [--set-baseline]\n'
   );
 }
 
