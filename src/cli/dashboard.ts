@@ -29,6 +29,16 @@ export interface DashboardOptions {
   watch?: boolean;
 }
 
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function visualPadEnd(text: string, length: number): string {
+  const visible = stripAnsi(text);
+  const padLen = Math.max(0, length - visible.length);
+  return text + ' '.repeat(padLen);
+}
+
 export function healthDot(
   tier: DegradationTier,
   flashCounter: number,
@@ -150,7 +160,7 @@ export function renderDashboard(
     const left = leftPanels[i] ?? '';
     const right = rightPanels[i] ?? '';
     // padEnd(29) may misalign with ANSI codes — cosmetic, two-column layout still functional
-    const paddedLeft = left.padEnd(29);
+    const paddedLeft = visualPadEnd(left, 29);
     lines.push(`${paddedLeft}│  ${right}`);
   }
 
@@ -167,10 +177,10 @@ export function renderDashboard(
   const overridesLine = `${ANSI_BOLD}⚡ overrides: ${response.override_frequency.total_overrides}${ANSI_RESET}${overridesDrift}`;
   const overridesDetails = '  (cumulative)';
 
-  lines.push(`${latencyLine.padEnd(29)}│  ${overridesLine}`);
-  lines.push(`${latencyDetails.padEnd(29)}│  ${overridesDetails}`);
+  lines.push(`${visualPadEnd(latencyLine, 29)}│  ${overridesLine}`);
+  lines.push(`${visualPadEnd(latencyDetails, 29)}│  ${overridesDetails}`);
   if (sparklineLine) {
-    lines.push(`${sparklineLine.padEnd(29)}│`);
+    lines.push(`${visualPadEnd(sparklineLine, 29)}│`);
   }
 
   // Pruning panel
@@ -350,6 +360,7 @@ export function startDashboard(options: DashboardOptions = {}): DashboardControl
   let flashCounter = 0;
   let flashIsUpgrade = true;
   let stopped = false;
+  let previousLineCount = 0;
 
   const refreshBaseline = () => {
     baseline = loadBaseline();
@@ -370,7 +381,12 @@ export function startDashboard(options: DashboardOptions = {}): DashboardControl
       uptimeSeconds,
       flashIsUpgrade
     );
-    process.stdout.write(`\x1b[H\x1b[2J${lines.join('\n')}\n`);
+    if (previousLineCount > 0) {
+      process.stdout.write(`\x1b[${previousLineCount}A`);
+    }
+    process.stdout.write(lines.join('\n') + '\n');
+    process.stdout.write('\x1b[J');
+    previousLineCount = lines.length;
   }
 
   function tick(): void {
